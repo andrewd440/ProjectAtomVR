@@ -1,12 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
 #include "HeroBase.h"
 
 #include "HeroHand.h"
+#include "HeroMovementType.h"
+#include "HeroMovementComponent.h"
+
+const FName AHeroBase::MovementTypeComponentName = TEXT("MovementType");
 
 // Sets default values
-AHeroBase::AHeroBase()
+AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+	: Super(ObjectInitializer)
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -19,6 +24,9 @@ AHeroBase::AHeroBase()
 	Camera->SetupAttachment(VROrigin);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
+	
+	MovementType = CreateDefaultSubobject<UHeroMovementType>(MovementTypeComponentName);
+	MovementComponent = CreateDefaultSubobject<UHeroMovementComponent>(TEXT("MovementComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -44,35 +52,44 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 {
 	Super::SetupPlayerInputComponent(InInputComponent);
 
+	check(MovementType && "Movement type for hero is null. Please assign a valid movement type.");
+	MovementType->SetupPlayerInputComponent(InInputComponent);
 }
 
 void AHeroBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	// Spawn each hero hand
 	if (HasAuthority())
 	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = this;
-
-		if (DominateHandTemplate)
+		// Spawn each hero hand
 		{
-			SpawnParams.Name = TEXT("DominateHand");
-			DominateHand = GetWorld()->SpawnActor<AHeroHand>(DominateHandTemplate, SpawnParams);
-			DominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = this;
 
-			DominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Right : AHeroHand::EHandedness::Left, AHeroHand::EDominance::Dominate);
-		}
+			if (DominateHandTemplate)
+			{
+				SpawnParams.Name = TEXT("DominateHand");
+				DominateHand = GetWorld()->SpawnActor<AHeroHand>(DominateHandTemplate, SpawnParams);
+				DominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-		if (NonDominateHandTemplate)
-		{
-			SpawnParams.Name = TEXT("NonDominateHand");
-			NonDominateHand = GetWorld()->SpawnActor<AHeroHand>(NonDominateHandTemplate, SpawnParams);
-			NonDominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				DominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Right : AHeroHand::EHandedness::Left, AHeroHand::EDominance::Dominate);
+			}
 
-			NonDominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Left : AHeroHand::EHandedness::Right, AHeroHand::EDominance::NonDominate);
+			if (NonDominateHandTemplate)
+			{
+				SpawnParams.Name = TEXT("NonDominateHand");
+				NonDominateHand = GetWorld()->SpawnActor<AHeroHand>(NonDominateHandTemplate, SpawnParams);
+				NonDominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+				NonDominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Left : AHeroHand::EHandedness::Right, AHeroHand::EDominance::NonDominate);
+			}
 		}
 	}
+}
+
+UPawnMovementComponent* AHeroBase::GetMovementComponent() const
+{
+	return MovementComponent;
 }

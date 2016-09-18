@@ -1,19 +1,21 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GameFramework/Pawn.h"
 #include "HeroBase.generated.h"
 
-class AHeroHand;
-
 UCLASS(Blueprintable, Config=Game)
 class PROJECTATOMVR_API AHeroBase : public APawn
 {
 	GENERATED_BODY()
+	
+public:
+	/** Name of the MovementType component. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
+	static const FName MovementTypeComponentName;
 
 public:
-	AHeroBase();
+	AHeroBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual void BeginPlay() override;
 	
@@ -21,16 +23,19 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
+	bool IsRightHanded() const { return bIsRightHanded; }
+
 	/** APawn Interface Begin */
 	virtual void PostInitializeComponents() override;
+	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	/** APawn Interface End */
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	TSubclassOf<AHeroHand> DominateHandTemplate;
+	TSubclassOf<class AHeroHand> DominateHandTemplate;
 
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	TSubclassOf<AHeroHand> NonDominateHandTemplate;
+	TSubclassOf<class AHeroHand> NonDominateHandTemplate;
 
 	//UHeroWeapon* Primary;
 	//UHeroWeapon* Secondary;
@@ -49,13 +54,26 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* Camera;
 
-	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	AHeroHand* DominateHand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class UHeroMovementComponent* MovementComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class UHeroMovementType* MovementType;
 
 	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	AHeroHand* NonDominateHand;
+	class AHeroHand* DominateHand;
+
+	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class AHeroHand* NonDominateHand;
 
 	/** If the player is right hand dominant. */
 	UPROPERTY(config)
 	uint32 bIsRightHanded : 1;
+
+public:
+	FORCEINLINE USceneComponent* GetVROrigin() const { return VROrigin; }
+	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
+	FORCEINLINE AHeroHand* GetDominateHand() const { return DominateHand; }
+	FORCEINLINE AHeroHand* GetNonDominateHand() const { return NonDominateHand; }
+	FORCEINLINE UHeroMovementType* GetMovementType() const { return MovementType; }
 };
