@@ -8,7 +8,7 @@
 /**
  * 
  */
-UCLASS(Abstract)
+UCLASS(Abstract, Blueprintable)
 class PROJECTATOMVR_API UHeroMovementType : public UActorComponent
 {
 	GENERATED_BODY()

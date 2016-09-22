@@ -7,8 +7,6 @@
 #include "HeroMovementType.h"
 #include "HeroMovementComponent.h"
 
-const FName AHeroBase::MovementTypeComponentName = TEXT("MovementType");
-
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -25,7 +23,6 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
 	
-	MovementType = CreateDefaultSubobject<UHeroMovementType>(MovementTypeComponentName);
 	MovementComponent = CreateDefaultSubobject<UHeroMovementComponent>(TEXT("MovementComponent"));
 }
 
@@ -52,8 +49,14 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 {
 	Super::SetupPlayerInputComponent(InInputComponent);
 
-	check(MovementType && "Movement type for hero is null. Please assign a valid movement type.");
-	MovementType->SetupPlayerInputComponent(InInputComponent);
+	// Setup all movement types component input bindings
+	TInlineComponentArray<UHeroMovementType*> MovementTypeComponents;
+	GetComponents(MovementTypeComponents);
+
+	for (auto MovementType : MovementTypeComponents)
+	{
+		MovementType->SetupPlayerInputComponent(InInputComponent);
+	}
 }
 
 void AHeroBase::PostInitializeComponents()
@@ -92,4 +95,39 @@ void AHeroBase::PostInitializeComponents()
 UPawnMovementComponent* AHeroBase::GetMovementComponent() const
 {
 	return MovementComponent;
+}
+
+bool AHeroBase::TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest /*= false*/, bool bNoCheck /*= false*/)
+{
+	// Get correct location and rotation
+	const FVector RootDestination = DestLocation - FVector{ Camera->RelativeLocation.X, Camera->RelativeLocation.Y, 0 };
+
+	if (IsLocallyControlled())
+	{
+		// Set camera fade if local
+		APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
+
+		// Fade camera
+		PlayerCameraManager->StartCameraFade(0.f, 1.f, 0.1f, FLinearColor::Black, false, true);
+
+		// Set delegate to finish the teleport
+		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AHeroBase::FinishTeleport, RootDestination, GetActorRotation());
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, FinishTeleportDelegate, 0.1f, false);
+		return true;
+	}
+	else
+	{
+		// Just teleport if server call
+		return Super::TeleportTo(RootDestination, GetActorRotation(), bIsATest, bNoCheck);
+	}
+}
+
+void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
+{	
+	Super::TeleportTo(DestLocation, DestRotation, false, false); // if true, call server teleport
+
+	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
+	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
+	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
 }

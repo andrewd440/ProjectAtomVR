@@ -6,7 +6,7 @@
 
 
 ATeleportHero::ATeleportHero(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTeleportMovementType>(Super::MovementTypeComponentName))
+	: Super(ObjectInitializer)
 {
 
 }

@@ -9,10 +9,6 @@ UCLASS(Blueprintable, Config=Game)
 class PROJECTATOMVR_API AHeroBase : public APawn
 {
 	GENERATED_BODY()
-	
-public:
-	/** Name of the MovementType component. Use this name if you want to use a different class (with ObjectInitializer.SetDefaultSubobjectClass). */
-	static const FName MovementTypeComponentName;
 
 public:
 	AHeroBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -29,6 +25,13 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	/** APawn Interface End */
+
+	/** AActor Interface Begin */
+	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) override;
+	/** AActor Interface End */
+
+protected:
+	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
@@ -57,9 +60,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroMovementComponent* MovementComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UHeroMovementType* MovementType;
-
 	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class AHeroHand* DominateHand;
 
@@ -75,5 +75,4 @@ public:
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 	FORCEINLINE AHeroHand* GetDominateHand() const { return DominateHand; }
 	FORCEINLINE AHeroHand* GetNonDominateHand() const { return NonDominateHand; }
-	FORCEINLINE UHeroMovementType* GetMovementType() const { return MovementType; }
 };
