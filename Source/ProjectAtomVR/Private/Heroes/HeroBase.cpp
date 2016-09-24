@@ -3,9 +3,9 @@
 #include "ProjectAtomVR.h"
 #include "HeroBase.h"
 
-#include "HeroHand.h"
 #include "HeroMovementType.h"
 #include "HeroMovementComponent.h"
+#include "MotionComponents/NetMotionControllerComponent.h"
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -18,12 +18,32 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	VROrigin = CreateDefaultSubobject<USceneComponent>(TEXT("VROrigin"));
 	RootComponent = VROrigin;
 
+	// Setup camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VROrigin);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
 	
+	// Setup movement
 	MovementComponent = CreateDefaultSubobject<UHeroMovementComponent>(TEXT("MovementComponent"));
+
+	// Setup left hand
+	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("DominateHandController"));
+	LeftHandController->Hand = EControllerHand::Left;
+	LeftHandController->SetupAttachment(VROrigin);
+	LeftHandController->SetIsReplicated(true);
+
+	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DominateHandMesh"));
+	LeftHandMesh->SetupAttachment(LeftHandController);
+
+	// Setup right hand
+	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("NonDominateHandController"));
+	RightHandController->Hand = EControllerHand::Right;
+	RightHandController->SetupAttachment(VROrigin);
+	RightHandController->SetIsReplicated(true);
+	
+	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("NonDominateHandMesh"));
+	RightHandMesh->SetupAttachment(RightHandController);
 }
 
 // Called when the game starts or when spawned
@@ -61,35 +81,7 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 
 void AHeroBase::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();
-
-	if (HasAuthority())
-	{
-		// Spawn each hero hand
-		{
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = this;
-			SpawnParams.Instigator = this;
-
-			if (DominateHandTemplate)
-			{
-				SpawnParams.Name = TEXT("DominateHand");
-				DominateHand = GetWorld()->SpawnActor<AHeroHand>(DominateHandTemplate, SpawnParams);
-				DominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-
-				DominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Right : AHeroHand::EHandedness::Left, AHeroHand::EDominance::Dominate);
-			}
-
-			if (NonDominateHandTemplate)
-			{
-				SpawnParams.Name = TEXT("NonDominateHand");
-				NonDominateHand = GetWorld()->SpawnActor<AHeroHand>(NonDominateHandTemplate, SpawnParams);
-				NonDominateHand->AttachToComponent(VROrigin, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-
-				NonDominateHand->SetHandDominance(bIsRightHanded ? AHeroHand::EHandedness::Left : AHeroHand::EHandedness::Right, AHeroHand::EDominance::NonDominate);
-			}
-		}
-	}
+	Super::PostInitializeComponents();	
 }
 
 UPawnMovementComponent* AHeroBase::GetMovementComponent() const
@@ -97,7 +89,7 @@ UPawnMovementComponent* AHeroBase::GetMovementComponent() const
 	return MovementComponent;
 }
 
-bool AHeroBase::TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest /*= false*/, bool bNoCheck /*= false*/)
+void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
 {
 	// Get correct location and rotation
 	const FVector RootDestination = DestLocation - FVector{ Camera->RelativeLocation.X, Camera->RelativeLocation.Y, 0 };
@@ -114,20 +106,34 @@ bool AHeroBase::TeleportTo(const FVector& DestLocation, const FRotator& DestRota
 		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AHeroBase::FinishTeleport, RootDestination, GetActorRotation());
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, FinishTeleportDelegate, 0.1f, false);
-		return true;
 	}
 	else
 	{
-		// Just teleport if server call
-		return Super::TeleportTo(RootDestination, GetActorRotation(), bIsATest, bNoCheck);
+		// Just teleport if server call and not locally controlled
+		TeleportTo(RootDestination, GetActorRotation());
 	}
 }
 
 void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 {	
-	Super::TeleportTo(DestLocation, DestRotation, false, false); // if true, call server teleport
+	if (TeleportTo(DestLocation, DestRotation) && !HasAuthority())
+	{
+		// Only send to server if teleport was valid
+		ServerMovementTeleport(DestLocation, DestRotation);
+	}
 
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
+}
+
+void AHeroBase::ServerMovementTeleport_Implementation(const FVector& DestLocation, const FRotator& DestRotation)
+{
+	TeleportTo(DestLocation, DestRotation);
+}
+
+bool AHeroBase::ServerMovementTeleport_Validate(const FVector& DestLocation, const FRotator& DestRotation)
+{
+	// #AtomTodo Maybe check teleport range and DestLocation validity
+	return true;
 }

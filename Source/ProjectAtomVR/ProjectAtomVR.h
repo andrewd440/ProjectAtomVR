@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine.h"
+#include "UnrealNetwork.h"
 
 /** VR Includes */
 #include "IHeadMountedDisplay.h"
@@ -12,6 +13,7 @@
 #include "OnlineSubsystem.h"
 
 /** Gameplay Includes */
+#include "AtomTypes.h"
 #include "HeroBase.h"
 
 /** Logging */

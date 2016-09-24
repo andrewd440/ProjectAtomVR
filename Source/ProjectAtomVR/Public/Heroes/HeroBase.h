@@ -11,6 +11,13 @@ class PROJECTATOMVR_API AHeroBase : public APawn
 	GENERATED_BODY()
 
 public:
+	enum class EHandType
+	{
+		Left,
+		Right
+	};
+
+public:
 	AHeroBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual void BeginPlay() override;
@@ -21,24 +28,20 @@ public:
 
 	bool IsRightHanded() const { return bIsRightHanded; }
 
+	virtual void MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
+
 	/** APawn Interface Begin */
 	virtual void PostInitializeComponents() override;
 	virtual UPawnMovementComponent* GetMovementComponent() const override;
 	/** APawn Interface End */
 
-	/** AActor Interface Begin */
-	virtual bool TeleportTo(const FVector& DestLocation, const FRotator& DestRotation, bool bIsATest = false, bool bNoCheck = false) override;
-	/** AActor Interface End */
-
 protected:
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
-protected:
-	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	TSubclassOf<class AHeroHand> DominateHandTemplate;
+	UFUNCTION(Server, Reliable, WithValidation)
+	virtual void ServerMovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
 
-	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	TSubclassOf<class AHeroHand> NonDominateHandTemplate;
+protected:
 
 	//UHeroWeapon* Primary;
 	//UHeroWeapon* Secondary;
@@ -60,19 +63,30 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroMovementComponent* MovementComponent;
 
-	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class AHeroHand* DominateHand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class UNetMotionControllerComponent* LeftHandController;
 
-	UPROPERTY(BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class AHeroHand* NonDominateHand;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* LeftHandMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class UNetMotionControllerComponent* RightHandController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* RightHandMesh;
 
 	/** If the player is right hand dominant. */
 	UPROPERTY(config)
 	uint32 bIsRightHanded : 1;
 
 public:
-	FORCEINLINE USceneComponent* GetVROrigin() const { return VROrigin; }
-	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
-	FORCEINLINE AHeroHand* GetDominateHand() const { return DominateHand; }
-	FORCEINLINE AHeroHand* GetNonDominateHand() const { return NonDominateHand; }
+	USceneComponent* GetVROrigin() const;
+	UCameraComponent* GetCamera() const;
+	USkeletalMeshComponent* GetHandMesh(EHandType Hand) const;
+	UNetMotionControllerComponent* GetHandController(EHandType Hand) const;
 };
+
+FORCEINLINE USceneComponent* AHeroBase::GetVROrigin() const { return VROrigin; }
+FORCEINLINE UCameraComponent* AHeroBase::GetCamera() const { return Camera; }
+FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandMesh : RightHandMesh; }
+FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandController : RightHandController; }

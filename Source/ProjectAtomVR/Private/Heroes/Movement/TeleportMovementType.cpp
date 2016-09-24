@@ -6,8 +6,7 @@
 #include "Components/SplineMeshComponent.h"
 #include "Components/SplineComponent.h"
 
-#include "HeroHand.h"
-
+#include "MotionComponents/NetMotionControllerComponent.h"
 
 UTeleportMovementType::UTeleportMovementType(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -213,11 +212,8 @@ void UTeleportMovementType::OnTeleportPressed()
 	}
 
 	// Attach the teleport arc to non-dominate hand
-	AHeroHand* const AttachHand = GetHero()->GetNonDominateHand();
-	if (AttachHand)
-	{
-		ArcSpline->AttachToComponent(AttachHand->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-	}
+	const AHeroBase::EHandType TeleportHand = GetHero()->IsRightHanded() ? AHeroBase::EHandType::Left : AHeroBase::EHandType::Right;
+	ArcSpline->AttachToComponent(GetHero()->GetHandController(TeleportHand), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	bIsTeleportActive = true;
 }
@@ -226,7 +222,7 @@ void UTeleportMovementType::OnTeleportReleased()
 {
 	if (bIsTargetValid)
 	{
-		GetHero()->TeleportTo(TeleportActor->GetActorLocation(), TeleportActor->GetActorRotation());
+		GetHero()->MovementTeleport(TeleportActor->GetActorLocation(), TeleportActor->GetActorRotation());
 	}
 
 	bIsTeleportActive = false;
