@@ -58,7 +58,7 @@ private:
 	USceneComponent* VROrigin;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* Camera;
+	class UNetCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroMovementComponent* MovementComponent;
@@ -81,12 +81,12 @@ private:
 
 public:
 	USceneComponent* GetVROrigin() const;
-	UCameraComponent* GetCamera() const;
+	UNetCameraComponent* GetCamera() const;
 	USkeletalMeshComponent* GetHandMesh(EHandType Hand) const;
 	UNetMotionControllerComponent* GetHandController(EHandType Hand) const;
 };
 
 FORCEINLINE USceneComponent* AHeroBase::GetVROrigin() const { return VROrigin; }
-FORCEINLINE UCameraComponent* AHeroBase::GetCamera() const { return Camera; }
+FORCEINLINE UNetCameraComponent* AHeroBase::GetCamera() const { return Camera; }
 FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandMesh : RightHandMesh; }
 FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandController : RightHandController; }

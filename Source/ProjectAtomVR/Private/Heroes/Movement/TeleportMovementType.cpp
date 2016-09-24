@@ -7,6 +7,7 @@
 #include "Components/SplineComponent.h"
 
 #include "MotionComponents/NetMotionControllerComponent.h"
+#include "MotionComponents/NetCameraComponent.h"
 
 UTeleportMovementType::UTeleportMovementType(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)

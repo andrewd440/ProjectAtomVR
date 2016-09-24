@@ -6,6 +6,7 @@
 #include "HeroMovementType.h"
 #include "HeroMovementComponent.h"
 #include "MotionComponents/NetMotionControllerComponent.h"
+#include "MotionComponents/NetCameraComponent.h"
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -19,7 +20,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	RootComponent = VROrigin;
 
 	// Setup camera
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera = CreateDefaultSubobject<UNetCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VROrigin);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
