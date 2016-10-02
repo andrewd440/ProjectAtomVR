@@ -2,11 +2,13 @@
 
 #pragma once
 
-#include "GameFramework/Pawn.h"
+#include "GameFramework/Character.h"
+#include "HeroMovementComponent.h"
+
 #include "HeroBase.generated.h"
 
 UCLASS(Blueprintable, Config=Game)
-class PROJECTATOMVR_API AHeroBase : public APawn
+class PROJECTATOMVR_API AHeroBase : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -30,16 +32,19 @@ public:
 
 	virtual void MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
 
+	/** ACharacter Interface Begin */
+	virtual FVector GetPawnViewLocation() const override;
+	virtual FRotator GetViewRotation() const override;
+	virtual void PostNetReceiveLocationAndRotation() override;
+	/** ACharacter Interface End */
+
 	/** APawn Interface Begin */
 	virtual void PostInitializeComponents() override;
-	virtual UPawnMovementComponent* GetMovementComponent() const override;
+	virtual FVector GetVelocity() const override;
 	/** APawn Interface End */
 
 protected:
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	virtual void ServerMovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
 
 protected:
 
@@ -48,6 +53,7 @@ protected:
 	// 
 	//UPROPERTY(EditInstanceOnly, Category = HeroController)
 	//UHeroAbility* Ability;
+	// 
 
 private:
 	/** 
@@ -61,7 +67,7 @@ private:
 	class UNetCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UHeroMovementComponent* MovementComponent;
+	UStaticMeshComponent* HeadMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UNetMotionControllerComponent* LeftHandController;
@@ -84,9 +90,11 @@ public:
 	UNetCameraComponent* GetCamera() const;
 	USkeletalMeshComponent* GetHandMesh(EHandType Hand) const;
 	UNetMotionControllerComponent* GetHandController(EHandType Hand) const;
+	UHeroMovementComponent* GetHeroMovementComponent() const;
 };
 
 FORCEINLINE USceneComponent* AHeroBase::GetVROrigin() const { return VROrigin; }
 FORCEINLINE UNetCameraComponent* AHeroBase::GetCamera() const { return Camera; }
 FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandMesh : RightHandMesh; }
 FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandController : RightHandController; }
+FORCEINLINE UHeroMovementComponent* AHeroBase::GetHeroMovementComponent() const { return static_cast<UHeroMovementComponent*>(GetMovementComponent()); }

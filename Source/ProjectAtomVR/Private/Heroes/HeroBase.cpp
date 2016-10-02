@@ -5,16 +5,20 @@
 
 #include "HeroMovementType.h"
 #include "HeroMovementComponent.h"
-#include "MotionComponents/NetMotionControllerComponent.h"
-#include "MotionComponents/NetCameraComponent.h"
+#include "NetMotionControllerComponent.h"
+#include "NetCameraComponent.h"
+#include "HMDCapsuleComponent.h"
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UHeroMovementComponent>(ACharacter::CharacterMovementComponentName).DoNotCreateDefaultSubobject(ACharacter::MeshComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = ETickingGroup::TG_PostPhysics;
+
 	bReplicates = true;
+	bReplicateMovement = true;
 
 	VROrigin = CreateDefaultSubobject<USceneComponent>(TEXT("VROrigin"));
 	RootComponent = VROrigin;
@@ -24,9 +28,10 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	Camera->SetupAttachment(VROrigin);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
-	
-	// Setup movement
-	MovementComponent = CreateDefaultSubobject<UHeroMovementComponent>(TEXT("MovementComponent"));
+
+	// Setup head mesh
+	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+	HeadMesh->SetupAttachment(Camera);
 
 	// Setup left hand
 	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("DominateHandController"));
@@ -45,6 +50,12 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("NonDominateHandMesh"));
 	RightHandMesh->SetupAttachment(RightHandController);
+
+	JumpMaxCount = 0;	
+
+	UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
+	CapsuleComp->SetupAttachment(Camera);
+	GetMovementComponent()->SetUpdatedComponent(CapsuleComp);
 }
 
 // Called when the game starts or when spawned
@@ -62,7 +73,6 @@ void AHeroBase::BeginPlay()
 void AHeroBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
 }
 
 // Called to bind functionality to input
@@ -85,15 +95,38 @@ void AHeroBase::PostInitializeComponents()
 	Super::PostInitializeComponents();	
 }
 
-UPawnMovementComponent* AHeroBase::GetMovementComponent() const
+void AHeroBase::PostNetReceiveLocationAndRotation()
 {
-	return MovementComponent;
+	if (Role == ROLE_SimulatedProxy)
+	{
+		// Don't change transform if using relative position (it should be nearly the same anyway, or base may be slightly out of sync)
+		if (!ReplicatedBasedMovement.HasRelativeLocation())
+		{
+			const UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
+			const FVector NewCapsuleLocation = ReplicatedMovement.Location + CapsuleComp->RelativeLocation;
+
+			const FVector OldLocation = GetActorLocation();
+			const FQuat OldRotation = GetActorQuat();
+
+			// Smooth using capsule params
+			auto MovementComponent = GetHeroMovementComponent();
+			MovementComponent->bNetworkSmoothingComplete = false;
+			MovementComponent->SmoothCorrection(CapsuleComp->GetComponentLocation(), CapsuleComp->GetComponentQuat(), NewCapsuleLocation, ReplicatedMovement.Rotation.Quaternion());
+
+			OnUpdateSimulatedPosition(OldLocation, OldRotation);
+		}
+	}
+}
+
+FVector AHeroBase::GetVelocity() const
+{
+	return GetCapsuleComponent()->GetComponentVelocity();
 }
 
 void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
 {
 	// Get correct location and rotation
-	const FVector RootDestination = DestLocation - FVector{ Camera->RelativeLocation.X, Camera->RelativeLocation.Y, 0 };
+	const FVector CapsuleDestination = DestLocation + FVector{ 0, 0, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() }; //- FVector{ Camera->RelativeLocation.X, Camera->RelativeLocation.Y, 0 };
 
 	if (IsLocallyControlled())
 	{
@@ -104,37 +137,32 @@ void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& De
 		PlayerCameraManager->StartCameraFade(0.f, 1.f, 0.1f, FLinearColor::Black, false, true);
 
 		// Set delegate to finish the teleport
-		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AHeroBase::FinishTeleport, RootDestination, GetActorRotation());
+		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AHeroBase::FinishTeleport, CapsuleDestination, GetActorRotation());
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, FinishTeleportDelegate, 0.1f, false);
 	}
 	else
 	{
 		// Just teleport if server call and not locally controlled
-		TeleportTo(RootDestination, GetActorRotation());
+		GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
 	}
 }
 
 void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 {	
-	if (TeleportTo(DestLocation, DestRotation) && !HasAuthority())
-	{
-		// Only send to server if teleport was valid
-		ServerMovementTeleport(DestLocation, DestRotation);
-	}
+	GetHeroMovementComponent()->TeleportMove(DestLocation);
 
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
 }
 
-void AHeroBase::ServerMovementTeleport_Implementation(const FVector& DestLocation, const FRotator& DestRotation)
+FVector AHeroBase::GetPawnViewLocation() const
 {
-	TeleportTo(DestLocation, DestRotation);
+	return Camera->GetComponentLocation();
 }
 
-bool AHeroBase::ServerMovementTeleport_Validate(const FVector& DestLocation, const FRotator& DestRotation)
+FRotator AHeroBase::GetViewRotation() const
 {
-	// #AtomTodo Maybe check teleport range and DestLocation validity
-	return true;
+	return Camera->GetComponentRotation();
 }

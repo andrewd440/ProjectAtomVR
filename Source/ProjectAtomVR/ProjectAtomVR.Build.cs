@@ -11,6 +11,7 @@ public class ProjectAtomVR : ModuleRules
                         "ProjectAtomVR/Private",
                         "ProjectAtomVR/Private/Heroes",
                         "ProjectAtomVR/Private/Heroes/Movement",
+                        "ProjectAtomVR/Private/MotionComponents",
             });
 
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
