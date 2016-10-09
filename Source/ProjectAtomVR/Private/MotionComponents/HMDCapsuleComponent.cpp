@@ -2,6 +2,14 @@
 
 #include "ProjectAtomVR.h"
 #include "HMDCapsuleComponent.h"
+#include "HMDCameraComponent.h"
+
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/SphylElem.h"
+#include "DrawDebugHelpers.h"
+#include "CollisionQueryParams.h"
+#include "Engine/EngineTypes.h"
+#include "WorldCollision.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHMDCapsule, Log, All);
 
@@ -9,7 +17,13 @@ UHMDCapsuleComponent::UHMDCapsuleComponent(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = ETickingGroup::TG_PrePhysics; // Needed to updated capsule size to match HMD height before physics
+	PrimaryComponentTick.TickGroup = ETickingGroup::TG_PrePhysics;
+
+	bAbsoluteLocation = true;
+	bAbsoluteRotation = true;
+
+	bUseArchetypeBodySetup = false;
+	bWantsInitializeComponent = true;
 }
 
 FPrimitiveSceneProxy* UHMDCapsuleComponent::CreateSceneProxy()
@@ -80,37 +94,111 @@ FPrimitiveSceneProxy* UHMDCapsuleComponent::CreateSceneProxy()
 
 void UHMDCapsuleComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	if(USceneComponent* const Parent = GetAttachParent())
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if(Camera)
 	{
-		constexpr float MaxCapsuleHeightError = 5.0f; // Max difference between HMD height and capsule height allowed
-		constexpr float CapsuleHeightPadding = 25.f;  // Height padding applied to capsule in addition to HMD height
-		constexpr float DistanceToHeadCenter = 17.f;  // ~ distance from the HMD to the center of the players head
-
-		const FVector CameraLocation = Parent->RelativeLocation;
-		const FVector VectorToHead = -Parent->RelativeRotation.Vector() * DistanceToHeadCenter;
-		const FVector HeadCenter = CameraLocation + VectorToHead;
-
-		const float PerfectCapsuleHalfHeight = (HeadCenter.Z + CapsuleHeightPadding) / 2.f;
-		if (FMath::Abs(PerfectCapsuleHalfHeight - GetUnscaledCapsuleHalfHeight()) > MaxCapsuleHeightError)
-		{
-			SetCapsuleHalfHeight(PerfectCapsuleHalfHeight);
-		}
-
-		// Center capsule on player head in XY and place base at negative HMD height
-		FVector NewCapsuleLocation = Parent->GetComponentLocation() + FVector{ VectorToHead.X, VectorToHead.Y, 0.f };
-		NewCapsuleLocation.Z += GetUnscaledCapsuleHalfHeight() - Parent->RelativeLocation.Z;
-		SetWorldLocation(NewCapsuleLocation);
+		UpdateCollisionOffset();
 	}
 }
 
-void UHMDCapsuleComponent::OnAttachmentChanged()
+FMatrix UHMDCapsuleComponent::GetRenderMatrix() const
 {
-	Super::OnAttachmentChanged();
-	
-#if (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT)
-	if (GetAttachParent() && Cast<UCameraComponent>(GetAttachParent()) == nullptr)
+	FTransform CollisionTransform = ComponentToWorld;
+	CollisionTransform.AddToTranslation(CollisionOffset);
+
+	return CollisionTransform.ToMatrixNoScale();
+}
+
+FBoxSphereBounds UHMDCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	FBoxSphereBounds NewBounds = Super::CalcBounds(LocalToWorld);
+	NewBounds.Origin += CollisionOffset;
+	return NewBounds;
+}
+
+void UHMDCapsuleComponent::UpdateBodySetup()
+{
+	bUseArchetypeBodySetup = false;
+
+	Super::UpdateBodySetup();
+
+	FKSphylElem* SE = ShapeBodySetup->AggGeom.SphylElems.GetData();
+	SE->Center = CollisionOffset;
+}
+
+void UHMDCapsuleComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	AActor* const Owner = GetOwner();
+	Camera = Owner->FindComponentByClass<UHMDCameraComponent>();
+}
+
+void UHMDCapsuleComponent::UpdateCollisionOffset()
+{
+	const FVector HeadCenter = Camera->GetRelativeHeadLocation();
+
+	// First sweep to the new location to determine if we need to move the component location to offset
+	// any new collision from moving the HMD.
 	{
-		UE_LOG(LogHMDCapsule, Warning, TEXT("UHMDCapsuleComponent should only be attached to a CameraComponent not %s"), *GetAttachParent()->GetName());
+		const FVector PendingCollisionOffset{ HeadCenter.X, HeadCenter.Y, GetUnscaledCapsuleHalfHeight() };
+
+		const FVector WorldLocation = GetComponentLocation();
+		const FVector Start = WorldLocation + CollisionOffset;
+		const FVector End = WorldLocation + PendingCollisionOffset;
+
+		FCollisionQueryParams QueryParams{ NAME_None, false, GetOwner() };
+		FCollisionResponseParams ResponseParam;
+		InitSweepCollisionParams(QueryParams, ResponseParam);
+
+		const ECollisionChannel TraceChannel = GetCollisionObjectType();
+		FHitResult SweepHit{ 1.f };
+		FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(GetScaledCapsuleRadius(), GetScaledCapsuleHalfHeight());
+
+		if (GetWorld()->SweepSingleByChannel(SweepHit, Start, End, FQuat::Identity, TraceChannel, CapsuleShape, QueryParams, ResponseParam))
+		{
+			// We hit a surface. Move the component opposite of the hit.
+			FVector Delta = End - SweepHit.Location;
+			FVector MoveDelta = FVector::DotProduct(Delta, -SweepHit.Normal) * SweepHit.Normal;
+			MoveDelta *= 1.f + THRESH_POINT_ON_PLANE; // Add a little to prevent penetration
+			MoveComponent(MoveDelta, GetComponentQuat(), false);
+		}
 	}
-#endif
+
+	// Adjust capsule height if needed.
+	constexpr float MaxCapsuleHeightError = 5.0f; // Max difference between HMD height and capsule height allowed
+	constexpr float CapsuleHeightPadding = 25.f;  // Height padding applied to capsule in addition to HMD height
+	const float PerfectCapsuleHalfHeight = (HeadCenter.Z + CapsuleHeightPadding) / 2.f;
+	if (FMath::Abs(PerfectCapsuleHalfHeight - GetUnscaledCapsuleHalfHeight()) > MaxCapsuleHeightError)
+	{
+		CapsuleHalfHeight = PerfectCapsuleHalfHeight;
+	}	
+
+	// Center capsule on player head in XY and place base at negative HMD height
+	CollisionOffset = FVector{ HeadCenter.X, HeadCenter.Y, GetUnscaledCapsuleHalfHeight() };;
+
+	// Update collision
+	UpdateBounds();
+	UpdateBodySetup();
+	MarkRenderStateDirty();
+
+	// do this if already created
+	// otherwise, it hasn't been really created yet
+	if (bPhysicsStateCreated)
+	{
+		// Update physics engine collision shapes
+		BodyInstance.UpdateBodyScale(ComponentToWorld.GetScale3D(), true);
+
+		if (IsCollisionEnabled() && GetOwner())
+		{
+			UpdateOverlaps();
+		}
+	}
+}
+
+bool UHMDCapsuleComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotationQuat, bool bSweep, FHitResult* OutHit /*= NULL*/, EMoveComponentFlags MoveFlags /*= MOVECOMP_NoFlags*/, ETeleportType Teleport /*= ETeleportType::None*/)
+{
+	const bool bResult = Super::MoveComponentImpl(Delta, NewRotationQuat, bSweep, OutHit, MoveFlags, Teleport);
+	return bResult;
 }

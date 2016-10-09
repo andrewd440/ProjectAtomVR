@@ -56,15 +56,8 @@ protected:
 	// 
 
 private:
-	/** 
-	 * Represents the center of the VR play space. The camera and controllers will are
-	 * moved within the world relative to this component. 
-	 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	USceneComponent* VROrigin;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UNetCameraComponent* Camera;
+	class UHMDCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* HeadMesh;
@@ -86,15 +79,13 @@ private:
 	uint32 bIsRightHanded : 1;
 
 public:
-	USceneComponent* GetVROrigin() const;
-	UNetCameraComponent* GetCamera() const;
-	USkeletalMeshComponent* GetHandMesh(EHandType Hand) const;
-	UNetMotionControllerComponent* GetHandController(EHandType Hand) const;
-	UHeroMovementComponent* GetHeroMovementComponent() const;
+	class UHMDCameraComponent* GetCamera() const;
+	class USkeletalMeshComponent* GetHandMesh(EHandType Hand) const;
+	class UNetMotionControllerComponent* GetHandController(EHandType Hand) const;
+	class UHeroMovementComponent* GetHeroMovementComponent() const;
 };
 
-FORCEINLINE USceneComponent* AHeroBase::GetVROrigin() const { return VROrigin; }
-FORCEINLINE UNetCameraComponent* AHeroBase::GetCamera() const { return Camera; }
+FORCEINLINE UHMDCameraComponent* AHeroBase::GetCamera() const { return Camera; }
 FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandMesh : RightHandMesh; }
 FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHandType Hand) const { return (Hand == EHandType::Left) ? LeftHandController : RightHandController; }
 FORCEINLINE UHeroMovementComponent* AHeroBase::GetHeroMovementComponent() const { return static_cast<UHeroMovementComponent*>(GetMovementComponent()); }

@@ -45,3 +45,13 @@ void UNetCameraComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		}
 	}
 }
+
+void UNetCameraComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// Only send transforms to simulated proxies
+	DOREPLIFETIME_CHANGE_CONDITION(USceneComponent, RelativeLocation, COND_SimulatedOnly);
+	DOREPLIFETIME_CHANGE_CONDITION(USceneComponent, RelativeRotation, COND_SimulatedOnly);
+	DOREPLIFETIME_CHANGE_CONDITION(USceneComponent, RelativeScale3D, COND_SimulatedOnly);
+}

@@ -3,7 +3,7 @@
 #include "ProjectAtomVR.h"
 #include "LocomotionMovementType.h"
 
-#include "NetCameraComponent.h"
+#include "HMDCameraComponent.h"
 
 void ULocomotionMovementType::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 {

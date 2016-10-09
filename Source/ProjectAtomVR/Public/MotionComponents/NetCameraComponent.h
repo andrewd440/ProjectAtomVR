@@ -16,6 +16,10 @@ class PROJECTATOMVR_API UNetCameraComponent : public UCameraComponent
 public:
 	UNetCameraComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	/** USceneComponent Interface Begin */
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** USceneComponent Interface End */
+
 	/** UActorComponent Interface Begin */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	/** UActorComponent Interface End */
@@ -26,7 +30,7 @@ private:
 
 protected:
 	/** Times per second transform updates are sent to the server */
-	UPROPERTY(EditDefaultsOnly, Category = NetMotionController)
+	UPROPERTY(EditDefaultsOnly, Category = NetCamera)
 	float NetUpdateFrequency = 30.f;
 
 	float LastNetUpdate = 0.f;

@@ -20,18 +20,24 @@ public:
 
 	class FNetworkPredictionData_Server_Hero* GetPredictionData_Server_Hero() const;
 
+protected:
+	class UHMDCapsuleComponent* GetHMDCapsule() const;
+
 	/** UCharacterMovementComponent Interface Begin */
+public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode) override;
 	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation) override;
+	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 
 protected:
 	virtual void PerformMovement(float DeltaTime) override;
 	virtual void UpdateFromCompressedFlags(uint8 Flags) override;
 	virtual void OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity) override;
 	virtual bool CanDelaySendingMove(const FSavedMovePtr& NewMove) override;
+	virtual void FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult = NULL) const override;
 	/** UCharacterMovementComponent Interface End */
 
 protected:

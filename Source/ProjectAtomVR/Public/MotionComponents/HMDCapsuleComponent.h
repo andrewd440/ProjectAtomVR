@@ -21,14 +21,38 @@ public:
 
 	/** UCapsuleComponent Interface Begin */
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+	virtual void UpdateBodySetup() override;
 	/** UCapsuleComponent Interface End */	
-
-	/** UActorComponent Interface Begin */
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	/** UActorComponent Interface End */
 
 	/** UPrimitiveComponent Interface Begin */
 protected:
-	virtual void OnAttachmentChanged() override;
+	virtual bool MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags, ETeleportType Teleport = ETeleportType::None) override;
 	/** UPrimitiveComponent Interface End */
+
+	/** UActorComponent Interface Begin */
+public:
+	virtual void InitializeComponent() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
+
+	virtual FMatrix GetRenderMatrix() const override;
+
+	/** UActorComponent Interface End */
+
+private:
+
+	/**
+	* Updates the collision offset based on the current camera location.
+	* This component will be moved in the event that collisions take place as a result
+	* of the new collision offset.
+	*/
+	void UpdateCollisionOffset();
+
+private:
+	class UHMDCameraComponent* Camera = nullptr;
+
+	FVector CollisionOffset = FVector::ZeroVector;
+
+public:
+	FVector GetCollisionOffset() const { return CollisionOffset; }
 };

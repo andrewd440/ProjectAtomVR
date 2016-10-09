@@ -8,6 +8,7 @@
 #include "NetMotionControllerComponent.h"
 #include "NetCameraComponent.h"
 #include "HMDCapsuleComponent.h"
+#include "HMDCameraComponent.h"
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -20,12 +21,9 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	bReplicates = true;
 	bReplicateMovement = true;
 
-	VROrigin = CreateDefaultSubobject<USceneComponent>(TEXT("VROrigin"));
-	RootComponent = VROrigin;
-
 	// Setup camera
-	Camera = CreateDefaultSubobject<UNetCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(VROrigin);
+	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(RootComponent);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
 
@@ -36,7 +34,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	// Setup left hand
 	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("DominateHandController"));
 	LeftHandController->Hand = EControllerHand::Left;
-	LeftHandController->SetupAttachment(VROrigin);
+	LeftHandController->SetupAttachment(RootComponent);
 	LeftHandController->SetIsReplicated(true);
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DominateHandMesh"));
@@ -45,17 +43,13 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	// Setup right hand
 	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("NonDominateHandController"));
 	RightHandController->Hand = EControllerHand::Right;
-	RightHandController->SetupAttachment(VROrigin);
+	RightHandController->SetupAttachment(RootComponent);
 	RightHandController->SetIsReplicated(true);
 	
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("NonDominateHandMesh"));
 	RightHandMesh->SetupAttachment(RightHandController);
 
 	JumpMaxCount = 0;	
-
-	UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
-	CapsuleComp->SetupAttachment(Camera);
-	GetMovementComponent()->SetUpdatedComponent(CapsuleComp);
 }
 
 // Called when the game starts or when spawned
@@ -102,16 +96,10 @@ void AHeroBase::PostNetReceiveLocationAndRotation()
 		// Don't change transform if using relative position (it should be nearly the same anyway, or base may be slightly out of sync)
 		if (!ReplicatedBasedMovement.HasRelativeLocation())
 		{
-			const UCapsuleComponent* const CapsuleComp = GetCapsuleComponent();
-			const FVector NewCapsuleLocation = ReplicatedMovement.Location + CapsuleComp->RelativeLocation;
-
 			const FVector OldLocation = GetActorLocation();
 			const FQuat OldRotation = GetActorQuat();
 
-			// Smooth using capsule params
-			auto MovementComponent = GetHeroMovementComponent();
-			MovementComponent->bNetworkSmoothingComplete = false;
-			MovementComponent->SmoothCorrection(CapsuleComp->GetComponentLocation(), CapsuleComp->GetComponentQuat(), NewCapsuleLocation, ReplicatedMovement.Rotation.Quaternion());
+			SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation);
 
 			OnUpdateSimulatedPosition(OldLocation, OldRotation);
 		}

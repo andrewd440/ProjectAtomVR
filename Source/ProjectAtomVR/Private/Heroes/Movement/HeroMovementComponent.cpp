@@ -4,6 +4,8 @@
 #include "HeroMovementComponent.h"
 
 #include "AI/Navigation/AvoidanceManager.h"
+#include "HMDCapsuleComponent.h"
+#include "UObjectBaseUtility.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHeroMovement, Log, All);
 
@@ -73,8 +75,19 @@ void UHeroMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_
 
 void UHeroMovementComponent::SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation)
 {
-	FScopedMovementTransfer RootMovementTransfer{ *UpdatedComponent, *GetOwner()->GetRootComponent() };
 	Super::SmoothCorrection(OldLocation, OldRotation, NewLocation, NewRotation);
+}
+
+void UHeroMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+{
+	// check that UpdatedComponent is a HMDCapsuleComponent
+	if (Cast<UHMDCapsuleComponent>(NewUpdatedComponent) == NULL)
+	{
+		UE_LOG(LogHeroMovement, Error, TEXT("%s owned by %s must update a HMDCapsule component"), *GetName(), *GetNameSafe(NewUpdatedComponent->GetOwner()));
+		return;
+	}
+
+	Super::SetUpdatedComponent(NewUpdatedComponent);
 }
 
 class FNetworkPredictionData_Server_Hero* UHeroMovementComponent::GetPredictionData_Server_Hero() const
@@ -84,10 +97,6 @@ class FNetworkPredictionData_Server_Hero* UHeroMovementComponent::GetPredictionD
 
 void UHeroMovementComponent::PerformMovement(float DeltaTime)
 {
-	// Save the original position and move the UpdateComponent, which is our collision, so movement can be applied to
-	// the Hero VROrigin/RootComponent.
-	FScopedMovementTransfer RootMovementTransfer{ *UpdatedComponent, *GetOwner()->GetRootComponent() };
-
 	Super::PerformMovement(DeltaTime);
 }
 
@@ -120,6 +129,24 @@ void UHeroMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector
 bool UHeroMovementComponent::CanDelaySendingMove(const FSavedMovePtr& NewMove)
 {
 	return (NewMove->GetCompressedFlags() & FSavedMove_Hero::HeroCompressedFlags::FLAG_WantsToTeleport) == 0;
+}
+
+void UHeroMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult /*= NULL*/) const
+{
+	// Offset location by HMD Capsule collision offset.
+	FVector CollisionOffset = FVector::ZeroVector;
+
+	if (UHMDCapsuleComponent* const HMDCapsule = GetHMDCapsule())
+	{
+		CollisionOffset = HMDCapsule->GetCollisionOffset();
+	}
+
+	Super::FindFloor(CapsuleLocation + CollisionOffset, OutFloorResult, bZeroDelta, DownwardSweepResult);
+}
+
+UHMDCapsuleComponent* UHeroMovementComponent::GetHMDCapsule() const
+{
+	return static_cast<UHMDCapsuleComponent*>(UpdatedComponent);
 }
 
 void FSavedMove_Hero::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
