@@ -40,10 +40,20 @@ protected:
 	virtual void FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult = NULL) const override;
 	/** UCharacterMovementComponent Interface End */
 
+	/** UActorComponent Interface Begin */
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** UActorComponent Interface End */
+
 protected:
 	friend class FSavedMove_Hero;
 	uint32 bWantsToTeleport : 1;
+
+	UPROPERTY(ReplicatedUsing=OnRep_PendingTeleportDestination)
 	FVector PendingTeleportDestination;
+
+private:
+	UFUNCTION()
+	void OnRep_PendingTeleportDestination();
 };
 
 

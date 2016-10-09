@@ -114,7 +114,9 @@ FVector AHeroBase::GetVelocity() const
 void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
 {
 	// Get correct location and rotation
-	const FVector CapsuleDestination = DestLocation + FVector{ 0, 0, GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() }; //- FVector{ Camera->RelativeLocation.X, Camera->RelativeLocation.Y, 0 };
+	FVector DestinationOffset = GetActorLocation() - Camera->GetWorldHeadLocation();
+	DestinationOffset.Z = 0.f;
+	const FVector CapsuleDestination = DestLocation + DestinationOffset;
 
 	if (IsLocallyControlled())
 	{
@@ -134,6 +136,11 @@ void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& De
 		// Just teleport if server call and not locally controlled
 		GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
 	}
+}
+
+UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
+{
+	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
 }
 
 void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)

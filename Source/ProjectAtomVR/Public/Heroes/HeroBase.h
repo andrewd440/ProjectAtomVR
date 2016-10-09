@@ -32,6 +32,8 @@ public:
 
 	virtual void MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
 
+	class UHMDCapsuleComponent* GetHMDCapsuleComponent() const;
+
 	/** ACharacter Interface Begin */
 	virtual FVector GetPawnViewLocation() const override;
 	virtual FRotator GetViewRotation() const override;

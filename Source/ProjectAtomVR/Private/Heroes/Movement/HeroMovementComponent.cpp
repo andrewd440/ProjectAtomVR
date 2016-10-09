@@ -144,6 +144,18 @@ void UHeroMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FF
 	Super::FindFloor(CapsuleLocation + CollisionOffset, OutFloorResult, bZeroDelta, DownwardSweepResult);
 }
 
+void UHeroMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UHeroMovementComponent, PendingTeleportDestination, COND_SimulatedOnly);
+}
+
+void UHeroMovementComponent::OnRep_PendingTeleportDestination()
+{
+	bWantsToTeleport = true;
+}
+
 UHMDCapsuleComponent* UHeroMovementComponent::GetHMDCapsule() const
 {
 	return static_cast<UHMDCapsuleComponent*>(UpdatedComponent);
