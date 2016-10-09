@@ -138,7 +138,7 @@ void UHeroMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FF
 
 	if (UHMDCapsuleComponent* const HMDCapsule = GetHMDCapsule())
 	{
-		CollisionOffset = HMDCapsule->GetCollisionOffset();
+		CollisionOffset = HMDCapsule->GetWorldCollisionOffset();
 	}
 
 	Super::FindFloor(CapsuleLocation + CollisionOffset, OutFloorResult, bZeroDelta, DownwardSweepResult);

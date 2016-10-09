@@ -14,13 +14,10 @@ UHMDCameraComponent::UHMDCameraComponent(const FObjectInitializer& ObjectInitial
 
 FVector UHMDCameraComponent::GetRelativeHeadLocation() const
 {
-	constexpr float DistanceToHeadCenter = 17.f;  // ~ distance from the HMD to the center of the players head
-
-	const FVector VectorToHead = -RelativeRotation.Vector() * DistanceToHeadCenter;
-	return RelativeLocation + VectorToHead;
+	return RelativeLocation + -RelativeRotation.Vector() * DistanceToHeadCenter;
 }
 
 FVector UHMDCameraComponent::GetWorldHeadLocation() const
 {
-	return ComponentToWorld.TransformPosition(GetRelativeHeadLocation());
+	return ComponentToWorld.TransformPosition(-FVector::ForwardVector * DistanceToHeadCenter);
 }

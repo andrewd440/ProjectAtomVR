@@ -54,5 +54,12 @@ private:
 	FVector CollisionOffset = FVector::ZeroVector;
 
 public:
-	FVector GetCollisionOffset() const { return CollisionOffset; }
+	/** Gets the collision offset relative to this component */
+	FVector GetRelativeCollisionOffset() const;
+
+	/** Gets the collision offset (vector) in world space */
+	FVector GetWorldCollisionOffset() const;
 };
+
+FORCEINLINE FVector UHMDCapsuleComponent::GetRelativeCollisionOffset() const { return CollisionOffset; }
+FORCEINLINE FVector UHMDCapsuleComponent::GetWorldCollisionOffset() const { return ComponentToWorld.TransformVector(CollisionOffset); }

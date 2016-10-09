@@ -104,17 +104,17 @@ void UHMDCapsuleComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 FMatrix UHMDCapsuleComponent::GetRenderMatrix() const
 {
-	FTransform CollisionTransform = ComponentToWorld;
-	CollisionTransform.AddToTranslation(CollisionOffset);
+	const FVector LocalOffset = RelativeRotation.RotateVector(CollisionOffset);
+	FTransform CollisionTransform = ComponentToWorld;	
+	CollisionTransform.AddToTranslation(LocalOffset);
 
 	return CollisionTransform.ToMatrixNoScale();
 }
 
 FBoxSphereBounds UHMDCapsuleComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	FBoxSphereBounds NewBounds = Super::CalcBounds(LocalToWorld);
-	NewBounds.Origin += CollisionOffset;
-	return NewBounds;
+	FVector BoxPoint = FVector(CapsuleRadius, CapsuleRadius, CapsuleHalfHeight);
+	return FBoxSphereBounds(CollisionOffset, BoxPoint, CapsuleHalfHeight).TransformBy(LocalToWorld);
 }
 
 void UHMDCapsuleComponent::UpdateBodySetup()
@@ -137,16 +137,17 @@ void UHMDCapsuleComponent::InitializeComponent()
 
 void UHMDCapsuleComponent::UpdateCollisionOffset()
 {
-	const FVector HeadCenter = Camera->GetRelativeHeadLocation();
+	const FVector WorldHeadCenter = Camera->GetWorldHeadLocation();	
+	const FVector RelativeHeadCenter = ComponentToWorld.InverseTransformPosition(WorldHeadCenter);
 
 	// First sweep to the new location to determine if we need to move the component location to offset
 	// any new collision from moving the HMD.
+	if(GetOwner()->Role > ENetRole::ROLE_SimulatedProxy)
 	{
-		const FVector PendingCollisionOffset{ HeadCenter.X, HeadCenter.Y, GetUnscaledCapsuleHalfHeight() };
+		const FVector PendingCollisionOffset{ RelativeHeadCenter.X, RelativeHeadCenter.Y, GetUnscaledCapsuleHalfHeight() };
 
-		const FVector WorldLocation = GetComponentLocation();
-		const FVector Start = WorldLocation + CollisionOffset;
-		const FVector End = WorldLocation + PendingCollisionOffset;
+		FVector Start = ComponentToWorld.TransformPosition(CollisionOffset);
+		FVector End = ComponentToWorld.TransformPosition(PendingCollisionOffset);
 
 		FCollisionQueryParams QueryParams{ NAME_None, false, GetOwner() };
 		FCollisionResponseParams ResponseParam;
@@ -156,27 +157,38 @@ void UHMDCapsuleComponent::UpdateCollisionOffset()
 		FHitResult SweepHit{ 1.f };
 		FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(GetScaledCapsuleRadius(), GetScaledCapsuleHalfHeight());
 
+		// #AtomTodo Need to find a proper way to replicate this to prevent/work with server correction
 		if (GetWorld()->SweepSingleByChannel(SweepHit, Start, End, FQuat::Identity, TraceChannel, CapsuleShape, QueryParams, ResponseParam))
 		{
 			// We hit a surface. Move the component opposite of the hit.
-			FVector Delta = End - SweepHit.Location;
-			FVector MoveDelta = FVector::DotProduct(Delta, -SweepHit.Normal) * SweepHit.Normal;
+			const FVector RemainingDelta = End - SweepHit.Location;
+			FVector MoveDelta = FVector::DotProduct(RemainingDelta, -SweepHit.Normal) * SweepHit.Normal;
 			MoveDelta *= 1.f + THRESH_POINT_ON_PLANE; // Add a little to prevent penetration
 			MoveComponent(MoveDelta, GetComponentQuat(), false);
+
+			// Now sweep using the remaining movement that was not canceled out by MoveDelta.
+			Start = SweepHit.Location + SweepHit.Normal * THRESH_POINT_ON_PLANE;
+			End += MoveDelta;
+			if (GetWorld()->SweepSingleByChannel(SweepHit, Start, End, FQuat::Identity, TraceChannel, CapsuleShape, QueryParams, ResponseParam))
+			{
+				// We hit something else, just move to the hit location, with a small offset to prevent penetration
+				MoveDelta = (SweepHit.Location - End) * (1.f + THRESH_POINT_ON_PLANE);
+				MoveComponent(MoveDelta, GetComponentQuat(), false);
+			}
 		}
 	}
 
 	// Adjust capsule height if needed.
 	constexpr float MaxCapsuleHeightError = 5.0f; // Max difference between HMD height and capsule height allowed
 	constexpr float CapsuleHeightPadding = 25.f;  // Height padding applied to capsule in addition to HMD height
-	const float PerfectCapsuleHalfHeight = (HeadCenter.Z + CapsuleHeightPadding) / 2.f;
+	const float PerfectCapsuleHalfHeight = (RelativeHeadCenter.Z + CapsuleHeightPadding) / 2.f;
 	if (FMath::Abs(PerfectCapsuleHalfHeight - GetUnscaledCapsuleHalfHeight()) > MaxCapsuleHeightError)
 	{
 		CapsuleHalfHeight = PerfectCapsuleHalfHeight;
 	}	
 
 	// Center capsule on player head in XY and place base at negative HMD height
-	CollisionOffset = FVector{ HeadCenter.X, HeadCenter.Y, GetUnscaledCapsuleHalfHeight() };;
+	CollisionOffset = FVector{ RelativeHeadCenter.X, RelativeHeadCenter.Y, GetUnscaledCapsuleHalfHeight() };;
 
 	// Update collision
 	UpdateBounds();

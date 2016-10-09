@@ -12,7 +12,10 @@ UCLASS()
 class PROJECTATOMVR_API UHMDCameraComponent : public UNetCameraComponent
 {
 	GENERATED_BODY()
+
+	static constexpr float DistanceToHeadCenter = 17.f;  // ~ distance from the HMD to the center of the players head
 	
+
 public:
 	UHMDCameraComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
