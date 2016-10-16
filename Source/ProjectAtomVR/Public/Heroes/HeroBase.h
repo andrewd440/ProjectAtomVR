@@ -64,6 +64,11 @@ protected:
 	UFUNCTION()
 	void OnRep_RightHandEquippable();
 
+protected:
+	/** Default animation used for hand meshes. When nothing is equipped. */
+	UPROPERTY(EditDefaultsOnly, Category = Hero)
+	UAnimSequence* AnimDefaultHand = nullptr;
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;

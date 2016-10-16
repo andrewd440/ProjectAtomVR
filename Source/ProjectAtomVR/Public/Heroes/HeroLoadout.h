@@ -29,14 +29,32 @@ class PROJECTATOMVR_API UHeroLoadout : public UObject
 	GENERATED_BODY()
 	
 public:
+	/**
+	 * Initializes the loadout. Should be called by the owning hero on BeginPlay.
+	 */
 	void InitializeLoadout(class AHeroBase* Owner);	
 
+	/**
+	* Requests an equip from the loadout. OverlapComponent will be used to check for
+	* overlaps with loadout slots to see if the component is within the bounds of a loadout
+	* item. If successful, the AHeroBase::Equip will be called on the owning hero with the 
+	* corresponding loadout item.
+	**/
 	bool RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand);
 
+	/**
+	 * Requests an unequip from the loadout. OverlapComponent will be used to check for
+	 * overlaps with loadout slots to see if the component is in the correct location to
+	 * unequip the specified item. If successful, the AHeroBase::Unequip will be called on
+	 * the owning hero.
+	 **/
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
 
 private:
+	/** Creates all loadout weapons. Should only be called on server. */
 	void CreateLoadoutWeapons(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
+
+	/** Creates all loadout item triggers. Should only be called on controlling players. */
 	void CreateLoadoutTriggers(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
 	
 	/** UObject Interface Begin */

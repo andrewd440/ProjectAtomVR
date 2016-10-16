@@ -41,6 +41,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FName HandAttachSocket = NAME_None;
 
+	/** Hand animation used when this item is equipped */
+	UPROPERTY(EditDefaultsOnly, Category = Equippable)
+	UAnimSequence* AnimHandEquip = nullptr;
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;

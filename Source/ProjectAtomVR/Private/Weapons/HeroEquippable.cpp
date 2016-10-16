@@ -2,6 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "HeroEquippable.h"
+#include "Animation/AnimSequence.h"
 
 
 // Sets default values
@@ -33,7 +34,20 @@ void AHeroEquippable::Tick( float DeltaTime )
 
 void AHeroEquippable::Equip(const EHand Hand)
 {
-	AttachToComponent(HeroOwner->GetHandMesh(Hand), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
+	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(Hand);
+
+	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
+
+	if (AttachHand->RelativeScale3D.Z < 0.f)
+	{
+		// Sockets do not behave properly with negative scaling. Flip this mesh if hand is mirrored.
+		Mesh->SetRelativeScale3D(FVector{ 1, -1, 1 });
+	}
+
+	if (AnimHandEquip)
+	{
+		AttachHand->PlayAnimation(AnimHandEquip, true);
+	}
 }
 
 bool AHeroEquippable::CanEquip(const EHand Hand) const
@@ -49,8 +63,11 @@ void AHeroEquippable::Unequip()
 	}
 	else
 	{
-		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
 	}
+
+	// Reset scale from Equip call
+	Mesh->SetRelativeScale3D(FVector{ 1, 1, 1 });
 }
 
 void AHeroEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)

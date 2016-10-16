@@ -11,6 +11,7 @@
 #include "HeroLoadout.h"
 #include "Engine/ActorChannel.h"
 #include "HeroEquippable.h"
+#include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
@@ -45,6 +46,8 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	LeftHandController->SetIsReplicated(true);
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
+	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	LeftHandMesh->SetAnimation(AnimDefaultHand);
 	LeftHandMesh->SetupAttachment(LeftHandController);
 	LeftHandMesh->bGenerateOverlapEvents = true;
 	LeftHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
@@ -56,6 +59,8 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	RightHandController->SetIsReplicated(true);
 	
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
+	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	RightHandMesh->SetAnimation(AnimDefaultHand);
 	RightHandMesh->SetupAttachment(RightHandController);
 	RightHandMesh->bGenerateOverlapEvents = true;
 	RightHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
@@ -186,7 +191,7 @@ UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
 
 void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 { 
-	if (!HasAuthority())
+	if (Role == ENetRole::ROLE_AutonomousProxy)
 	{
 		ServerEquip(Item, Hand);
 	}
@@ -214,19 +219,28 @@ bool AHeroBase::ServerEquip_Validate(class AHeroEquippable* Item, const EHand Ha
 
 void AHeroBase::Unequip(AHeroEquippable* Item)
 {
-	if (!HasAuthority())
+	if (Role == ENetRole::ROLE_AutonomousProxy)
 	{
 		ServerUnequip(Item);
 	}
 
 	check(Item == LeftHandEquippable || Item == RightHandEquippable);
-	AHeroEquippable*& EquippablePtr = (Item == LeftHandEquippable) ? LeftHandEquippable : RightHandEquippable;
+	EHand Hand = (Item == LeftHandEquippable) ? EHand::Left : EHand::Right;
 
-	if (EquippablePtr != nullptr)
-	{
-		EquippablePtr->Unequip();
-		EquippablePtr = nullptr;
+	if (Hand == EHand::Left)
+	{		
+		LeftHandEquippable->Unequip();
+		LeftHandEquippable = nullptr;
+
+		LeftHandMesh->PlayAnimation(AnimDefaultHand, true);
 	}	
+	else
+	{
+		RightHandEquippable->Unequip();
+		RightHandEquippable = nullptr;
+
+		RightHandMesh->PlayAnimation(AnimDefaultHand, true);
+	}
 }
 
 void AHeroBase::ServerUnequip_Implementation(class AHeroEquippable* Item)
@@ -277,7 +291,7 @@ void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 
 void AHeroBase::OnRep_LeftHandEquippable()
 {
-
+	
 }
 
 void AHeroBase::OnRep_RightHandEquippable()
