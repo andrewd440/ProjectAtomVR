@@ -17,4 +17,10 @@
 #include "HeroBase.h"
 
 /** Logging */
-DECLARE_LOG_CATEGORY_EXTERN(AtomLog, Log, All); // General
+DECLARE_LOG_CATEGORY_EXTERN(AtomLog, Log, All); // A general log for your general needs
+
+namespace AtomCollisionProfiles
+{
+	static const FName HeroHand{ TEXT("HeroHand") };
+	static const FName HandTrigger{ TEXT("HandTrigger") };
+}

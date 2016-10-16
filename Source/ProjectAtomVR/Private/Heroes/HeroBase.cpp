@@ -6,9 +6,13 @@
 #include "HeroMovementType.h"
 #include "HeroMovementComponent.h"
 #include "NetMotionControllerComponent.h"
-#include "NetCameraComponent.h"
 #include "HMDCapsuleComponent.h"
 #include "HMDCameraComponent.h"
+#include "HeroLoadout.h"
+#include "Engine/ActorChannel.h"
+#include "HeroEquippable.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -31,28 +35,37 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
 	HeadMesh->SetupAttachment(Camera);
 
+	BodyMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("BodyMesh"));
+	BodyMesh->bAbsoluteLocation = true;
+
 	// Setup left hand
-	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("DominateHandController"));
+	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("LeftHandController"));
 	LeftHandController->Hand = EControllerHand::Left;
 	LeftHandController->SetupAttachment(RootComponent);
 	LeftHandController->SetIsReplicated(true);
 
-	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("DominateHandMesh"));
+	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
 	LeftHandMesh->SetupAttachment(LeftHandController);
+	LeftHandMesh->bGenerateOverlapEvents = true;
+	LeftHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
 
 	// Setup right hand
-	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("NonDominateHandController"));
+	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("RightHandController"));
 	RightHandController->Hand = EControllerHand::Right;
 	RightHandController->SetupAttachment(RootComponent);
 	RightHandController->SetIsReplicated(true);
 	
-	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("NonDominateHandMesh"));
+	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
 	RightHandMesh->SetupAttachment(RightHandController);
+	RightHandMesh->bGenerateOverlapEvents = true;
+	RightHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
+
+	// Setup loadout
+	Loadout = CreateDefaultSubobject<UHeroLoadout>(TEXT("Loadout"));
 
 	JumpMaxCount = 0;	
 }
 
-// Called when the game starts or when spawned
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -60,19 +73,29 @@ void AHeroBase::BeginPlay()
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
-	}
+	}		
+
+	Loadout->InitializeLoadout(this);
 }
 
-// Called every frame
 void AHeroBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+
+	// Update body mesh position
+	{
+		const FVector CollisionPosition = GetHMDCapsuleComponent()->GetComponentLocation() + GetHMDCapsuleComponent()->GetWorldCollisionOffset();
+		BodyMesh->SetWorldLocation(CollisionPosition);
+	}
 }
 
-// Called to bind functionality to input
 void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
 {
 	Super::SetupPlayerInputComponent(InInputComponent);
+
+	// Bind inputs for hero
+	InInputComponent->BindAction(TEXT("EquipLeft"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Left>);
+	InInputComponent->BindAction(TEXT("EquipRight"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Right>);
 
 	// Setup all movement types component input bindings
 	TInlineComponentArray<UHeroMovementType*> MovementTypeComponents;
@@ -86,7 +109,7 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 
 void AHeroBase::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();	
+	Super::PostInitializeComponents();		
 }
 
 void AHeroBase::PostNetReceiveLocationAndRotation()
@@ -109,6 +132,24 @@ void AHeroBase::PostNetReceiveLocationAndRotation()
 FVector AHeroBase::GetVelocity() const
 {
 	return GetCapsuleComponent()->GetComponentVelocity();
+}
+
+bool AHeroBase::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FReplicationFlags *RepFlags)
+{
+	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	bWroteSomething |= Channel->ReplicateSubobject(Loadout, *Bunch, *RepFlags);
+
+	return bWroteSomething;
+}
+
+void AHeroBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	//DOREPLIFETIME(AHeroBase, Loadout);
+	DOREPLIFETIME_CONDITION(AHeroBase, RightHandEquippable, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(AHeroBase, LeftHandEquippable, COND_SimulatedOnly);
 }
 
 void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
@@ -143,6 +184,42 @@ UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
 	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
 }
 
+void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
+{ 
+	if (!HasAuthority())
+	{
+		ServerEquip(Item, Hand);
+	}
+
+	AHeroEquippable*& EquippablePtr = (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
+
+	if (EquippablePtr != nullptr)
+	{
+		EquippablePtr->Unequip();
+	}
+
+	EquippablePtr = Item;
+	EquippablePtr->Equip(Hand);
+}
+
+void AHeroBase::Unequip(AHeroEquippable* Item, const EHand Hand)
+{
+
+}
+
+template <EHand Hand>
+void AHeroBase::OnEquipPressed()
+{
+	if (Hand == EHand::Left)
+	{
+		Loadout->RequestEquip(LeftHandMesh, Hand);
+	}
+	else
+	{
+		Loadout->RequestEquip(RightHandMesh, Hand);
+	}	
+}
+
 void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 {	
 	GetHeroMovementComponent()->TeleportMove(DestLocation);
@@ -150,6 +227,26 @@ void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
+}
+
+void AHeroBase::ServerEquip_Implementation(class AHeroEquippable* Item, const EHand Hand)
+{
+	Equip(Item, Hand);
+}
+
+bool AHeroBase::ServerEquip_Validate(class AHeroEquippable* Item, const EHand Hand)
+{
+	return true;
+}
+
+void AHeroBase::OnRep_LeftHandEquippable()
+{
+
+}
+
+void AHeroBase::OnRep_RightHandEquippable()
+{
+
 }
 
 FVector AHeroBase::GetPawnViewLocation() const

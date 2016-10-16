@@ -213,8 +213,7 @@ void UTeleportMovementType::OnTeleportPressed()
 	}
 
 	// Attach the teleport arc to non-dominate hand
-	const AHeroBase::EHandType TeleportHand = GetHero()->IsRightHanded() ? AHeroBase::EHandType::Left : AHeroBase::EHandType::Right;
-	ArcSpline->AttachToComponent(GetHero()->GetHandController(TeleportHand), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	ArcSpline->AttachToComponent(GetHero()->GetHandController<EHandType::Nondominate>(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	bIsTeleportActive = true;
 }

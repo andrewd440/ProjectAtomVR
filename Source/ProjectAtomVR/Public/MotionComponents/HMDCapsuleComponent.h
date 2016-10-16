@@ -20,7 +20,6 @@ public:
 	UHMDCapsuleComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** UCapsuleComponent Interface Begin */
-	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void UpdateBodySetup() override;
 	/** UCapsuleComponent Interface End */	

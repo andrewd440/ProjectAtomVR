@@ -3,6 +3,20 @@
 #include "Engine.h"
 #include "AtomTypes.generated.h"
 
+UENUM()
+enum class EHand : uint8
+{
+	Left,
+	Right
+};
+
+UENUM()
+enum class EHandType : uint8
+{
+	Dominate,
+	Nondominate
+};
+
 USTRUCT()
 struct PROJECTATOMVR_API FMotionTransformRep
 {
