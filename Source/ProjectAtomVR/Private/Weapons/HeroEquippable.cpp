@@ -33,34 +33,53 @@ void AHeroEquippable::Tick( float DeltaTime )
 
 void AHeroEquippable::Equip(const EHand Hand)
 {
-	AttachToComponent(OwningHero->GetHandMesh(Hand), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
+	AttachToComponent(HeroOwner->GetHandMesh(Hand), FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
 }
 
 bool AHeroEquippable::CanEquip(const EHand Hand) const
 {
-	return true;
+	return !IsEquipped();
 }
 
 void AHeroEquippable::Unequip()
 {
+	if (StorageAttachComponent)
+	{
+		AttachToComponent(StorageAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, StorageAttachSocket);
+	}
+	else
+	{
+		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	}
+}
 
+void AHeroEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)
+{
+	StorageAttachComponent = AttachComponent;
+	StorageAttachSocket = AttachSocket;
+}
+
+bool AHeroEquippable::IsEquipped() const
+{
+	return HeroOwner->GetEquippable<EHand::Left>() == this || 
+		   HeroOwner->GetEquippable<EHand::Right>() == this;
 }
 
 void AHeroEquippable::OnRep_Owner()
 {
 	Super::OnRep_Owner();
 
-	OwningHero = Cast<AHeroBase>(GetOwner());
+	HeroOwner = Cast<AHeroBase>(GetOwner());
 
-	ensureMsgf(GetOwner() ? OwningHero != nullptr : true , TEXT("AHeroEquippable should only be owned by a AHeroBase."));
+	ensureMsgf(GetOwner() ? HeroOwner != nullptr : true , TEXT("AHeroEquippable should only be owned by a AHeroBase."));
 }
 
 void AHeroEquippable::SetOwner(AActor* NewOwner)
 {
 	Super::SetOwner(NewOwner);
 	
-	OwningHero = Cast<AHeroBase>(GetOwner());
+	HeroOwner = Cast<AHeroBase>(GetOwner());
 
-	ensureMsgf(GetOwner() ? OwningHero != nullptr : true, TEXT("AHeroEquippable should only be owned by a AHeroBase."));
+	ensureMsgf(GetOwner() ? HeroOwner != nullptr : true, TEXT("AHeroEquippable should only be owned by a AHeroBase."));
 }
 

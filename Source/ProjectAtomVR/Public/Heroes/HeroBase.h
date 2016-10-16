@@ -29,7 +29,7 @@ public:
 
 	virtual void Equip(class AHeroEquippable* Item, const EHand Hand);
 
-	virtual void Unequip(class AHeroEquippable* Item, const EHand Hand);
+	virtual void Unequip(class AHeroEquippable* Item);
 
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -54,6 +54,9 @@ protected:
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerEquip(class AHeroEquippable* Item, const EHand Hand);
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerUnequip(class AHeroEquippable* Item);
 
 	UFUNCTION()
 	void OnRep_LeftHandEquippable();
@@ -101,9 +104,14 @@ public:
 
 	class UHMDCameraComponent* GetCamera() const;
 	
-	class USkeletalMeshComponent* GetBodyMesh() const;
+	class USkeletalMeshComponent* GetBodyMesh() const;	
 
-	USkeletalMeshComponent* GetHandMesh(EHand Hand);
+	class AHeroEquippable* GetEquippable(EHand Hand) const;
+
+	template <EHand Hand>
+	AHeroEquippable* GetEquippable() const;
+
+	USkeletalMeshComponent* GetHandMesh(EHand Hand) const;
 
 	template <EHand Hand>
 	USkeletalMeshComponent* GetHandMesh() const;	
@@ -152,9 +160,20 @@ FORCEINLINE USkeletalMeshComponent* AHeroBase::GetBodyMesh() const
 	return BodyMesh;
 }
 
-FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHand Hand)
+FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHand Hand) const
 {
 	return Hand == EHand::Right ? RightHandMesh : LeftHandMesh;
+}
+
+FORCEINLINE AHeroEquippable* AHeroBase::GetEquippable(EHand Hand) const
+{
+	return (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
+}
+
+template <EHand Hand>
+AHeroEquippable* AHeroBase::GetEquippable() const
+{
+	return (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
 }
 
 FORCEINLINE UHeroMovementComponent* AHeroBase::GetHeroMovementComponent() const

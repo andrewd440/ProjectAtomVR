@@ -70,16 +70,33 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 	}
 }
 
-void UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
+bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
 {
 	for (FHeroLoadoutSlot& Slot : Loadout)
 	{
 		if (OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger) && Slot.Item->CanEquip(Hand))
 		{
+			Slot.Item->SetLoadoutAttachment(HeroOwner->GetBodyMesh(), Slot.StorageSocket); // Set the unequip location for the item
+
 			HeroOwner->Equip(Slot.Item, Hand);
-			break;
+			return true;
 		}
 	}	
+
+	return false;
+}
+
+bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item)
+{
+	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
+
+	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
+	{
+		HeroOwner->Unequip(Item);
+		return true;
+	}
+
+	return false;
 }
 
 class UWorld* UHeroLoadout::GetWorld() const
@@ -94,15 +111,20 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 	if (OverlappedSlot && OverlappedSlot->Item)
 	{
 		EControllerHand ControllerHand = EControllerHand::Left;
-		EHand Handedness = EHand::Left;
+		EHand Hand = EHand::Left;
 
+		ensureMsgf(OtherComp == HeroOwner->GetHandMesh<EHand::Right>() || OtherComp == HeroOwner->GetHandMesh<EHand::Left>(), TEXT("Loadout slot triggers should only overlapped hero hand meshes. Check your collision setups."));
 		if (OtherComp == HeroOwner->GetHandMesh<EHand::Right>())
 		{
 			ControllerHand = EControllerHand::Right;
-			Handedness = EHand::Right;
+			Hand = EHand::Right;
 		}
 
-		if (OverlappedSlot->Item->CanEquip(Handedness))
+		// Check if the item can be equipped. If it is already equipped, check if the overlapped hand has the item equipped.
+		const AHeroEquippable* CurrentlyEquipped = HeroOwner->GetEquippable(Hand);
+
+		if ((CurrentlyEquipped == nullptr && OverlappedSlot->Item->CanEquip(Hand)) || 
+			(OverlappedSlot->Item->IsEquipped() && CurrentlyEquipped == OverlappedSlot->Item))
 		{
 			APlayerController* const PC = Cast<APlayerController>(HeroOwner->GetController());
 			ensureMsgf(PC != nullptr && PC->IsLocalController(), TEXT("Loadout trigger overlaps should only occur on locally controlled heros."));

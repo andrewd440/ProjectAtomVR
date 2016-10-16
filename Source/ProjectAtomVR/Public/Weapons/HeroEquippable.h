@@ -26,6 +26,10 @@ public:
 
 	virtual void Unequip();
 
+	void SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket);
+
+	bool IsEquipped() const;
+
 	/** AActor Interface Begin */
 public:
 	virtual void SetOwner(AActor* NewOwner) override;
@@ -41,8 +45,11 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;
 
-	class AHeroBase* OwningHero = nullptr;
-public:
-	
+	class AHeroBase* HeroOwner = nullptr;
 
+	/** Component that is attached to when unequipped */
+	USceneComponent* StorageAttachComponent = nullptr;
+
+	/** Socket that is attached to when unequipped */
+	FName StorageAttachSocket = NAME_None;
 };

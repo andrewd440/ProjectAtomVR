@@ -31,7 +31,9 @@ class PROJECTATOMVR_API UHeroLoadout : public UObject
 public:
 	void InitializeLoadout(class AHeroBase* Owner);	
 
-	void RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand);
+	bool RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand);
+
+	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
 
 private:
 	void CreateLoadoutWeapons(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);

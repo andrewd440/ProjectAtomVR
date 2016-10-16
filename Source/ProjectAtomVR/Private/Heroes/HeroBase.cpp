@@ -202,9 +202,41 @@ void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 	EquippablePtr->Equip(Hand);
 }
 
-void AHeroBase::Unequip(AHeroEquippable* Item, const EHand Hand)
+void AHeroBase::ServerEquip_Implementation(class AHeroEquippable* Item, const EHand Hand)
 {
+	Equip(Item, Hand);
+}
 
+bool AHeroBase::ServerEquip_Validate(class AHeroEquippable* Item, const EHand Hand)
+{
+	return true;
+}
+
+void AHeroBase::Unequip(AHeroEquippable* Item)
+{
+	if (!HasAuthority())
+	{
+		ServerUnequip(Item);
+	}
+
+	check(Item == LeftHandEquippable || Item == RightHandEquippable);
+	AHeroEquippable*& EquippablePtr = (Item == LeftHandEquippable) ? LeftHandEquippable : RightHandEquippable;
+
+	if (EquippablePtr != nullptr)
+	{
+		EquippablePtr->Unequip();
+		EquippablePtr = nullptr;
+	}	
+}
+
+void AHeroBase::ServerUnequip_Implementation(class AHeroEquippable* Item)
+{
+	Unequip(Item);
+}
+
+bool AHeroBase::ServerUnequip_Validate(class AHeroEquippable* Item)
+{
+	return true;
 }
 
 template <EHand Hand>
@@ -212,11 +244,25 @@ void AHeroBase::OnEquipPressed()
 {
 	if (Hand == EHand::Left)
 	{
-		Loadout->RequestEquip(LeftHandMesh, Hand);
+		if (LeftHandEquippable == nullptr)
+		{
+			Loadout->RequestEquip(LeftHandMesh, Hand);
+		}
+		else
+		{
+			Loadout->RequestUnequip(LeftHandMesh, LeftHandEquippable);
+		}
 	}
 	else
 	{
-		Loadout->RequestEquip(RightHandMesh, Hand);
+		if (RightHandEquippable == nullptr)
+		{
+			Loadout->RequestEquip(RightHandMesh, Hand);
+		}
+		else
+		{
+			Loadout->RequestUnequip(RightHandMesh, RightHandEquippable);
+		}
 	}	
 }
 
@@ -227,16 +273,6 @@ void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
-}
-
-void AHeroBase::ServerEquip_Implementation(class AHeroEquippable* Item, const EHand Hand)
-{
-	Equip(Item, Hand);
-}
-
-bool AHeroBase::ServerEquip_Validate(class AHeroEquippable* Item, const EHand Hand)
-{
-	return true;
 }
 
 void AHeroBase::OnRep_LeftHandEquippable()
