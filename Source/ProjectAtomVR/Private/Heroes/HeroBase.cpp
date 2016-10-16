@@ -35,6 +35,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	// Setup head mesh
 	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
 	HeadMesh->SetupAttachment(Camera);
+	HeadMesh->bOwnerNoSee = true;
 
 	BodyMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("BodyMesh"));
 	BodyMesh->bAbsoluteLocation = true;
