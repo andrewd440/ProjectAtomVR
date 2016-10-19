@@ -15,6 +15,12 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
+namespace
+{
+	static constexpr float HeadOrientationFactor = 0.5f; // Influence that the head orientation has on the body mesh
+	static constexpr float HandsOrientationFactor = 1.f - HeadOrientationFactor; // Influence that the direction of hands has on the body mesh.
+}
+
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UHeroMovementComponent>(ACharacter::CharacterMovementComponentName).DoNotCreateDefaultSubobject(ACharacter::MeshComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
@@ -37,8 +43,9 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	HeadMesh->SetupAttachment(Camera);
 	HeadMesh->bOwnerNoSee = true;
 
-	BodyMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("BodyMesh"));
+	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	BodyMesh->bAbsoluteLocation = true;
+	BodyMesh->bAbsoluteRotation = true;
 
 	// Setup left hand
 	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("LeftHandController"));
@@ -88,11 +95,31 @@ void AHeroBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
-	// Update body mesh position
+	UpdateBodyMeshLocation();
+}
+
+void AHeroBase::UpdateBodyMeshLocation()
+{
+	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
+	const FVector CameraForward2D = Camera->GetForwardVector().GetSafeNormal2D();
+
+	// Get the averaged controller direction from the two hand controllers
+	const FVector RightControllerDirection2D = (RightHandController->GetComponentLocation() - NeckBaseLocation).GetSafeNormal2D();
+	const FVector LeftControllerDirection2D = (LeftHandController->GetComponentLocation() - NeckBaseLocation).GetSafeNormal2D();
+
+	FVector ControllerForward2D = (RightControllerDirection2D + LeftControllerDirection2D) / 2.f;
+
+	// If the controller forward is not on the front side of the camera forward, reflect it so that it is.
+	const float CameraDotController = FVector::DotProduct(CameraForward2D, ControllerForward2D);
+	if (CameraDotController < 0.f)
 	{
-		const FVector CollisionPosition = GetHMDCapsuleComponent()->GetComponentLocation() + GetHMDCapsuleComponent()->GetWorldCollisionOffset();
-		BodyMesh->SetWorldLocation(CollisionPosition);
+		ControllerForward2D += 2.f * CameraForward2D;
 	}
+
+	const FVector BodyForward2D = CameraForward2D * HeadOrientationFactor + ControllerForward2D * HandsOrientationFactor;
+
+	const FVector BodyLocation = NeckBaseLocation - NeckBaseSocketLocation;
+	BodyMesh->SetWorldLocationAndRotation(BodyLocation, BodyForward2D.ToOrientationQuat());
 }
 
 void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
@@ -116,6 +143,8 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 void AHeroBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();		
+
+	NeckBaseSocketLocation = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation();
 }
 
 void AHeroBase::PostNetReceiveLocationAndRotation()

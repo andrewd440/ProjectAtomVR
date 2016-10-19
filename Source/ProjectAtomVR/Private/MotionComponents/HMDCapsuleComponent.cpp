@@ -71,14 +71,14 @@ void UHMDCapsuleComponent::InitializeComponent()
 
 void UHMDCapsuleComponent::UpdateCollisionOffset()
 {
-	const FVector WorldHeadCenter = Camera->GetWorldHeadLocation();	
-	const FVector RelativeHeadCenter = ComponentToWorld.InverseTransformPosition(WorldHeadCenter);
+	// Use the location of the base of the neck to offset the collision
+	const FVector RelativeNeckBase = ComponentToWorld.InverseTransformPosition(Camera->GetWorldNeckBaseLocation());
 
 	// First sweep to the new location to determine if we need to move the component location to offset
 	// any new collision from moving the HMD.
 	if(GetOwner()->Role > ENetRole::ROLE_SimulatedProxy)
 	{
-		const FVector PendingCollisionOffset{ RelativeHeadCenter.X, RelativeHeadCenter.Y, GetUnscaledCapsuleHalfHeight() };
+		const FVector PendingCollisionOffset{ RelativeNeckBase.X, RelativeNeckBase.Y, GetUnscaledCapsuleHalfHeight() };
 
 		FVector Start = ComponentToWorld.TransformPosition(CollisionOffset);
 		FVector End = ComponentToWorld.TransformPosition(PendingCollisionOffset);
@@ -115,14 +115,17 @@ void UHMDCapsuleComponent::UpdateCollisionOffset()
 	// Adjust capsule height if needed.
 	constexpr float MaxCapsuleHeightError = 5.0f; // Max difference between HMD height and capsule height allowed
 	constexpr float CapsuleHeightPadding = 25.f;  // Height padding applied to capsule in addition to HMD height
-	const float PerfectCapsuleHalfHeight = (RelativeHeadCenter.Z + CapsuleHeightPadding) / 2.f;
+
+	const float HeadCenterZOffset = Camera->GetWorldHeadLocation().Z - GetComponentLocation().Z;
+	const float PerfectCapsuleHalfHeight = (HeadCenterZOffset + CapsuleHeightPadding) / 2.f;
+
 	if (FMath::Abs(PerfectCapsuleHalfHeight - GetUnscaledCapsuleHalfHeight()) > MaxCapsuleHeightError)
 	{
 		CapsuleHalfHeight = PerfectCapsuleHalfHeight;
 	}	
 
 	// Center capsule on player head in XY and place base at negative HMD height
-	CollisionOffset = FVector{ RelativeHeadCenter.X, RelativeHeadCenter.Y, GetUnscaledCapsuleHalfHeight() };;
+	CollisionOffset = FVector{ RelativeNeckBase.X, RelativeNeckBase.Y, GetUnscaledCapsuleHalfHeight() };;
 
 	// Update collision
 	UpdateBounds();

@@ -13,9 +13,6 @@ class PROJECTATOMVR_API UHMDCameraComponent : public UNetCameraComponent
 {
 	GENERATED_BODY()
 
-	static constexpr float DistanceToHeadCenter = 17.f;  // ~ distance from the HMD to the center of the players head
-	
-
 public:
 	UHMDCameraComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -32,4 +29,16 @@ public:
 	* of the player's head.
 	*/
 	FVector GetWorldHeadLocation() const;
+
+	/**
+	* Gets the relative, to attached parent, location of the base of the player's neck using the HMD.
+	* This location is calculated by offsetting the head center location by the HMD down direction.
+	*/
+	FVector GetRelativeNeckBaseLocation() const;
+
+	/**
+	* Gets the world location of the base of the player's neck using the HMD.
+	* This location is calculated by offsetting the head center location by the HMD down direction.
+	*/
+	FVector GetWorldNeckBaseLocation() const;
 };

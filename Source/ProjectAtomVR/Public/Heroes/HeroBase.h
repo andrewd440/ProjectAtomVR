@@ -58,26 +58,35 @@ protected:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerUnequip(class AHeroEquippable* Item);
 
+private:
 	UFUNCTION()
 	void OnRep_LeftHandEquippable();
 
 	UFUNCTION()
 	void OnRep_RightHandEquippable();
 
+	void UpdateBodyMeshLocation();
+
 protected:
 	/** Default animation used for hand meshes. When nothing is equipped. */
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
 	UAnimSequence* AnimDefaultHand = nullptr;
 
+	/** Socket on the body mesh that has the offset for the intended head mesh location. */
+	UPROPERTY(EditDefaultsOnly, Category = Hero)
+	FName NeckBaseSocket = NAME_None;	
+
 private:
+	FVector NeckBaseSocketLocation = FVector::ZeroVector;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	UStaticMeshComponent* HeadMesh;
+	class UStaticMeshComponent* HeadMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class USkeletalMeshComponent* BodyMesh;
+	class UStaticMeshComponent* BodyMesh;
 
 	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroLoadout* Loadout;
@@ -109,7 +118,7 @@ public:
 
 	class UHMDCameraComponent* GetCamera() const;
 	
-	class USkeletalMeshComponent* GetBodyMesh() const;	
+	class UStaticMeshComponent* GetBodyMesh() const;
 
 	class AHeroEquippable* GetEquippable(EHand Hand) const;
 
@@ -160,7 +169,7 @@ FORCEINLINE UHMDCameraComponent* AHeroBase::GetCamera() const
 	return Camera;
 }
 
-FORCEINLINE USkeletalMeshComponent* AHeroBase::GetBodyMesh() const
+FORCEINLINE UStaticMeshComponent* AHeroBase::GetBodyMesh() const
 {
 	return BodyMesh;
 }
