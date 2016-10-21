@@ -181,10 +181,6 @@ bool AHeroBase::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FR
 void AHeroBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	//DOREPLIFETIME(AHeroBase, Loadout);
-	DOREPLIFETIME_CONDITION(AHeroBase, RightHandEquippable, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(AHeroBase, LeftHandEquippable, COND_SimulatedOnly);
 }
 
 void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
@@ -221,11 +217,7 @@ UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
 
 void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 { 
-	if (Role == ENetRole::ROLE_AutonomousProxy)
-	{
-		ServerEquip(Item, Hand);
-	}
-
+	// Unequip first if hand is in use
 	AHeroEquippable*& EquippablePtr = (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
 
 	if (EquippablePtr != nullptr)
@@ -233,54 +225,50 @@ void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 		EquippablePtr->Unequip();
 	}
 
-	EquippablePtr = Item;
-	EquippablePtr->Equip(Hand);
+	Item->Equip(Hand);
 }
 
-void AHeroBase::ServerEquip_Implementation(class AHeroEquippable* Item, const EHand Hand)
+void AHeroBase::OnEquipped(AHeroEquippable* Item, const EHand Hand)
 {
-	Equip(Item, Hand);
-}
-
-bool AHeroBase::ServerEquip_Validate(class AHeroEquippable* Item, const EHand Hand)
-{
-	return true;
+	if (Hand == EHand::Left)
+	{
+		LeftHandEquippable = Item;
+	}
+	else
+	{
+		RightHandEquippable = Item;
+	}
 }
 
 void AHeroBase::Unequip(AHeroEquippable* Item)
 {
-	if (Role == ENetRole::ROLE_AutonomousProxy)
-	{
-		ServerUnequip(Item);
-	}
-
-	check(Item == LeftHandEquippable || Item == RightHandEquippable);
+	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
 	EHand Hand = (Item == LeftHandEquippable) ? EHand::Left : EHand::Right;
 
 	if (Hand == EHand::Left)
 	{		
 		LeftHandEquippable->Unequip();
-		LeftHandEquippable = nullptr;
-
-		LeftHandMesh->PlayAnimation(AnimDefaultHand, true);
 	}	
 	else
 	{
 		RightHandEquippable->Unequip();
-		RightHandEquippable = nullptr;
-
-		RightHandMesh->PlayAnimation(AnimDefaultHand, true);
 	}
 }
 
-void AHeroBase::ServerUnequip_Implementation(class AHeroEquippable* Item)
+void AHeroBase::OnUnequipped(AHeroEquippable* Item)
 {
-	Unequip(Item);
-}
+	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
 
-bool AHeroBase::ServerUnequip_Validate(class AHeroEquippable* Item)
-{
-	return true;
+	if (Item == LeftHandEquippable)
+	{
+		LeftHandEquippable = nullptr;
+		LeftHandMesh->PlayAnimation(AnimDefaultHand, true);
+	}
+	else
+	{
+		RightHandEquippable = nullptr;
+		RightHandMesh->PlayAnimation(AnimDefaultHand, true);
+	}
 }
 
 template <EHand Hand>
@@ -317,16 +305,6 @@ void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
-}
-
-void AHeroBase::OnRep_LeftHandEquippable()
-{
-	
-}
-
-void AHeroBase::OnRep_RightHandEquippable()
-{
-
 }
 
 FVector AHeroBase::GetPawnViewLocation() const

@@ -7,6 +7,8 @@
 
 #include "HeroBase.generated.h"
 
+class AHeroEquippable;
+
 UCLASS(Abstract, Config=Game)
 class PROJECTATOMVR_API AHeroBase : public ACharacter
 {
@@ -27,9 +29,15 @@ public:
 
 	bool IsRightHanded() const { return bIsRightHanded; }
 
-	virtual void Equip(class AHeroEquippable* Item, const EHand Hand);
+	virtual void Equip(AHeroEquippable* Item, const EHand Hand);
 
-	virtual void Unequip(class AHeroEquippable* Item);
+	/** Called by Equippable when the equipping process is complete. */
+	virtual void OnEquipped(AHeroEquippable* Item, const EHand Hand);
+
+	virtual void Unequip(AHeroEquippable* Item);
+
+	/** Called by Equippable when the unequipping process is complete. */
+	virtual void OnUnequipped(AHeroEquippable* Item);
 
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -52,19 +60,7 @@ protected:
 	void OnEquipPressed();
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
-	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerEquip(class AHeroEquippable* Item, const EHand Hand);
-
-	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerUnequip(class AHeroEquippable* Item);
-
 private:
-	UFUNCTION()
-	void OnRep_LeftHandEquippable();
-
-	UFUNCTION()
-	void OnRep_RightHandEquippable();
-
 	void UpdateBodyMeshLocation();
 
 protected:
@@ -91,7 +87,7 @@ private:
 	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroLoadout* Loadout;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LeftHandEquippable, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class AHeroEquippable* LeftHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
@@ -100,7 +96,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* LeftHandMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing = OnRep_RightHandEquippable, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class AHeroEquippable* RightHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))

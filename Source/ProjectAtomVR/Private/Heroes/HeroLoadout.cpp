@@ -5,7 +5,7 @@
 
 #include "HeroLoadoutTemplate.h"
 #include "HeroBase.h"
-#include "Weapons/HeroEquippable.h"
+#include "Equippables/HeroEquippable.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHeroLoadout, Log, All);
@@ -76,8 +76,6 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 	{
 		if (OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger) && Slot.Item->CanEquip(Hand))
 		{
-			Slot.Item->SetLoadoutAttachment(HeroOwner->GetBodyMesh(), Slot.StorageSocket); // Set the unequip location for the item
-
 			HeroOwner->Equip(Slot.Item, Hand);
 			return true;
 		}
