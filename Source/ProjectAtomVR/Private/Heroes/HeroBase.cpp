@@ -127,8 +127,8 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 	Super::SetupPlayerInputComponent(InInputComponent);
 
 	// Bind inputs for hero
-	InInputComponent->BindAction(TEXT("EquipLeft"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Left>);
-	InInputComponent->BindAction(TEXT("EquipRight"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Right>);
+	InInputComponent->BindAction(TEXT("GripLeft"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Left>);
+	InInputComponent->BindAction(TEXT("GripRight"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Right>);
 
 	// Setup all movement types component input bindings
 	TInlineComponentArray<UHeroMovementType*> MovementTypeComponents;

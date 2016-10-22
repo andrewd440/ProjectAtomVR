@@ -17,16 +17,24 @@ public:
 	
 	virtual void Tick( float DeltaSeconds ) override;
 
+	UEquippableState* GetFiringState() const;
+	UEquippableState* GetChargingState() const;
+	UEquippableState* GetReloadingState() const;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
 	FName MuzzleSocket;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
-	TSubclassOf<UEquippableState> FiringStateTemplate;
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadWrite, Category = States)
+	UEquippableState* FiringState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
-	TSubclassOf<UEquippableState> ChargingStateTemplate;
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadWrite, Category = States)
+	UEquippableState* ChargingState;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
-	TSubclassOf<UEquippableState> ReloadingStateTemplate;
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadWrite, Category = States)
+	UEquippableState* ReloadingState;
 };
+
+FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
+FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
+FORCEINLINE UEquippableState* AHeroFirearm::GetReloadingState() const { return ReloadingState; }

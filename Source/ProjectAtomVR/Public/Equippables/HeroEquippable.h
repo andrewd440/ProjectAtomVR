@@ -50,9 +50,13 @@ public:
 
 	bool IsEquipped() const;
 
-	void PushActiveState();
+	EHand GetEquippedHand() const;
+
+	UEquippableState* GetCurrentState() const;
 
 	void PopState(UEquippableState* InPopState);
+
+	void PushState(UEquippableState* InPushState);
 
 	/**
 	 * Called from ActiveState when entered.
@@ -64,12 +68,6 @@ public:
 	*/
 	virtual void OnUnequipped();
 
-protected:
-	void PushState(UEquippableState* InPushState);
-
-	UFUNCTION()
-	void OnRep_EquipStatus();
-
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerEquip(const EHand Hand);
@@ -77,11 +75,22 @@ private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerUnequip();
 
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerPushState(UEquippableState* State);
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerPopState();
+
+	UFUNCTION()
+	void OnRep_EquipStatus();
+
 	/** AActor Interface Begin */
 public:
+	virtual void BeginPlay() override;
 	virtual void SetOwner(AActor* NewOwner) override;
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 
 protected:
 	virtual void OnRep_Owner() override;
@@ -95,11 +104,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FHandAnim AnimHandEquip;
 
-	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	TSubclassOf<UEquippableState> InactiveStateTemplate = nullptr;
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
+	UEquippableState* InactiveState;
 
-	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	TSubclassOf<UEquippableState> ActiveStateTemplate = nullptr;
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
+	UEquippableState* ActiveState;
 
 	TArray<UEquippableState*> StateStack;
 
@@ -114,6 +123,9 @@ protected:
 	float UnequipTimeStamp = 0.f;
 
 private:
+	/** All Equippable states that support networking and are replicated. */
+	TArray<UEquippableState*> ReplicatedStates;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;
 
@@ -126,12 +138,6 @@ private:
 	/** Socket that is attached to when unequipped */
 	FName StorageAttachSocket = NAME_None;
 
-	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
-	UEquippableState* InactiveState = nullptr;
-
-	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
-	UEquippableState* ActiveState = nullptr;
-
 public:
 	AHeroBase* GetHeroOwner() const;
 
@@ -143,3 +149,5 @@ protected:
 FORCEINLINE AHeroBase* AHeroEquippable::GetHeroOwner() const { return HeroOwner; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
+FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
+FORCEINLINE bool AHeroEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }

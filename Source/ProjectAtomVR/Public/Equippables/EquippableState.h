@@ -22,18 +22,27 @@ public:
 	virtual void OnEnteredState();
 
 	/**
+	* Called when this state is exiting for the owning Equippable.
+	* This happens when the state is popped off the state stack, or a new
+	* state has been pushed onto the stack.
+	*/
+	virtual void OnExitedState();
+
+	/**
 	* Called when this state has been returned to from another state.
 	* For example, if this state pushes another state onto the Equippable, then that state
 	* is popped.
 	*/
 	virtual void OnReturnedState();
 
-	/**
-	* Called when the owning Equippable is being unequipped.
-	*/
-	virtual void OnUnequip();
-
 protected:
+	/**
+	 * Called when the state is entered or returned to in order to allow input binding.
+	 * These bindings are automatically removed when the state is no longer on the top
+	 * of the stack.
+	 **/
+	virtual void BindStateInputs(UInputComponent* InputComponent);
+
 	AHeroEquippable* GetEquippable() const;
 
 private:
