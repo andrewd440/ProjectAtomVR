@@ -66,7 +66,7 @@ private:
 protected:
 	/** Default animation used for hand meshes. When nothing is equipped. */
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	UAnimSequence* AnimDefaultHand = nullptr;
+	FHandAnim AnimDefaultHand;
 
 	/** Socket on the body mesh that has the offset for the intended head mesh location. */
 	UPROPERTY(EditDefaultsOnly, Category = Hero)

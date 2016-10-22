@@ -55,7 +55,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
 	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	LeftHandMesh->SetAnimation(AnimDefaultHand);
+	LeftHandMesh->SetAnimation(AnimDefaultHand.Left);
 	LeftHandMesh->SetupAttachment(LeftHandController);
 	LeftHandMesh->bGenerateOverlapEvents = true;
 	LeftHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
@@ -68,7 +68,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
 	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	RightHandMesh->SetAnimation(AnimDefaultHand);
+	RightHandMesh->SetAnimation(AnimDefaultHand.Right);
 	RightHandMesh->SetupAttachment(RightHandController);
 	RightHandMesh->bGenerateOverlapEvents = true;
 	RightHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
@@ -262,12 +262,20 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item)
 	if (Item == LeftHandEquippable)
 	{
 		LeftHandEquippable = nullptr;
-		LeftHandMesh->PlayAnimation(AnimDefaultHand, true);
+
+		if (AnimDefaultHand.Left)
+		{
+			LeftHandMesh->PlayAnimation(AnimDefaultHand.Left, true);
+		}
 	}
 	else
 	{
 		RightHandEquippable = nullptr;
-		RightHandMesh->PlayAnimation(AnimDefaultHand, true);
+
+		if (AnimDefaultHand.Right)
+		{
+			RightHandMesh->PlayAnimation(AnimDefaultHand.Right, true);
+		}
 	}
 }
 

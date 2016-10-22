@@ -18,6 +18,18 @@ enum class EHandType : uint8
 };
 
 USTRUCT()
+struct FHandAnim
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Anim)
+	class UAnimSequence* Right = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = Anim)
+	class UAnimSequence* Left = nullptr;
+};
+
+USTRUCT()
 struct PROJECTATOMVR_API FMotionTransformRep
 {
 	GENERATED_USTRUCT_BODY()

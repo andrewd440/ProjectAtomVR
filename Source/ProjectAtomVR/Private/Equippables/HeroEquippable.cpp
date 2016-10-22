@@ -11,28 +11,11 @@
 // Sets default values
 AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	//PrimaryActorTick.bCanEverTick = true;
-
 	bReplicates = true;
 
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));	
 	Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	RootComponent = Mesh;
-}
-
-// Called when the game starts or when spawned
-void AHeroEquippable::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void AHeroEquippable::Tick( float DeltaTime )
-{
-	Super::Tick( DeltaTime );
-
 }
 
 void AHeroEquippable::Equip(const EHand Hand)
@@ -167,9 +150,10 @@ void AHeroEquippable::OnEquipped()
 		AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
 	}
 
-	if (AnimHandEquip)
+	UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimHandEquip.Right : AnimHandEquip.Left;
+	if (HandAnim)
 	{
-		AttachHand->PlayAnimation(AnimHandEquip, true);
+		AttachHand->PlayAnimation(HandAnim, true);
 	}
 
 	HeroOwner->OnEquipped(this, EquipStatus.EquippedHand);

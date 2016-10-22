@@ -40,12 +40,6 @@ public:
 	// Sets default values for this actor's properties
 	AHeroEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-	
-	// Called every frame
-	virtual void Tick( float DeltaSeconds ) override;
-
 	virtual void Equip(const EHand Hand);
 
 	virtual bool CanEquip(const EHand Hand) const;
@@ -99,7 +93,7 @@ protected:
 
 	/** Hand animation used when this item is equipped */
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	UAnimSequence* AnimHandEquip = nullptr;
+	FHandAnim AnimHandEquip;
 
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	TSubclassOf<UEquippableState> InactiveStateTemplate = nullptr;
