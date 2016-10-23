@@ -35,6 +35,12 @@ public:
 	*/
 	virtual void OnReturnedState();
 
+	AHeroEquippable* GetEquippable() const;
+
+	/** UObject Interface Begin */
+	virtual class UWorld* GetWorld() const override;
+	/** UObject Interface End */
+
 protected:
 	/**
 	 * Called when the state is entered or returned to in order to allow input binding.
@@ -42,8 +48,6 @@ protected:
 	 * of the stack.
 	 **/
 	virtual void BindStateInputs(UInputComponent* InputComponent);
-
-	AHeroEquippable* GetEquippable() const;
 
 private:
 	class AHeroEquippable* Equippable = nullptr;

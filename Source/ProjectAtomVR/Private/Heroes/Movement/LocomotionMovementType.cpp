@@ -12,13 +12,13 @@ void ULocomotionMovementType::SetupPlayerInputComponent(class UInputComponent* I
 	FName ForwardInput, RightInput;
 	if (GetHero()->IsRightHanded())
 	{
-		ForwardInput = TEXT("MotionControllerThumbRight_Y");
-		RightInput = TEXT("MotionControllerThumbRight_X");
+		ForwardInput = TEXT("MotionControllerThumbLeft_Y");
+		RightInput = TEXT("MotionControllerThumbLeft_X");
 	}
 	else
 	{
-		ForwardInput = TEXT("MotionControllerThumbLeft_Y");
-		RightInput = TEXT("MotionControllerThumbLeft_X");
+		ForwardInput = TEXT("MotionControllerThumbRight_Y");
+		RightInput = TEXT("MotionControllerThumbRight_X");
 	}
 
 	InputComponent->BindAxis(ForwardInput, this, &ULocomotionMovementType::OnMoveForward);

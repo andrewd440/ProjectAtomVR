@@ -140,6 +140,7 @@ private:
 
 public:
 	AHeroBase* GetHeroOwner() const;
+	USkeletalMeshComponent* GetMesh() const;
 
 protected:
 	UEquippableState* GetInactiveState() const;
@@ -147,6 +148,7 @@ protected:
 };
 
 FORCEINLINE AHeroBase* AHeroEquippable::GetHeroOwner() const { return HeroOwner; }
+FORCEINLINE USkeletalMeshComponent* AHeroEquippable::GetMesh() const { return Mesh; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
 FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }

@@ -52,6 +52,11 @@ void UEquippableState::OnReturnedState()
 	}
 }
 
+class UWorld* UEquippableState::GetWorld() const
+{
+	return Equippable->GetWorld();
+}
+
 void UEquippableState::BindStateInputs(UInputComponent* InputComponent)
 {
 

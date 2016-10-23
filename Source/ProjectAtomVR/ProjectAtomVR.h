@@ -24,3 +24,5 @@ namespace AtomCollisionProfiles
 	static const FName HeroHand{ TEXT("HeroHand") };
 	static const FName HandTrigger{ TEXT("HandTrigger") };
 }
+
+#define INSTANTSHOT_CHANNEL ECC_GameTraceChannel3

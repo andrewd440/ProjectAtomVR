@@ -11,6 +11,7 @@ void UEquippableStateFiring::OnEnteredState()
 	Super::OnEnteredState();
 
 	bIsFiring = true;
+	StartFireShotTimer();
 }
 
 void UEquippableStateFiring::OnReturnedState()
@@ -18,13 +19,20 @@ void UEquippableStateFiring::OnReturnedState()
 	Super::OnReturnedState();
 
 	bIsFiring = true;
+	StartFireShotTimer();
 }
 
 void UEquippableStateFiring::OnExitedState()
 {
 	Super::OnExitedState();
 
+	GetFirearm()->StopFiringEffects();
 	bIsFiring = false;
+
+	if (FireTimer.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(FireTimer);
+	}
 }
 
 void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
@@ -66,6 +74,8 @@ void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
 {
 	Super::BindStateInputs(InputComponent);
 
+	// Only care if fully automatic. Otherwise, the state will be popped when
+	// the burst finishes.
 	if (BurstCount == 0)
 	{
 		const EHand Hand = GetEquippable()->GetEquippedHand();
@@ -77,5 +87,28 @@ void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
 		{
 			InputComponent->BindAction(TEXT("TriggerRight"), IE_Released, this, &UEquippableStateFiring::OnTriggerReleased);
 		}
+	}
+}
+
+void UEquippableStateFiring::StartFireShotTimer()
+{
+	const FFirearmStats& FirearmStats = GetFirearm()->GetFirearmStats();
+
+	const float ShotDelay = FMath::Max(0.f, FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp));
+	GetWorld()->GetTimerManager().SetTimer(FireTimer, this, &UEquippableStateFiring::OnFireShot, FirearmStats.FireRate, true, ShotDelay);
+
+	ShotsFired = 0;
+}
+
+void UEquippableStateFiring::OnFireShot()
+{
+	GetFirearm()->FireShot();
+
+	LastShotTimestamp = GetWorld()->GetTimeSeconds();
+
+	++ShotsFired;
+	if ((BurstCount > 0 && ShotsFired >= BurstCount) || GetFirearm()->GetRemainingClip() <= 0)
+	{
+		GetEquippable()->PopState(this);
 	}
 }
