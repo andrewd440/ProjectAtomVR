@@ -41,6 +41,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ShotTypeInstant)
 	TSubclassOf<UDamageType> DamageType;
 
+	/* Shot trail fx spawned each shot. The Distance parameter will be used to indicate the distance
+	 * of the shot. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ShotTypeInstant)
 	UParticleSystem* TrailFX = nullptr;
 

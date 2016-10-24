@@ -12,7 +12,11 @@ void UEquippableStateActiveFirearm::OnTriggerPressed()
 	check(Cast<AHeroFirearm>(GetEquippable()));
 
 	AHeroFirearm* Firearm = static_cast<AHeroFirearm*>(GetEquippable());
-	GetEquippable()->PushState(Firearm->GetFiringState());
+
+	if (Firearm->GetRemainingClip() > 0)
+	{
+		GetEquippable()->PushState(Firearm->GetFiringState());
+	}
 }
 
 void UEquippableStateActiveFirearm::BindStateInputs(UInputComponent* InputComponent)

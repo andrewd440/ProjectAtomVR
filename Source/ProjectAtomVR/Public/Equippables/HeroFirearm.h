@@ -42,9 +42,9 @@ public:
 	/** Get the rotation of the firearm muzzle in world space. */
 	FQuat GetMuzzleRotation() const;
 
-	uint32 GetRemainingAmmo() const;
+	int32 GetRemainingAmmo() const;
 
-	uint32 GetRemainingClip() const;
+	int32 GetRemainingClip() const;
 
 	void ConsumeAmmo();
 
@@ -73,9 +73,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	FFirearmStats Stats;
 
-	uint32 RemainingAmmo;
+	int32 RemainingAmmo;
 
-	uint32 RemainingClip;
+	int32 RemainingClip;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UShotType* ShotType;
@@ -122,6 +122,6 @@ protected:
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
 FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
 FORCEINLINE UEquippableState* AHeroFirearm::GetReloadingState() const { return ReloadingState; }
-FORCEINLINE uint32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
-FORCEINLINE uint32 AHeroFirearm::GetRemainingClip() const { return RemainingClip; }
+FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
+FORCEINLINE int32 AHeroFirearm::GetRemainingClip() const { return RemainingClip; }
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
