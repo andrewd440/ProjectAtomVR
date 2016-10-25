@@ -3,6 +3,7 @@
 #include "ProjectAtomVR.h"
 #include "ShotTypeInstant.h"
 #include "HeroFirearm.h"
+#include "Effects/AtomImpactEffect.h"
 
 namespace
 {
@@ -70,11 +71,11 @@ void UShotTypeInstant::PlayTrailEffects(const FVector& Start, const FVector& End
 
 void UShotTypeInstant::PlayImpactEffects(const FHitResult& Hit) const
 {
-	//if (ImpactEffect)
-	//{
-	//	const UBSImpactEffect* const EffectObject = ImpactEffect->GetDefaultObject<UBSImpactEffect>();
-	//	EffectObject->SpawnEffect(GetWorld(), Hit);
-	//}
+	if (ImpactEffect)
+	{
+		const UAtomImpactEffect* const EffectObject = ImpactEffect->GetDefaultObject<UAtomImpactEffect>();
+		EffectObject->SpawnEffect(GetWorld(), Hit);
+	}
 }
 
 FHitResult UShotTypeInstant::WeaponTrace(const FVector& Start, const FVector& End) const
