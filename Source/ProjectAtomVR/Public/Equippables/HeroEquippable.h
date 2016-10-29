@@ -36,6 +36,9 @@ class PROJECTATOMVR_API AHeroEquippable : public AActor
 {
 	GENERATED_BODY()
 	
+public:
+	static const FName MeshComponentName;
+
 public:	
 	// Sets default values for this actor's properties
 	AHeroEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -127,7 +130,7 @@ private:
 	TArray<UEquippableState*> ReplicatedStates;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
-	class USkeletalMeshComponent* Mesh;
+	class UMeshComponent* Mesh;
 
 	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class AHeroBase* HeroOwner = nullptr;
@@ -140,7 +143,7 @@ private:
 
 public:
 	AHeroBase* GetHeroOwner() const;
-	USkeletalMeshComponent* GetMesh() const;
+	UMeshComponent* GetMesh() const;
 
 protected:
 	UEquippableState* GetInactiveState() const;
@@ -148,7 +151,7 @@ protected:
 };
 
 FORCEINLINE AHeroBase* AHeroEquippable::GetHeroOwner() const { return HeroOwner; }
-FORCEINLINE USkeletalMeshComponent* AHeroEquippable::GetMesh() const { return Mesh; }
+FORCEINLINE UMeshComponent* AHeroEquippable::GetMesh() const { return Mesh; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
 FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }

@@ -28,7 +28,7 @@ struct FShotData
 * Provides an interface for getting the initial shot data for a shot, simulating a shot, 
 * and firing a shot on the server.
 */
-UCLASS(Blueprintable, Abstract, NotPlaceable, Config = Game, DefaultToInstanced, EditInlineNew, Within = HeroFirearm)
+UCLASS(Blueprintable, Abstract, NotPlaceable, Config = Game, DefaultToInstanced, EditInlineNew)
 class PROJECTATOMVR_API UShotType : public UObject
 {
 	GENERATED_BODY()

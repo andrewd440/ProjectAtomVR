@@ -11,12 +11,13 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogEquippable, Log, All);
 
+const FName AHeroEquippable::MeshComponentName = TEXT("Mesh");
+
 AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
 	bReplicates = true;
 
-	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));	
-	Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
 }
 

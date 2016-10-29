@@ -12,6 +12,7 @@ void UEquippableStateFiring::OnEnteredState()
 
 	bIsFiring = true;
 	StartFireShotTimer();
+	GetFirearm()->StartFiringSequence();
 }
 
 void UEquippableStateFiring::OnReturnedState()
@@ -20,13 +21,14 @@ void UEquippableStateFiring::OnReturnedState()
 
 	bIsFiring = true;
 	StartFireShotTimer();
+	GetFirearm()->StartFiringSequence();
 }
 
 void UEquippableStateFiring::OnExitedState()
 {
 	Super::OnExitedState();
 
-	GetFirearm()->StopFiringEffects();
+	GetFirearm()->StopFiringSequence();
 	bIsFiring = false;
 
 	if (FireTimer.IsValid())

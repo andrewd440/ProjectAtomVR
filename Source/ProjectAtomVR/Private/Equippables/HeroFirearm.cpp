@@ -5,9 +5,13 @@
 #include "HeroBase.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Animation/AnimInstance.h"
+#include "AnimNotify_Firearm.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
 AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponent>(AHeroEquippable::MeshComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
@@ -16,6 +20,10 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	Stats.FireRate = 0.1f;
 	Stats.MaxAmmo = 160;
 	Stats.ClipSize = 30;
+
+	bNeedsBoltPull = false;
+
+	GetSkeletalMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 }
 
 
@@ -63,14 +71,22 @@ void AHeroFirearm::FireShot()
 			ServerFireShot(ShotData);
 		}
 
-		PlayFiringEffects();
+		PlaySingleShotSequence();
 		ConsumeAmmo();
 	}
 	else if(Role == ENetRole::ROLE_SimulatedProxy)
 	{
 		ShotType->SimulateShot(ShotData);
-		PlayFiringEffects();
+		PlaySingleShotSequence();
 		ConsumeAmmo();
+	}
+}
+
+void AHeroFirearm::StartFiringSequence()
+{
+	if (TriggerPullMontage)
+	{
+		GetSkeletalMesh()->GetAnimInstance()->Montage_Play(TriggerPullMontage);
 	}
 }
 
@@ -81,7 +97,7 @@ void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 
 	if (GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		PlayFiringEffects();
+		PlaySingleShotSequence();
 	}
 }
 
@@ -90,7 +106,7 @@ bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData)
 	return true;
 }
 
-void AHeroFirearm::PlayFiringEffects()
+void AHeroFirearm::PlaySingleShotSequence()
 {
 	// Activate if not active or not looping
 	if (MuzzleFX != nullptr && (MuzzleFXComponent == nullptr || !MuzzleFX->IsLooping()))
@@ -104,9 +120,14 @@ void AHeroFirearm::PlayFiringEffects()
 		FireSoundComponent = UGameplayStatics::SpawnSoundAttached(FireSound, GetMesh(), MuzzleSocket);
 		FireSoundComponent->Play();
 	}
+
+	if (BoltCarrierMontage)
+	{
+		GetSkeletalMesh()->GetAnimInstance()->Montage_Play(BoltCarrierMontage);
+	}
 }
 
-void AHeroFirearm::StopFiringEffects()
+void AHeroFirearm::StopFiringSequence()
 {
 	if (MuzzleFXComponent && MuzzleFXComponent->IsActive() && MuzzleFXComponent->Template->IsLooping())
 	{
@@ -124,6 +145,27 @@ void AHeroFirearm::StopFiringEffects()
 	{
 		UGameplayStatics::SpawnSoundAttached(EndFireSound, GetMesh(), MuzzleSocket);
 	}
+
+	if (BoltCarrierMontage)
+	{
+		GetSkeletalMesh()->GetAnimInstance()->Montage_Stop(.1f, BoltCarrierMontage);
+	}
+
+	if (TriggerPullMontage)
+	{
+		GetSkeletalMesh()->GetAnimInstance()->Montage_Stop(.1f, TriggerPullMontage);
+	}
+}
+
+void AHeroFirearm::OnFirearmNotify(EFirearmNotify Type)
+{
+	if (Type == EFirearmNotify::ShellEject)
+	{
+		if (ShellEjectComponent)
+		{
+			ShellEjectComponent->Activate(true);
+		}		
+	}
 }
 
 void AHeroFirearm::PostInitializeComponents()
@@ -132,4 +174,10 @@ void AHeroFirearm::PostInitializeComponents()
 
 	RemainingAmmo = Stats.MaxAmmo - Stats.ClipSize;
 	RemainingClip = Stats.ClipSize;
+
+	if (ShellEjectTemplate)
+	{
+		ShellEjectComponent = UGameplayStatics::SpawnEmitterAttached(ShellEjectTemplate, GetMesh(), ShellEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+		ShellEjectComponent->bAutoActivate = false;
+	}
 }
