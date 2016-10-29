@@ -7,6 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimInstance.h"
 #include "AnimNotify_Firearm.h"
+#include "FirearmClip.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
@@ -127,6 +128,18 @@ void AHeroFirearm::PlaySingleShotSequence()
 	}
 }
 
+void AHeroFirearm::OnRep_CurrentClip()
+{
+
+}
+
+void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentClip, COND_SkipOwner);
+}
+
 void AHeroFirearm::StopFiringSequence()
 {
 	if (MuzzleFXComponent && MuzzleFXComponent->IsActive() && MuzzleFXComponent->Template->IsLooping())
@@ -144,11 +157,6 @@ void AHeroFirearm::StopFiringSequence()
 	if (EndFireSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(EndFireSound, GetMesh(), MuzzleSocket);
-	}
-
-	if (BoltCarrierMontage)
-	{
-		GetSkeletalMesh()->GetAnimInstance()->Montage_Stop(.1f, BoltCarrierMontage);
 	}
 
 	if (TriggerPullMontage)
@@ -179,5 +187,16 @@ void AHeroFirearm::PostInitializeComponents()
 	{
 		ShellEjectComponent = UGameplayStatics::SpawnEmitterAttached(ShellEjectTemplate, GetMesh(), ShellEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
 		ShellEjectComponent->bAutoActivate = false;
+	}
+
+	if (HasAuthority() && ClipType)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		CurrentClip = GetWorld()->SpawnActor<AFirearmClip>(ClipType, FTransform::Identity, SpawnParams);
+		CurrentClip->SetReplicates(true);
+
+		CurrentClip->SetAmmoCount(RemainingClip);
+		CurrentClip->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
 	}
 }

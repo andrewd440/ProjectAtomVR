@@ -20,6 +20,8 @@ void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>&
 	for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 	{
 		USphereComponent* Trigger = NewObject<USphereComponent>(HeroOwner);
+		Trigger->SetIsReplicated(false);
+
 		Trigger->RegisterComponent();
 
 		Trigger->SetSphereRadius(LoadoutTemplateSlots[i].StorageTriggerRadius);

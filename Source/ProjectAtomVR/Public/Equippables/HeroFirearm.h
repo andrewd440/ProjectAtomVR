@@ -70,11 +70,15 @@ public:
 	USkeletalMeshComponent* GetSkeletalMesh() const;
 
 	/** AHeroEquippable Interface Begin */
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 	/** AHeroEquippable Interface End */
 
 protected:
 	virtual void PlaySingleShotSequence();
+	
+	UFUNCTION()
+	virtual void OnRep_CurrentClip();
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
@@ -90,6 +94,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	TSubclassOf<class AFirearmClip> ClipType;
+
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentClip, BlueprintReadOnly, Category = Firearm)
+	AFirearmClip* CurrentClip;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	FName ClipAttachSocket;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UShotType* ShotType;
@@ -158,7 +168,7 @@ protected:
 	//uint32 bAutoResetBoltCarrier : 1;
 
 	// Is a bolt pull currently needed
-	uint32 bNeedsBoltPull : 1;
+	uint32 bNeedsBoltPull : 1;	
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
