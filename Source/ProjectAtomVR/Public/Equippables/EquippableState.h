@@ -35,7 +35,8 @@ public:
 	*/
 	virtual void OnReturnedState();
 
-	AHeroEquippable* GetEquippable() const;
+	template <typename EquippableType = AHeroEquippable>
+	EquippableType* GetEquippable() const;
 
 	/** UObject Interface Begin */
 	virtual class UWorld* GetWorld() const override;
@@ -53,5 +54,9 @@ private:
 	class AHeroEquippable* Equippable = nullptr;
 };
 
-
-FORCEINLINE AHeroEquippable* UEquippableState::GetEquippable() const { return Equippable; }
+template <typename EquippableType>
+FORCEINLINE EquippableType* UEquippableState::GetEquippable() const 
+{
+	check(EquippableType::StaticClass()->IsChildOf(Equippable->StaticClass()) && "Owner Equippable is not of the requested type.");
+	return static_cast<EquippableType*>(Equippable); 
+}

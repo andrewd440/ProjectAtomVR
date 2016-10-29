@@ -15,6 +15,8 @@ class PROJECTATOMVR_API UEquippableStateActiveFirearm : public UEquippableStateA
 
 protected:
 	virtual void OnTriggerPressed();
+
+	virtual void OnEjectClip();
 	
 	/** UEquippable Interface Begin */
 protected:

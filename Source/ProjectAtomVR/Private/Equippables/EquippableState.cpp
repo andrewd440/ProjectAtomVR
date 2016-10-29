@@ -31,7 +31,7 @@ void UEquippableState::OnExitedState()
 		UInputComponent* const InputComponent = Equippable->InputComponent;
 		check(InputComponent && "InputComponent should always be valid on locally controlled Equippables.");
 
-		for (int i = 0; i < InputComponent->GetNumActionBindings(); ++i)
+		for (int i = InputComponent->GetNumActionBindings() - 1; i >= 0; --i)
 		{
 			FInputActionBinding& InputBinding = InputComponent->GetActionBinding(i);
 			if (InputBinding.ActionDelegate.IsBoundToObject(this))

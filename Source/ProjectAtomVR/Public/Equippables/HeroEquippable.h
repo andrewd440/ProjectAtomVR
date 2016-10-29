@@ -143,7 +143,9 @@ private:
 
 public:
 	AHeroBase* GetHeroOwner() const;
-	UMeshComponent* GetMesh() const;
+
+	template <typename MeshType = UMeshComponent>
+	MeshType* GetMesh() const;
 
 protected:
 	UEquippableState* GetInactiveState() const;
@@ -151,8 +153,15 @@ protected:
 };
 
 FORCEINLINE AHeroBase* AHeroEquippable::GetHeroOwner() const { return HeroOwner; }
-FORCEINLINE UMeshComponent* AHeroEquippable::GetMesh() const { return Mesh; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
 FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
 FORCEINLINE bool AHeroEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }
+
+
+template <typename MeshType>
+FORCEINLINE MeshType* AHeroEquippable::GetMesh() const
+{
+	check(MeshType::StaticClass()->IsChildOf(Mesh->StaticClass()) && "Mesh Component is not of the requested type.");
+	return static_cast<MeshType*>(Mesh);
+}

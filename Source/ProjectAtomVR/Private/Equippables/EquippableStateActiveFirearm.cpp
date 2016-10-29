@@ -9,13 +9,21 @@
 
 void UEquippableStateActiveFirearm::OnTriggerPressed()
 {
-	check(Cast<AHeroFirearm>(GetEquippable()));
-
-	AHeroFirearm* Firearm = static_cast<AHeroFirearm*>(GetEquippable());
+	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
 	if (Firearm->GetRemainingClip() > 0)
 	{
-		GetEquippable()->PushState(Firearm->GetFiringState());
+		Firearm->PushState(Firearm->GetFiringState());
+	}
+}
+
+void UEquippableStateActiveFirearm::OnEjectClip()
+{
+	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
+
+	if (Firearm->GetClip())
+	{
+		Firearm->EjectClip();
 	}
 }
 
@@ -27,9 +35,11 @@ void UEquippableStateActiveFirearm::BindStateInputs(UInputComponent* InputCompon
 	if (Hand == EHand::Left)
 	{
 		InputComponent->BindAction(TEXT("TriggerLeft"), IE_Pressed, this, &UEquippableStateActiveFirearm::OnTriggerPressed);
+		InputComponent->BindAction(TEXT("EjectClipLeft"), IE_Pressed, this, &UEquippableStateActiveFirearm::OnEjectClip);
 	}
 	else
 	{
 		InputComponent->BindAction(TEXT("TriggerRight"), IE_Pressed, this, &UEquippableStateActiveFirearm::OnTriggerPressed);
+		InputComponent->BindAction(TEXT("EjectClipRight"), IE_Pressed, this, &UEquippableStateActiveFirearm::OnEjectClip);
 	}
 }

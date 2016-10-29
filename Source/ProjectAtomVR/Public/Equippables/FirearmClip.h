@@ -16,6 +16,9 @@ public:
 	int32 GetAmmoCount() const;
 	void SetAmmoCount(int32 Count);
 
+	void OnClipAttached(class AHeroFirearm* Firearm);
+	void OnClipEjected(class AHeroFirearm* Firearm);
+
 private:
 	int32 AmmoCount = 0;
 };

@@ -44,6 +44,59 @@ FQuat AHeroFirearm::GetMuzzleRotation() const
 	return GetMesh()->GetSocketQuaternion(MuzzleSocket);
 }
 
+void AHeroFirearm::AttachClip(AFirearmClip* Clip)
+{
+	check(Clip);
+	ensure(CurrentClip == nullptr);
+
+	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
+	{
+		ServerAttachClip(Clip);
+	}
+
+	CurrentClip = Clip;
+
+	Clip->SetAmmoCount(RemainingClip);
+	Clip->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
+	Clip->OnClipAttached(this);
+}
+
+void AHeroFirearm::EjectClip()
+{
+	if (GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
+	{
+		ServerEjectClip();
+	}
+
+	if (CurrentClip)
+	{
+		CurrentClip->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		CurrentClip->OnClipEjected(this);
+	}
+
+	CurrentClip = nullptr;
+}
+
+void AHeroFirearm::ServerAttachClip_Implementation(class AFirearmClip* Clip)
+{
+	AttachClip(Clip);
+}
+
+bool AHeroFirearm::ServerAttachClip_Validate(class AFirearmClip* Clip)
+{
+	return true;
+}
+
+void AHeroFirearm::ServerEjectClip_Implementation()
+{
+	EjectClip();
+}
+
+bool AHeroFirearm::ServerEjectClip_Validate()
+{
+	return true;
+}
+
 void AHeroFirearm::ConsumeAmmo()
 {
 	--RemainingClip;
@@ -130,7 +183,36 @@ void AHeroFirearm::PlaySingleShotSequence()
 
 void AHeroFirearm::OnRep_CurrentClip()
 {
+	if (CurrentClip == nullptr)
+	{
+		CurrentClip = RemoteConnectionClip;
+		EjectClip();
+	}
+	else
+	{
+		// Simulate attaching a new clip
+		AFirearmClip* NewClip = CurrentClip;
+		CurrentClip = nullptr;
+		AttachClip(NewClip);
+	}
 
+	RemoteConnectionClip = CurrentClip;
+}
+
+void AHeroFirearm::OnRep_DefaultClip()
+{
+	if (RemoteConnectionClip)
+	{
+		CurrentClip = RemoteConnectionClip;
+
+		CurrentClip->SetAmmoCount(RemainingClip);
+		CurrentClip->OnClipAttached(this);
+	}
+}
+
+void AHeroFirearm::BeginPlay()
+{
+	Super::BeginPlay();
 }
 
 void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -138,6 +220,7 @@ void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentClip, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AHeroFirearm, RemoteConnectionClip, COND_OwnerOnly);
 }
 
 void AHeroFirearm::StopFiringSequence()
@@ -192,11 +275,8 @@ void AHeroFirearm::PostInitializeComponents()
 	if (HasAuthority() && ClipType)
 	{
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		CurrentClip = GetWorld()->SpawnActor<AFirearmClip>(ClipType, FTransform::Identity, SpawnParams);
-		CurrentClip->SetReplicates(true);
-
-		CurrentClip->SetAmmoCount(RemainingClip);
-		CurrentClip->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
+		SpawnParams.Owner = GetHeroOwner();
+		RemoteConnectionClip = GetWorld()->SpawnActor<AFirearmClip>(ClipType, FTransform::Identity, SpawnParams);
+		AttachClip(RemoteConnectionClip);
 	}
 }

@@ -47,6 +47,12 @@ public:
 
 	int32 GetRemainingClip() const;
 
+	class AFirearmClip* GetClip() const;
+
+	virtual void AttachClip(class AFirearmClip* Clip);
+
+	virtual void EjectClip();
+
 	void ConsumeAmmo();
 
 	const FFirearmStats& GetFirearmStats() const;
@@ -70,6 +76,7 @@ public:
 	USkeletalMeshComponent* GetSkeletalMesh() const;
 
 	/** AHeroEquippable Interface Begin */
+	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
 	/** AHeroEquippable Interface End */
@@ -83,6 +90,15 @@ protected:
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerFireShot(FShotData ShotData);
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerAttachClip(class AFirearmClip* Clip);
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerEjectClip();
+
+	UFUNCTION()
+	void OnRep_DefaultClip();
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
@@ -169,6 +185,12 @@ protected:
 
 	// Is a bolt pull currently needed
 	uint32 bNeedsBoltPull : 1;	
+
+private:
+	/** Clip that is added to the firearm when spawned for owning clients. Is also used to save
+	 ** a copy of the current clip to have a reference to the old clip once overwritten from replication. */
+	UPROPERTY(ReplicatedUsing = OnRep_DefaultClip)
+	AFirearmClip* RemoteConnectionClip = nullptr;
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
@@ -178,5 +200,6 @@ FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo;
 FORCEINLINE int32 AHeroFirearm::GetRemainingClip() const { return RemainingClip; }
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
 FORCEINLINE USkeletalMeshComponent* AHeroFirearm::GetSkeletalMesh() const { return static_cast<USkeletalMeshComponent*>(GetMesh()); }
+FORCEINLINE class AFirearmClip* AHeroFirearm::GetClip() const { return CurrentClip; }
 //FORCEINLINE bool AHeroFirearm::IsBoltPullNeeded() const { return bNeedsBoltPull; }
 //FORCEINLINE void AHeroFirearm::SetNeedsBoltPull(bool bIsNeeded) { bIsNeeded = bIsNeeded; }
