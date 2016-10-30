@@ -16,7 +16,11 @@ public:
 	void LoadInto(class AHeroFirearm* Firearm);
 	void EjectFrom(class AHeroFirearm* Firearm);
 
+	/** AActor Interface Begin */
+	virtual void Tick(float DeltaSeconds) override;
+	/** AActor Interface End */
+	
 private:
-	UPROPERTY(VisibleAnywhere, Category = FirearmClip, meta = (AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = FirearmClip, meta = (AllowPrivateAccess = "true"))
 	UShapeComponent* ClipLoadTrigger;
 };

@@ -26,7 +26,7 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	GetSkeletalMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
-	ClipReloadTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("ClipReloadTrigger"));
+	ClipReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("ClipReloadTrigger"));
 	ClipReloadTrigger->SetIsReplicated(false);
 	ClipReloadTrigger->bGenerateOverlapEvents = true;
 	ClipReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);

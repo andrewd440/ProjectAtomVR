@@ -5,9 +5,17 @@
 #include "Components/MeshComponent.h"
 #include "HeroFirearm.h"
 
+namespace
+{
+	static constexpr float SmoothLoadSpeed = 30.f;
+}
+
 AFirearmClip::AFirearmClip(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AHeroEquippable::MeshComponentName))
 {	
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;	
+
 	UMeshComponent* const MyMesh = GetMesh();
 	MyMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
@@ -15,7 +23,7 @@ AFirearmClip::AFirearmClip(const FObjectInitializer& ObjectInitializer /*= FObje
 	MyMesh->SetSimulatePhysics(false);
 	MyMesh->bGenerateOverlapEvents = false;
 
-	ClipLoadTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("ClipLoadTrigger"));
+	ClipLoadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("ClipLoadTrigger"));
 	ClipLoadTrigger->SetIsReplicated(false);
 	ClipLoadTrigger->SetupAttachment(MyMesh);
 	ClipLoadTrigger->bGenerateOverlapEvents = true;
@@ -32,10 +40,12 @@ void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
 		Unequip();
 	}
 
+	PrimaryActorTick.SetTickFunctionEnable(true);
+
 	SetActorEnableCollision(false);
 	GetMesh()->SetSimulatePhysics(false);
 	
-	AttachToComponent(Firearm->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Firearm->GetClipAttachSocket());
+	AttachToComponent(Firearm->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, Firearm->GetClipAttachSocket());
 }
 
 void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
@@ -46,7 +56,7 @@ void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
 		ForceNetUpdate();
 
 		TearOff();
-	}
+	}	
 
 	ClipLoadTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Disable trigger on eject, pending destroy
 
@@ -57,4 +67,20 @@ void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
 	GetMesh()->SetSimulatePhysics(true);
 
 	SetLifeSpan(10.f);
+}
+
+void AFirearmClip::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UMeshComponent* MyMesh = GetMesh();
+
+	const FVector NewLocation = FMath::VInterpConstantTo(MyMesh->RelativeLocation, FVector::ZeroVector, DeltaSeconds, SmoothLoadSpeed);
+	const FRotator NewRotation = FMath::RInterpConstantTo(MyMesh->RelativeRotation, FRotator::ZeroRotator, DeltaSeconds, SmoothLoadSpeed);
+	MyMesh->SetRelativeLocationAndRotation(NewLocation, NewRotation);
+
+	if (MyMesh->RelativeLocation.IsNearlyZero() && MyMesh->RelativeRotation.IsNearlyZero())
+	{
+		PrimaryActorTick.SetTickFunctionEnable(false);
+	}
 }

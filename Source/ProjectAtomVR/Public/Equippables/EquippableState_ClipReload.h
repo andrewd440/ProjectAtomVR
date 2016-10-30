@@ -14,6 +14,8 @@ class PROJECTATOMVR_API UEquippableState_ClipReload : public UEquippableState
 	GENERATED_BODY()
 	
 public:
+	UEquippableState_ClipReload(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	/** EquippableState Interface Begin */
 	virtual void OnEnteredState() override;
 	virtual void OnExitedState() override;
@@ -25,4 +27,9 @@ protected:
 
 	UFUNCTION()
 	virtual void OnClipExitedReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+protected:
+	/** Does the clip need to be in hand to load into the firearm. */
+	UPROPERTY(EditDefaultsOnly, Category = ReloadState)
+	uint32 bRequiresEquippedClip : 1;
 };

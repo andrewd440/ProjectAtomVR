@@ -8,6 +8,12 @@
 
 
 
+UEquippableState_ClipReload::UEquippableState_ClipReload(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+	: Super(ObjectInitializer)
+{
+	bRequiresEquippedClip = true;
+}
+
 void UEquippableState_ClipReload::OnEnteredState()
 {
 	Super::OnEnteredState();
@@ -34,7 +40,8 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 	AFirearmClip* OverlappingClip = static_cast<AFirearmClip*>(OtherActor);
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
-	if (OverlappingClip->GetHeroOwner() == Firearm->GetHeroOwner())
+	if (OverlappingClip->GetHeroOwner() == Firearm->GetHeroOwner() &&
+		(!bRequiresEquippedClip || OverlappingClip->IsEquipped()))
 	{
 		Firearm->AttachClip(OverlappingClip);
 		Firearm->PopState(this);
