@@ -32,6 +32,11 @@ class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
 {
 	GENERATED_BODY()
 	
+public:
+	/** Broadcasted when a clip has been attached or ejected. */
+	DECLARE_EVENT(AHeroFirearm, FOnClipChanged)
+	FOnClipChanged OnClipChanged;
+
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	

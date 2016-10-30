@@ -25,9 +25,6 @@ protected:
 	UFUNCTION()
 	virtual void OnClipEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	UFUNCTION()
-	virtual void OnClipExitedReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
 protected:
 	/** Does the clip need to be in hand to load into the firearm. */
 	UPROPERTY(EditDefaultsOnly, Category = ReloadState)

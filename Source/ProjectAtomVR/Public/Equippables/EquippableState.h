@@ -16,6 +16,11 @@ class PROJECTATOMVR_API UEquippableState : public UObject
 public:
 	UEquippableState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	/**
+	 * Called by owning Equippable from BeginPlay
+	 */
+	virtual void BeginPlay();
+
 	/** 
 	 * Called when this state has been entered for the owning Equippable.
 	 */

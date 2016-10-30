@@ -156,7 +156,7 @@ protected:
 
 private:
 	/** All Equippable states that support networking and are replicated. */
-	TArray<UEquippableState*> ReplicatedStates;
+	TArray<UEquippableState*> EquippableStates;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class UMeshComponent* Mesh;

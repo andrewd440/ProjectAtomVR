@@ -11,7 +11,7 @@ struct FHeroLoadoutSlot
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	class AHeroEquippable* Item;
+	TArray<class AHeroEquippable*> ItemStack;
 
 	// Socket the item is attached to when in storage
 	FName StorageSocket;
@@ -50,9 +50,12 @@ public:
 	 **/
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
 
+protected:
+	void OnReturnToLoadoutChanged(class AHeroEquippable* Item, int32 LoadoutIndex);
+
 private:
 	/** Creates all loadout weapons. Should only be called on server. */
-	void CreateLoadoutWeapons(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
+	void CreateLoadoutEquippables(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
 
 	/** Creates all loadout item triggers. Should only be called on controlling players. */
 	void CreateLoadoutTriggers(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);

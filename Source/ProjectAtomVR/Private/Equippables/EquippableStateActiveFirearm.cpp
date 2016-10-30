@@ -24,7 +24,6 @@ void UEquippableStateActiveFirearm::OnEjectClip()
 	if (Firearm->GetClip())
 	{
 		Firearm->EjectClip();
-		Firearm->PushState(Firearm->GetReloadingState());
 	}
 }
 
@@ -54,5 +53,37 @@ void UEquippableStateActiveFirearm::OnEnteredState()
 	if (Firearm->GetClip() == nullptr)
 	{
 		Firearm->PushState(Firearm->GetReloadingState());
+	}
+
+	OnClipChangedHandle = Firearm->OnClipChanged.AddUObject(this, &UEquippableStateActiveFirearm::OnClipAttachmentChanged);
+}
+
+void UEquippableStateActiveFirearm::OnExitedState()
+{
+	Super::OnExitedState();
+
+	//if (OnClipChangedHandle.IsValid())
+	//{
+	//	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
+	//	Firearm->OnClipChanged.Remove(OnClipChangedHandle);
+	//}
+}
+
+void UEquippableStateActiveFirearm::OnClipAttachmentChanged()
+{
+	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
+	if (Firearm->GetClip() != nullptr)
+	{
+		if (Firearm->GetCurrentState() == Firearm->GetReloadingState())
+		{
+			Firearm->PopState(Firearm->GetReloadingState());
+		}
+	}
+	else
+	{
+		if (Firearm->GetCurrentState() != Firearm->GetReloadingState())
+		{
+			Firearm->PushState(Firearm->GetReloadingState());
+		}
 	}
 }

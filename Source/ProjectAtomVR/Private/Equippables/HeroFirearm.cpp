@@ -68,6 +68,8 @@ void AHeroFirearm::AttachClip(AFirearmClip* Clip)
 
 	RemainingClip = FMath::Min(Stats.ClipSize, (uint32)RemainingAmmo);
 	RemainingAmmo -= RemainingClip;
+
+	OnClipChanged.Broadcast();
 }
 
 void AHeroFirearm::EjectClip()
@@ -87,6 +89,8 @@ void AHeroFirearm::EjectClip()
 	// Add ammo back and reset clip count
 	RemainingAmmo += RemainingClip;
 	RemainingClip = 0;
+
+	OnClipChanged.Broadcast();
 }
 
 void AHeroFirearm::ServerAttachClip_Implementation(class AFirearmClip* Clip)
@@ -217,8 +221,10 @@ void AHeroFirearm::OnRep_DefaultClip()
 	if (RemoteConnectionClip)
 	{
 		CurrentClip = RemoteConnectionClip;
-		
 		CurrentClip->LoadInto(this);
+
+		RemainingClip = FMath::Min(Stats.ClipSize, (uint32)RemainingAmmo);
+		RemainingAmmo -= RemainingClip;
 	}
 }
 

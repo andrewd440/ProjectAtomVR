@@ -27,6 +27,11 @@ void AHeroEquippable::BeginPlay()
 {
 	Super::BeginPlay();
 
+	for (auto& State : EquippableStates)
+	{
+		State->BeginPlay();
+	}
+
 	check(InactiveState);
 	check(ActiveState);
 	StateStack.Push(InactiveState);
@@ -277,20 +282,14 @@ void AHeroEquippable::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	// Gather all replicated states
-	if (HeroOwner && HeroOwner->HasAuthority())
+	// Gather all states
+	TArray<UObject*> Subobjects;
+	GetObjectsWithOuter(this, Subobjects, false);
+	for (UObject* Subobject : Subobjects)
 	{
-		TArray<UObject*> Subobjects;
-		GetObjectsWithOuter(this, Subobjects, false);
-		for (UObject* Subobject : Subobjects)
+		if (UEquippableState* State = Cast<UEquippableState>(Subobject))
 		{
-			if (Subobject->IsSupportedForNetworking())
-			{
-				if (UEquippableState* State = Cast<UEquippableState>(Subobject))
-				{
-					ReplicatedStates.Push(State);
-				}
-			}
+			EquippableStates.Push(State);
 		}
 	}
 }
@@ -306,7 +305,8 @@ bool AHeroEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FO
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);;
 
-	for (UObject* State : ReplicatedStates)
+	// All states are required to replicate
+	for (UObject* State : EquippableStates)
 	{
 		WroteSomething |= Channel->ReplicateSubobject(State, *Bunch, *RepFlags);	
 	}

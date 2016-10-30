@@ -13,6 +13,11 @@ UEquippableState::UEquippableState(const FObjectInitializer& ObjectInitializer /
 	ensure(Equippable || (GetFlags() & RF_ArchetypeObject) == RF_ArchetypeObject);
 }
 
+void UEquippableState::BeginPlay()
+{
+
+}
+
 void UEquippableState::OnEnteredState()
 {
 	if (Equippable->GetHeroOwner()->IsLocallyControlled())

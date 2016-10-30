@@ -67,7 +67,7 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 		// Weapons will only be spawned by server
 		if (Owner->HasAuthority())
 		{
-			CreateLoadoutWeapons(LoadoutTemplateSlots);
+			CreateLoadoutEquippables(LoadoutTemplateSlots);
 		}
 	}
 }
@@ -76,9 +76,12 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 {
 	for (FHeroLoadoutSlot& Slot : Loadout)
 	{
-		if (OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger) && Slot.Item->CanEquip(Hand))
+		AHeroEquippable* TopItem = (Slot.ItemStack.Num() > 0) ? Slot.ItemStack.Top() : nullptr;
+
+		if (TopItem && TopItem->CanEquip(Hand) &&
+			OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger))
 		{
-			HeroOwner->Equip(Slot.Item, Hand);
+			HeroOwner->Equip(TopItem, Hand);
 			return true;
 		}
 	}	
@@ -88,7 +91,7 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 
 bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item)
 {
-	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
+	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.ItemStack.Num() > 0 && Slot.ItemStack.Top() == Item; });
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
@@ -108,7 +111,10 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 {
 	FHeroLoadoutSlot* const OverlappedSlot = Loadout.FindByPredicate([OverlappedComponent](const FHeroLoadoutSlot& Slot) { return Slot.StorageTrigger == OverlappedComponent; });
 
-	if (OverlappedSlot && OverlappedSlot->Item)
+	// Try to get the loadout item
+	AHeroEquippable* const OverlappedItem = (OverlappedSlot && OverlappedSlot->ItemStack.Num() > 0) ? OverlappedSlot->ItemStack.Top() : nullptr;
+
+	if (OverlappedItem)
 	{
 		EControllerHand ControllerHand = EControllerHand::Left;
 		EHand Hand = EHand::Left;
@@ -123,8 +129,8 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 		// Check if the item can be equipped. If it is already equipped, check if the overlapped hand has the item equipped.
 		const AHeroEquippable* CurrentlyEquipped = HeroOwner->GetEquippable(Hand);
 
-		if ((CurrentlyEquipped == nullptr && OverlappedSlot->Item->CanEquip(Hand)) || 
-			(OverlappedSlot->Item->IsEquipped() && CurrentlyEquipped == OverlappedSlot->Item))
+		if ((CurrentlyEquipped == nullptr && OverlappedItem->CanEquip(Hand)) ||
+			(OverlappedItem->IsEquipped() && CurrentlyEquipped == OverlappedItem))
 		{
 			APlayerController* const PC = Cast<APlayerController>(HeroOwner->GetController());
 			ensureMsgf(PC != nullptr && PC->IsLocalController(), TEXT("Loadout trigger overlaps should only occur on locally controlled heros."));
@@ -137,7 +143,7 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 	}
 }
 
-void UHeroLoadout::CreateLoadoutWeapons(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
+void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
 {
 	if (UWorld* const World = GetWorld())
 	{
@@ -147,19 +153,51 @@ void UHeroLoadout::CreateLoadoutWeapons(const TArray<FHeroLoadoutTemplateSlot>& 
 
 		for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 		{
-			const FHeroLoadoutTemplateSlot& Slot = LoadoutTemplateSlots[i];
+			const FHeroLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateSlots[i];
+			FHeroLoadoutSlot& CurrentSlot = Loadout[i];
 
-			if (Slot.ItemClass)
+			if (TemplateSlot.ItemClass)
 			{
-				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(Slot.ItemClass, FTransform::Identity, SpawnParams);
-				Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
+				for (int32 j = 0; j < TemplateSlot.Count; ++j)
+				{
+					AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+					Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
+					Equippable->SetActorHiddenInGame(true); // Add items will be hidden except for the one on top of the stack
 
-				Loadout[i].Item = Equippable;
+					Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);
+
+					CurrentSlot.ItemStack.Push(Equippable);
+				}
+
+				if (CurrentSlot.ItemStack.Num() > 0)
+				{
+					CurrentSlot.ItemStack.Top()->SetActorHiddenInGame(false);
+				}
 			}
 			else
 			{
 				UE_LOG(LogHeroLoadout, Warning, TEXT("FHeroLoadoutTemplateSlot item was null. No item will be created from this slot."));
 			}
+		}
+	}
+}
+
+void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 LoadoutIndex)
+{
+	if (!Item->CanReturnToLoadout())
+	{
+		check(LoadoutIndex < Loadout.Num());
+
+		TArray<AHeroEquippable*>& ItemStack = Loadout[LoadoutIndex].ItemStack;
+
+		if (ItemStack.Num() > 0)
+		{
+			ItemStack.Remove(Item);
+		}
+
+		if (ItemStack.Num() > 0 && ItemStack.Top()->bHidden)
+		{
+			ItemStack.Top()->SetActorHiddenInGame(false);
 		}
 	}
 }

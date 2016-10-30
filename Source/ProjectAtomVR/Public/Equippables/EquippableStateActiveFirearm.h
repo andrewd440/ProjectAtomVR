@@ -15,13 +15,18 @@ class PROJECTATOMVR_API UEquippableStateActiveFirearm : public UEquippableStateA
 
 protected:
 	virtual void OnTriggerPressed();
-
 	virtual void OnEjectClip();
+	void OnClipAttachmentChanged();
 	
 	/** UEquippable Interface Begin */
 public:
 	virtual void OnEnteredState() override;
+	virtual void OnExitedState() override;
+
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent) override;
 	/** UEquippable Interface End */
+
+private:
+	FDelegateHandle OnClipChangedHandle;
 };

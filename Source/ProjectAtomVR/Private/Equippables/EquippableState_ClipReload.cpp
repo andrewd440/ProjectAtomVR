@@ -25,7 +25,6 @@ void UEquippableState_ClipReload::OnEnteredState()
 	{
 		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
 		ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
-		ReloadTrigger->OnComponentEndOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
 	}
 }
 
@@ -37,7 +36,6 @@ void UEquippableState_ClipReload::OnExitedState()
 	{
 		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
 		ReloadTrigger->OnComponentBeginOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
-		ReloadTrigger->OnComponentEndOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
 	}
 }
 
@@ -59,13 +57,6 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 		if (AttachRotation.AngularDistance(ClipRotation) <= ClipAttachRotationErrorRadians)
 		{
 			Firearm->AttachClip(OverlappingClip);
-			Firearm->PopState(this);
 		}
 	}
-}
-
-void UEquippableState_ClipReload::OnClipExitedReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	check(Cast<AFirearmClip>(OtherActor) && "FirearmClip should be the only response to this trigger.");
-	check(GetEquippable()->GetCurrentState() == this && "Overlap events should be unbound when not the active state.");
 }
