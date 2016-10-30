@@ -149,9 +149,9 @@ void UHeroLoadout::CreateLoadoutWeapons(const TArray<FHeroLoadoutTemplateSlot>& 
 		{
 			const FHeroLoadoutTemplateSlot& Slot = LoadoutTemplateSlots[i];
 
-			if (Slot.Item)
+			if (Slot.ItemClass)
 			{
-				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(Slot.Item, FTransform::Identity, SpawnParams);
+				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(Slot.ItemClass, FTransform::Identity, SpawnParams);
 				Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
 
 				Loadout[i].Item = Equippable;

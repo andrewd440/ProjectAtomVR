@@ -11,11 +11,17 @@ struct FHeroLoadoutTemplateSlot
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
-	TSubclassOf<class AHeroEquippable> Item;
+	TSubclassOf<class AHeroEquippable> ItemClass;
 
+	/** How many items will be placed in the loadout. */
+	UPROPERTY(EditDefaultsOnly, Category = Loadout)
+	int32 Count;
+
+	/** Storage location on Hero mesh. */
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
 	FName StorageSocket;
 
+	/** Radius of overlapping trigger used to equip this item. */
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
 	float StorageTriggerRadius;
 };

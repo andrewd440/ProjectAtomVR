@@ -44,11 +44,6 @@ void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimePr
 	DOREPLIFETIME_CONDITION(UEquippableStateFiring, bIsFiring, COND_SkipOwner);
 }
 
-bool UEquippableStateFiring::IsSupportedForNetworking() const
-{
-	return true;
-}
-
 void UEquippableStateFiring::OnTriggerReleased()
 {
 	GetEquippable()->PopState(this);

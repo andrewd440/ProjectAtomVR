@@ -55,6 +55,8 @@ void AHeroFirearm::AttachClip(AFirearmClip* Clip)
 {
 	check(Clip);
 	ensure(CurrentClip == nullptr);
+	ensureMsgf(Clip->IsA(ClipClass), 
+		TEXT("Attached HeroFirearm clip is not compatible with assigned type. Was %s, while ClipType is %s"), Clip->StaticClass()->GetName(), ClipClass->StaticClass()->GetName());
 
 	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
 	{
@@ -62,8 +64,10 @@ void AHeroFirearm::AttachClip(AFirearmClip* Clip)
 	}
 
 	CurrentClip = Clip;
-	
 	Clip->LoadInto(this);
+
+	RemainingClip = FMath::Min(Stats.ClipSize, (uint32)RemainingAmmo);
+	RemainingAmmo -= RemainingClip;
 }
 
 void AHeroFirearm::EjectClip()
@@ -79,6 +83,10 @@ void AHeroFirearm::EjectClip()
 	}
 
 	CurrentClip = nullptr;
+
+	// Add ammo back and reset clip count
+	RemainingAmmo += RemainingClip;
+	RemainingClip = 0;
 }
 
 void AHeroFirearm::ServerAttachClip_Implementation(class AFirearmClip* Clip)
@@ -103,6 +111,7 @@ bool AHeroFirearm::ServerEjectClip_Validate()
 
 void AHeroFirearm::ConsumeAmmo()
 {
+	ensure(RemainingClip > 0);
 	--RemainingClip;
 }
 
@@ -266,8 +275,7 @@ void AHeroFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	RemainingAmmo = Stats.MaxAmmo - Stats.ClipSize;
-	RemainingClip = Stats.ClipSize;
+	RemainingAmmo = Stats.MaxAmmo;
 
 	ClipReloadTrigger->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
 
@@ -277,11 +285,11 @@ void AHeroFirearm::PostInitializeComponents()
 		ShellEjectComponent->bAutoActivate = false;
 	}
 
-	if (HasAuthority() && ClipType)
+	if (HasAuthority() && ClipClass)
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = GetHeroOwner();
-		RemoteConnectionClip = GetWorld()->SpawnActor<AFirearmClip>(ClipType, FTransform::Identity, SpawnParams);
+		RemoteConnectionClip = GetWorld()->SpawnActor<AFirearmClip>(ClipClass, GetMesh<UMeshComponent>()->GetSocketTransform(ClipAttachSocket), SpawnParams);
 		AttachClip(RemoteConnectionClip);
 	}
 }

@@ -20,7 +20,7 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
 
-	bReturnToStorage = true;
+	bReturnToLoadout = true;
 }
 
 void AHeroEquippable::BeginPlay()
@@ -32,12 +32,14 @@ void AHeroEquippable::BeginPlay()
 	StateStack.Push(InactiveState);
 }
 
-void AHeroEquippable::Equip(const EHand Hand)
+void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 {
 	ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
-
+	
 	EquipStatus.EquippedHand = Hand;
+	EquipStatus.EquipType = EquipType;
 	EquipStatus.bIsEquipped = true;
+	EquipStatus.ForceReplication(); // Make sure the equip update is sent to clients
 
 	if (HeroOwner->IsLocallyControlled())
 	{
@@ -45,14 +47,9 @@ void AHeroEquippable::Equip(const EHand Hand)
 		EnableInput(static_cast<APlayerController*>(HeroOwner->GetController()));
 	}
 
-	if(!HeroOwner->HasAuthority())
+	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
 	{
 		ServerEquip(Hand);
-	}
-	else
-	{
-		// Make sure the equip update is sent to clients
-		EquipStatus.ForceReplication();
 	}
 
 	StateStack.Top()->OnExitedState();
@@ -65,10 +62,14 @@ bool AHeroEquippable::CanEquip(const EHand Hand) const
 	return !IsEquipped() && GetWorld()->GetTimeSeconds() > UnequipTimeStamp + ReuseDelay;
 }
 
-void AHeroEquippable::Unequip()
+void AHeroEquippable::Unequip(const EEquipType EquipType)
 {
 	ensure(EquipStatus.bIsEquipped);
 	EquipStatus.bIsEquipped = false;
+	EquipStatus.EquipType = EquipType;
+
+	// Make sure the equip update is sent to clients
+	EquipStatus.ForceReplication();
 
 	if (HeroOwner->IsLocallyControlled())
 	{
@@ -76,14 +77,9 @@ void AHeroEquippable::Unequip()
 		DisableInput(static_cast<APlayerController*>(HeroOwner->GetController()));
 	}
 
-	if (!HeroOwner->HasAuthority())
+	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
 	{
 		ServerUnequip();
-	}
-	else
-	{
-		// Make sure the equip update is sent to clients
-		EquipStatus.ForceReplication();
 	}
 
 	while (StateStack.Num() > 1)
@@ -97,10 +93,24 @@ void AHeroEquippable::Unequip()
 	StateStack.Top()->OnReturnedState();
 }
 
-void AHeroEquippable::SetStorageAttachment(USceneComponent* AttachComponent, FName AttachSocket)
+void AHeroEquippable::SetCanReturnToLoadout(bool bCanReturn)
 {
-	StorageAttachComponent = AttachComponent;
-	StorageAttachSocket = AttachSocket;
+	if (bCanReturn != bReturnToLoadout)
+	{
+		bReturnToLoadout = bCanReturn;
+		OnCanReturnToLoadoutChanged.Broadcast();
+	}
+}
+
+bool AHeroEquippable::CanReturnToLoadout() const
+{
+	return bReturnToLoadout;
+}
+
+void AHeroEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)
+{
+	LoadoutAttachComponent = AttachComponent;
+	LoadoutAttachSocket = AttachSocket;
 }
 
 void AHeroEquippable::PushState(UEquippableState* InPushState)
@@ -169,23 +179,26 @@ bool AHeroEquippable::ServerPopState_Validate()
 
 void AHeroEquippable::OnRep_EquipStatus()
 {
-	if (EquipStatus.bIsEquipped)
+	if (EquipStatus.EquipType == EEquipType::Normal)
 	{
-		ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
-
-		PushState(ActiveState);
-	}
-	else
-	{
-		while (StateStack.Num() > 1)
+		if (EquipStatus.bIsEquipped)
 		{
-			StateStack.Top()->OnExitedState();
-			StateStack.Pop(false);
-		}
+			ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
 
-		// Notify inactive state of entered event
-		ensure(StateStack.Top() == InactiveState);
-		StateStack.Top()->OnReturnedState();
+			PushState(ActiveState);
+		}
+		else
+		{
+			while (StateStack.Num() > 1)
+			{
+				StateStack.Top()->OnExitedState();
+				StateStack.Pop(false);
+			}
+
+			// Notify inactive state of entered event
+			ensure(StateStack.Top() == InactiveState);
+			StateStack.Top()->OnReturnedState();
+		}
 	}
 }
 
@@ -202,14 +215,9 @@ void AHeroEquippable::OnEquipped()
 {
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(EquipStatus.EquippedHand);
 
-	// Only allow attachments on server or locally controlled. Remotes will get replicated attachments.
-	if (HeroOwner->HasAuthority() || HeroOwner->IsLocallyControlled())
-	{
-		// Set return storage before attaching to hero
-		SetStorageAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
-
-		AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket);
-	}
+	// Set return storage before attaching to hero
+	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
+	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket); 
 
 	UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimHandEquip.Right : AnimHandEquip.Left;
 	if (HandAnim)
@@ -224,17 +232,13 @@ void AHeroEquippable::OnUnequipped()
 {
 	UnequipTimeStamp = GetWorld()->GetTimeSeconds();
 
-	// Only allow attachments on server or locally controlled. Remotes will get replicated attachments.
-	if (HeroOwner->HasAuthority() || HeroOwner->IsLocallyControlled())
+	if (LoadoutAttachComponent && bReturnToLoadout)
 	{
-		if (StorageAttachComponent && bReturnToStorage)
-		{
-			AttachToComponent(StorageAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, StorageAttachSocket);
-		}
-		else
-		{
-			DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		}
+		AttachToComponent(LoadoutAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutAttachSocket);
+	}
+	else
+	{
+		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	}
 
 	HeroOwner->OnUnequipped(this);

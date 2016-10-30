@@ -57,6 +57,11 @@ class UWorld* UEquippableState::GetWorld() const
 	return Equippable->GetWorld();
 }
 
+bool UEquippableState::IsSupportedForNetworking() const
+{
+	return true;
+}
+
 void UEquippableState::BindStateInputs(UInputComponent* InputComponent)
 {
 

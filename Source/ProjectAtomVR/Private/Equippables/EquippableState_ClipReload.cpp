@@ -5,8 +5,11 @@
 #include "FirearmClip.h"
 #include "HeroFirearm.h"
 
-
-
+namespace
+{
+	static constexpr float ClipAttachRotationErrorDegrees = 10.f;
+	static constexpr float ClipAttachRotationErrorRadians = ClipAttachRotationErrorDegrees * (PI / 180.f);
+}
 
 UEquippableState_ClipReload::UEquippableState_ClipReload(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -18,18 +21,24 @@ void UEquippableState_ClipReload::OnEnteredState()
 {
 	Super::OnEnteredState();
 
-	UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
-	ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
-	ReloadTrigger->OnComponentEndOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
+	if (GetEquippable()->GetHeroOwner()->IsLocallyControlled())
+	{
+		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
+		ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
+		ReloadTrigger->OnComponentEndOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
+	}
 }
 
 void UEquippableState_ClipReload::OnExitedState()
 {
 	Super::OnExitedState();
 
-	UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
-	ReloadTrigger->OnComponentBeginOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
-	ReloadTrigger->OnComponentEndOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
+	if (GetEquippable()->GetHeroOwner()->IsLocallyControlled())
+	{
+		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
+		ReloadTrigger->OnComponentBeginOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
+		ReloadTrigger->OnComponentEndOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipExitedReloadTrigger);
+	}
 }
 
 void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -41,10 +50,17 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
 	if (OverlappingClip->GetHeroOwner() == Firearm->GetHeroOwner() &&
-		(!bRequiresEquippedClip || OverlappingClip->IsEquipped()))
+		(!bRequiresEquippedClip || OverlappingClip->IsEquipped()) &&
+		OverlappingClip->IsA(Firearm->GetClipClass()))
 	{
-		Firearm->AttachClip(OverlappingClip);
-		Firearm->PopState(this);
+		FQuat AttachRotation = Firearm->GetMesh<UMeshComponent>()->GetSocketQuaternion(Firearm->GetClipAttachSocket());
+		FQuat ClipRotation = OverlappingClip->GetActorQuat();
+
+		if (AttachRotation.AngularDistance(ClipRotation) <= ClipAttachRotationErrorRadians)
+		{
+			Firearm->AttachClip(OverlappingClip);
+			Firearm->PopState(this);
+		}
 	}
 }
 

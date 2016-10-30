@@ -38,7 +38,6 @@ protected:
 	/** UObject Interface Begin */
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;
-	virtual bool IsSupportedForNetworking() const override;
 	/** UObject Interface End */
 
 protected:

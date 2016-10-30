@@ -49,6 +49,8 @@ public:
 
 	class AFirearmClip* GetClip() const;
 
+	TSubclassOf<AFirearmClip> GetClipClass() const;
+
 	virtual void AttachClip(class AFirearmClip* Clip);
 
 	virtual void EjectClip();
@@ -74,7 +76,12 @@ public:
 	UEquippableState* GetReloadingState() const;
 
 	USkeletalMeshComponent* GetSkeletalMesh() const;
+
+	/** 
+	 * Gets trigger used to determine valid overlap for a clip to be loaded.
+	 */
 	UShapeComponent* GetClipReloadTrigger() const;
+
 	const FName GetClipAttachSocket() const;
 
 	/** AHeroEquippable Interface Begin */
@@ -111,7 +118,7 @@ protected:
 	int32 RemainingClip;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
-	TSubclassOf<class AFirearmClip> ClipType;
+	TSubclassOf<class AFirearmClip> ClipClass;
 
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentClip, BlueprintReadOnly, Category = Firearm)
 	AFirearmClip* CurrentClip;
@@ -194,20 +201,33 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_DefaultClip)
 	AFirearmClip* RemoteConnectionClip = nullptr;
 
+	/** Trigger used to determine valid overlap for a clip to be loaded.*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Firearm, meta = (AllowPrivateAccess = "true"))
 	UShapeComponent* ClipReloadTrigger;
 
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
+
 FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
+
 FORCEINLINE UEquippableState* AHeroFirearm::GetReloadingState() const { return ReloadingState; }
+
 FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
+
 FORCEINLINE int32 AHeroFirearm::GetRemainingClip() const { return RemainingClip; }
+
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
+
 FORCEINLINE USkeletalMeshComponent* AHeroFirearm::GetSkeletalMesh() const { return static_cast<USkeletalMeshComponent*>(GetMesh()); }
+
 FORCEINLINE class AFirearmClip* AHeroFirearm::GetClip() const { return CurrentClip; }
+
+FORCEINLINE TSubclassOf<AFirearmClip> AHeroFirearm::GetClipClass() const { return ClipClass; }
+
 FORCEINLINE UShapeComponent* AHeroFirearm::GetClipReloadTrigger() const { return ClipReloadTrigger; }
+
 FORCEINLINE const FName AHeroFirearm::GetClipAttachSocket() const { return ClipAttachSocket; }
+
 //FORCEINLINE bool AHeroFirearm::IsBoltPullNeeded() const { return bNeedsBoltPull; }
 //FORCEINLINE void AHeroFirearm::SetNeedsBoltPull(bool bIsNeeded) { bIsNeeded = bIsNeeded; }

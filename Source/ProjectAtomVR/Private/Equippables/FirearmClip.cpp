@@ -14,11 +14,11 @@ AFirearmClip::AFirearmClip(const FObjectInitializer& ObjectInitializer /*= FObje
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AHeroEquippable::MeshComponentName))
 {	
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false;	
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	UMeshComponent* const MyMesh = GetMesh();
 	MyMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-
+	
 	MyMesh->SetCanEverAffectNavigation(false);
 	MyMesh->SetSimulatePhysics(false);
 	MyMesh->bGenerateOverlapEvents = false;
@@ -36,8 +36,8 @@ void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
 {
 	if (EquipStatus.bIsEquipped)
 	{
-		bReturnToStorage = false;
-		Unequip();
+		SetCanReturnToLoadout(false);
+		Unequip(EEquipType::Deferred);
 	}
 
 	PrimaryActorTick.SetTickFunctionEnable(true);
@@ -50,17 +50,17 @@ void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
 
 void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
 {
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform); // Detach before replicating location to send world location
+
 	if (HasAuthority())
-	{
+	{		
 		bReplicateMovement = true;
 		ForceNetUpdate();
-
-		TearOff();
 	}	
 
-	ClipLoadTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Disable trigger on eject, pending destroy
+	bTearOff = true;
+	ClipLoadTrigger->bGenerateOverlapEvents = false; // Disable trigger on eject, pending destroy
 
-	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	GetMesh()->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	SetActorEnableCollision(true);
 
