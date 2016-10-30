@@ -125,6 +125,10 @@ protected:
 	/** Time stamp of when this item was last unequipped. */
 	float UnequipTimeStamp = 0.f;
 
+	/** True the Equippable should be returned to the StorageAttachment when unequipped. If false,
+	 * the Equippable will just be detached from the attached parent. */
+	uint32 bReturnToStorage : 1;
+
 private:
 	/** All Equippable states that support networking and are replicated. */
 	TArray<UEquippableState*> ReplicatedStates;

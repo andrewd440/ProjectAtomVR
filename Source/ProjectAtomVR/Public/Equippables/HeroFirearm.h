@@ -74,6 +74,8 @@ public:
 	UEquippableState* GetReloadingState() const;
 
 	USkeletalMeshComponent* GetSkeletalMesh() const;
+	UBoxComponent* GetClipReloadTrigger() const;
+	const FName GetClipAttachSocket() const;
 
 	/** AHeroEquippable Interface Begin */
 	virtual void BeginPlay() override;
@@ -191,6 +193,10 @@ private:
 	 ** a copy of the current clip to have a reference to the old clip once overwritten from replication. */
 	UPROPERTY(ReplicatedUsing = OnRep_DefaultClip)
 	AFirearmClip* RemoteConnectionClip = nullptr;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Firearm, meta = (AllowPrivateAccess = "true"))
+	UBoxComponent* ClipReloadTrigger;
+
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
@@ -201,5 +207,7 @@ FORCEINLINE int32 AHeroFirearm::GetRemainingClip() const { return RemainingClip;
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
 FORCEINLINE USkeletalMeshComponent* AHeroFirearm::GetSkeletalMesh() const { return static_cast<USkeletalMeshComponent*>(GetMesh()); }
 FORCEINLINE class AFirearmClip* AHeroFirearm::GetClip() const { return CurrentClip; }
+FORCEINLINE UBoxComponent* AHeroFirearm::GetClipReloadTrigger() const { return ClipReloadTrigger; }
+FORCEINLINE const FName AHeroFirearm::GetClipAttachSocket() const { return ClipAttachSocket; }
 //FORCEINLINE bool AHeroFirearm::IsBoltPullNeeded() const { return bNeedsBoltPull; }
 //FORCEINLINE void AHeroFirearm::SetNeedsBoltPull(bool bIsNeeded) { bIsNeeded = bIsNeeded; }

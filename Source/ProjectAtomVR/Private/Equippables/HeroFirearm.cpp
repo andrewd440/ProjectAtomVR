@@ -25,6 +25,13 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	bNeedsBoltPull = false;
 
 	GetSkeletalMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+
+	ClipReloadTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("ClipReloadTrigger"));
+	ClipReloadTrigger->SetIsReplicated(false);
+	ClipReloadTrigger->bGenerateOverlapEvents = true;
+	ClipReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
+	ClipReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	ClipReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
 }
 
 
@@ -55,10 +62,8 @@ void AHeroFirearm::AttachClip(AFirearmClip* Clip)
 	}
 
 	CurrentClip = Clip;
-
-	Clip->SetAmmoCount(RemainingClip);
-	Clip->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
-	Clip->OnClipAttached(this);
+	
+	Clip->LoadInto(this);
 }
 
 void AHeroFirearm::EjectClip()
@@ -69,9 +74,8 @@ void AHeroFirearm::EjectClip()
 	}
 
 	if (CurrentClip)
-	{
-		CurrentClip->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentClip->OnClipEjected(this);
+	{		
+		CurrentClip->EjectFrom(this);
 	}
 
 	CurrentClip = nullptr;
@@ -204,9 +208,8 @@ void AHeroFirearm::OnRep_DefaultClip()
 	if (RemoteConnectionClip)
 	{
 		CurrentClip = RemoteConnectionClip;
-
-		CurrentClip->SetAmmoCount(RemainingClip);
-		CurrentClip->OnClipAttached(this);
+		
+		CurrentClip->LoadInto(this);
 	}
 }
 
@@ -265,6 +268,8 @@ void AHeroFirearm::PostInitializeComponents()
 
 	RemainingAmmo = Stats.MaxAmmo - Stats.ClipSize;
 	RemainingClip = Stats.ClipSize;
+
+	ClipReloadTrigger->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
 
 	if (ShellEjectTemplate)
 	{

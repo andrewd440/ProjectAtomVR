@@ -19,6 +19,8 @@ protected:
 	virtual void OnEjectClip();
 	
 	/** UEquippable Interface Begin */
+public:
+	virtual void OnEnteredState() override;
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent) override;
 	/** UEquippable Interface End */

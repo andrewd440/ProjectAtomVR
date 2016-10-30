@@ -86,14 +86,14 @@ FHitResult UShotTypeInstant::WeaponTrace(const FVector& Start, const FVector& En
 
 	if (ShotRadius <= 0)
 	{
-		if (!GetWorld()->LineTraceSingleByChannel(Impact, Start, End, INSTANTSHOT_CHANNEL, QueryParams))
+		if (!GetWorld()->LineTraceSingleByChannel(Impact, Start, End, CollisionChannelAliases::InstantShot, QueryParams))
 		{
 			Impact.ImpactPoint = Impact.TraceEnd;
 		}
 	}
 	else
 	{
-		if (!GetWorld()->SweepSingleByChannel(Impact, Start, End, FQuat::Identity, INSTANTSHOT_CHANNEL, FCollisionShape::MakeSphere(ShotRadius), QueryParams))
+		if (!GetWorld()->SweepSingleByChannel(Impact, Start, End, FQuat::Identity, CollisionChannelAliases::InstantShot, FCollisionShape::MakeSphere(ShotRadius), QueryParams))
 		{
 			Impact.ImpactPoint = Impact.TraceEnd;
 		}

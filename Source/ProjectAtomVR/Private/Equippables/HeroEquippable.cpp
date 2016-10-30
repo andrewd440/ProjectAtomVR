@@ -19,6 +19,8 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
+
+	bReturnToStorage = true;
 }
 
 void AHeroEquippable::BeginPlay()
@@ -120,7 +122,11 @@ void AHeroEquippable::PushState(UEquippableState* InPushState)
 
 void AHeroEquippable::ServerPushState_Implementation(UEquippableState* State)
 {
-	PushState(State);
+	// The server could already be in the requested state, so check first.
+	if (StateStack.Top() != State)
+	{
+		PushState(State);
+	}
 }
 
 bool AHeroEquippable::ServerPushState_Validate(UEquippableState* State)
@@ -221,13 +227,13 @@ void AHeroEquippable::OnUnequipped()
 	// Only allow attachments on server or locally controlled. Remotes will get replicated attachments.
 	if (HeroOwner->HasAuthority() || HeroOwner->IsLocallyControlled())
 	{
-		if (StorageAttachComponent)
+		if (StorageAttachComponent && bReturnToStorage)
 		{
 			AttachToComponent(StorageAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, StorageAttachSocket);
 		}
 		else
 		{
-			DetachFromActor(FDetachmentTransformRules::KeepRelativeTransform);
+			DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		}
 	}
 

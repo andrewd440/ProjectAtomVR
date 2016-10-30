@@ -25,4 +25,9 @@ namespace AtomCollisionProfiles
 	static const FName HandTrigger{ TEXT("HandTrigger") };
 }
 
-#define INSTANTSHOT_CHANNEL ECC_GameTraceChannel3
+namespace CollisionChannelAliases
+{
+	static constexpr ECollisionChannel InstantShot = ECC_GameTraceChannel3;
+	static constexpr ECollisionChannel ClipLoadTrigger = ECC_GameTraceChannel4;
+	static constexpr ECollisionChannel FirearmReloadTrigger = ECC_GameTraceChannel5;
+}

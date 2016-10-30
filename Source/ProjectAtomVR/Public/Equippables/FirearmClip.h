@@ -13,12 +13,10 @@ class PROJECTATOMVR_API AFirearmClip : public AHeroEquippable
 public:	
 	AFirearmClip(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	int32 GetAmmoCount() const;
-	void SetAmmoCount(int32 Count);
-
-	void OnClipAttached(class AHeroFirearm* Firearm);
-	void OnClipEjected(class AHeroFirearm* Firearm);
+	void LoadInto(class AHeroFirearm* Firearm);
+	void EjectFrom(class AHeroFirearm* Firearm);
 
 private:
-	int32 AmmoCount = 0;
+	UPROPERTY(VisibleAnywhere, Category = FirearmClip, meta = (AllowPrivateAccess))
+	UShapeComponent* ClipLoadTrigger;
 };

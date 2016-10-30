@@ -15,27 +15,30 @@ AFirearmClip::AFirearmClip(const FObjectInitializer& ObjectInitializer /*= FObje
 	MyMesh->SetSimulatePhysics(false);
 	MyMesh->bGenerateOverlapEvents = false;
 
+	ClipLoadTrigger = CreateDefaultSubobject<UBoxComponent>(TEXT("ClipLoadTrigger"));
+	ClipLoadTrigger->SetIsReplicated(false);
+	ClipLoadTrigger->SetupAttachment(MyMesh);
+	ClipLoadTrigger->bGenerateOverlapEvents = true;
+	ClipLoadTrigger->SetCollisionObjectType(CollisionChannelAliases::ClipLoadTrigger);
+	ClipLoadTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ClipLoadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::FirearmReloadTrigger, ECollisionResponse::ECR_Overlap);
+}
+
+void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
+{
+	if (EquipStatus.bIsEquipped)
+	{
+		bReturnToStorage = false;
+		Unequip();
+	}
+
 	SetActorEnableCollision(false);
-}
-
-int32 AFirearmClip::GetAmmoCount() const
-{
-	return AmmoCount;
-}
-
-void AFirearmClip::SetAmmoCount(int32 Count)
-{
-	AmmoCount = Count;
-}
-
-void AFirearmClip::OnClipAttached(class AHeroFirearm* Firearm)
-{
-	SetActorEnableCollision(false);
-
 	GetMesh()->SetSimulatePhysics(false);
+	
+	AttachToComponent(Firearm->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Firearm->GetClipAttachSocket());
 }
 
-void AFirearmClip::OnClipEjected(class AHeroFirearm* Firearm)
+void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
 {
 	if (HasAuthority())
 	{
@@ -45,6 +48,9 @@ void AFirearmClip::OnClipEjected(class AHeroFirearm* Firearm)
 		TearOff();
 	}
 
+	ClipLoadTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Disable trigger on eject, pending destroy
+
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	GetMesh()->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	SetActorEnableCollision(true);
 

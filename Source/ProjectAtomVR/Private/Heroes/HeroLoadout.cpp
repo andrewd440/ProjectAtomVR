@@ -153,7 +153,6 @@ void UHeroLoadout::CreateLoadoutWeapons(const TArray<FHeroLoadoutTemplateSlot>& 
 			{
 				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(Slot.Item, FTransform::Identity, SpawnParams);
 				Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
-				Equippable->SetActorEnableCollision(false); // Disable collision while attached to Hero
 
 				Loadout[i].Item = Equippable;
 			}
