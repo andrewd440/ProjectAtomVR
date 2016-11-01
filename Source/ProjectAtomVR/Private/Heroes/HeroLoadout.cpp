@@ -166,6 +166,11 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 
 					Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);
 
+					// Force net update to sync attachments the disable attachment replication. All attachments will be handled internally after the
+					// initial spawn.
+					/*Equippable->ForceNetUpdate();
+					Equippable->bReplicateAttachedMovement = false;*/
+
 					CurrentSlot.ItemStack.Push(Equippable);
 				}
 

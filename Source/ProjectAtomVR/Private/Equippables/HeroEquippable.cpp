@@ -27,11 +27,6 @@ void AHeroEquippable::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (auto& State : EquippableStates)
-	{
-		State->BeginPlay();
-	}
-
 	check(InactiveState);
 	check(ActiveState);
 	StateStack.Push(InactiveState);
@@ -39,12 +34,14 @@ void AHeroEquippable::BeginPlay()
 
 void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 {
-	ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
+	check(StateStack.Num() > 0 && StateStack.Top() == InactiveState && "StateStack should only have the InactiveState when equipping.");
 	
 	EquipStatus.EquippedHand = Hand;
 	EquipStatus.EquipType = EquipType;
 	EquipStatus.bIsEquipped = true;
 	EquipStatus.ForceReplication(); // Make sure the equip update is sent to clients
+
+	bReplicateAttachedMovement = false; // #AtomTodo Find better placement for this. Preferably after initial replication.
 
 	if (HeroOwner->IsLocallyControlled())
 	{
@@ -59,7 +56,7 @@ void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 
 	StateStack.Top()->OnExitedState();
 	StateStack.Push(ActiveState);
-	ActiveState->OnEnteredState();
+	ActiveState->OnStatePushed();
 }
 
 bool AHeroEquippable::CanEquip(const EHand Hand) const
@@ -88,14 +85,14 @@ void AHeroEquippable::Unequip(const EEquipType EquipType)
 	}
 
 	while (StateStack.Num() > 1)
-	{
-		StateStack.Top()->OnExitedState();
-		StateStack.Pop(false);
+	{		
+		UEquippableState* PoppedState = StateStack.Pop(false);
+		PoppedState->OnStatePopped();
 	}
 
 	// Notify inactive state of entered event
 	ensure(StateStack.Top() == InactiveState);
-	StateStack.Top()->OnReturnedState();
+	StateStack.Top()->OnEnteredState();
 }
 
 void AHeroEquippable::SetCanReturnToLoadout(bool bCanReturn)
@@ -132,7 +129,7 @@ void AHeroEquippable::PushState(UEquippableState* InPushState)
 
 	StateStack.Top()->OnExitedState();
 	StateStack.Push(InPushState);
-	InPushState->OnEnteredState();
+	InPushState->OnStatePushed();
 }
 
 void AHeroEquippable::ServerPushState_Implementation(UEquippableState* State)
@@ -164,20 +161,24 @@ void AHeroEquippable::PopState(UEquippableState* InPopState)
 
 	if (!HeroOwner->HasAuthority() && HeroOwner->IsLocallyControlled())
 	{
-		ServerPopState();
+		ServerPopState(InPopState);
 	}
 
-	StateStack.Top()->OnExitedState();
-	StateStack.Pop(false); // no need to shrink, it'll probably be added again
-	StateStack.Top()->OnReturnedState();
+	UEquippableState* PoppedState = StateStack.Pop(false); // no need to shrink, it'll probably be added again
+	PoppedState->OnStatePopped();
+	StateStack.Top()->OnEnteredState();
 }
 
-void AHeroEquippable::ServerPopState_Implementation()
+void AHeroEquippable::ServerPopState_Implementation(UEquippableState* InPopState)
 {
-	PopState(StateStack.Top());
+	// The server could already be in the requested state, so check first.
+	if (StateStack.Top() == InPopState)
+	{
+		PopState(InPopState);
+	}
 }
 
-bool AHeroEquippable::ServerPopState_Validate()
+bool AHeroEquippable::ServerPopState_Validate(UEquippableState* InPopState)
 {
 	return true;
 }
@@ -196,13 +197,13 @@ void AHeroEquippable::OnRep_EquipStatus()
 		{
 			while (StateStack.Num() > 1)
 			{
-				StateStack.Top()->OnExitedState();
-				StateStack.Pop(false);
+				UEquippableState* PoppedState = StateStack.Pop(false);
+				PoppedState->OnStatePopped();
 			}
 
 			// Notify inactive state of entered event
-			ensure(StateStack.Top() == InactiveState);
-			StateStack.Top()->OnReturnedState();
+			check(StateStack.Num() > 0 && StateStack.Top() == InactiveState);
+			StateStack.Top()->OnEnteredState();
 		}
 	}
 }

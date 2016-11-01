@@ -6,9 +6,16 @@
 #include "HeroEquippable.h"
 
 
-void UEquippableStateActive::OnEnteredState()
+void UEquippableStateActive::OnStatePushed()
 {
-	Super::OnEnteredState();
+	Super::OnStatePushed();
 
 	GetEquippable()->OnEquipped();
+}
+
+void UEquippableStateActive::OnStatePopped()
+{
+	Super::OnStatePopped();
+
+	GetEquippable()->OnUnequipped();
 }

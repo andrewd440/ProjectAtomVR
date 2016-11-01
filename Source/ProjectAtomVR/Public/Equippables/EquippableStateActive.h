@@ -14,5 +14,9 @@ class PROJECTATOMVR_API UEquippableStateActive : public UEquippableState
 	GENERATED_BODY()
 	
 public:
-	virtual void OnEnteredState() override;
+
+	/** UEquippableState Interface Begin */
+	virtual void OnStatePushed() override;
+	virtual void OnStatePopped() override;
+	/** UEquippableState Interface End */	
 };

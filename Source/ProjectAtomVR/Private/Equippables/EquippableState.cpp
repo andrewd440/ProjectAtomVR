@@ -13,11 +13,6 @@ UEquippableState::UEquippableState(const FObjectInitializer& ObjectInitializer /
 	ensure(Equippable || (GetFlags() & RF_ArchetypeObject) == RF_ArchetypeObject);
 }
 
-void UEquippableState::BeginPlay()
-{
-
-}
-
 void UEquippableState::OnEnteredState()
 {
 	if (Equippable->GetHeroOwner()->IsLocallyControlled())
@@ -47,14 +42,14 @@ void UEquippableState::OnExitedState()
 	}
 }
 
-void UEquippableState::OnReturnedState()
+void UEquippableState::OnStatePushed()
 {
-	if (Equippable->GetHeroOwner()->IsLocallyControlled())
-	{
-		UInputComponent* const InputComponent = Equippable->InputComponent;
-		check(InputComponent && "InputComponent should always be valid on locally controlled Equippables.");
-		BindStateInputs(InputComponent);
-	}
+	OnEnteredState();
+}
+
+void UEquippableState::OnStatePopped()
+{
+	OnExitedState();
 }
 
 class UWorld* UEquippableState::GetWorld() const

@@ -12,7 +12,4 @@ UCLASS()
 class PROJECTATOMVR_API UEquippableStateInactive : public UEquippableState
 {
 	GENERATED_BODY()
-	
-public:
-	virtual void OnReturnedState() override;
 };

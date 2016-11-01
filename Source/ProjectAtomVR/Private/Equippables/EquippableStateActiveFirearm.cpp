@@ -54,19 +54,25 @@ void UEquippableStateActiveFirearm::OnEnteredState()
 	{
 		Firearm->PushState(Firearm->GetReloadingState());
 	}
+}
 
+void UEquippableStateActiveFirearm::OnStatePushed()
+{
+	Super::OnStatePushed();
+
+	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 	OnClipChangedHandle = Firearm->OnClipChanged.AddUObject(this, &UEquippableStateActiveFirearm::OnClipAttachmentChanged);
 }
 
-void UEquippableStateActiveFirearm::OnExitedState()
+void UEquippableStateActiveFirearm::OnStatePopped()
 {
-	Super::OnExitedState();
+	Super::OnStatePopped();
 
-	//if (OnClipChangedHandle.IsValid())
-	//{
-	//	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
-	//	Firearm->OnClipChanged.Remove(OnClipChangedHandle);
-	//}
+	if (OnClipChangedHandle.IsValid())
+	{
+		AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
+		Firearm->OnClipChanged.Remove(OnClipChangedHandle);
+	}
 }
 
 void UEquippableStateActiveFirearm::OnClipAttachmentChanged()

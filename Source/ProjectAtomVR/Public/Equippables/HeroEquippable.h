@@ -111,7 +111,7 @@ private:
 	void ServerPushState(UEquippableState* State);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerPopState();
+	void ServerPopState(UEquippableState* InPopState);
 
 	UFUNCTION()
 	void OnRep_EquipStatus();

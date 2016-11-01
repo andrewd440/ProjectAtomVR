@@ -15,15 +15,6 @@ void UEquippableStateFiring::OnEnteredState()
 	GetFirearm()->StartFiringSequence();
 }
 
-void UEquippableStateFiring::OnReturnedState()
-{
-	Super::OnReturnedState();
-
-	bIsFiring = true;
-	StartFireShotTimer();
-	GetFirearm()->StartFiringSequence();
-}
-
 void UEquippableStateFiring::OnExitedState()
 {
 	Super::OnExitedState();

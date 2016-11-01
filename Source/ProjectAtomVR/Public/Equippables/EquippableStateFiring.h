@@ -28,7 +28,6 @@ private:
 	/** UEquippableState Interface Begin */
 public:
 	virtual void OnEnteredState() override;
-	virtual void OnReturnedState() override;
 	virtual void OnExitedState() override;
 
 protected:

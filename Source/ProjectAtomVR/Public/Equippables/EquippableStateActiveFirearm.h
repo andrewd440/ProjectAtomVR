@@ -21,8 +21,8 @@ protected:
 	/** UEquippable Interface Begin */
 public:
 	virtual void OnEnteredState() override;
-	virtual void OnExitedState() override;
-
+	virtual void OnStatePopped() override;
+	virtual void OnStatePushed() override;
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent) override;
 	/** UEquippable Interface End */

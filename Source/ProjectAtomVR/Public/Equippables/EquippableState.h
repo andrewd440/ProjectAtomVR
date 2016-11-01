@@ -16,29 +16,29 @@ class PROJECTATOMVR_API UEquippableState : public UObject
 public:
 	UEquippableState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	/**
-	 * Called by owning Equippable from BeginPlay
-	 */
-	virtual void BeginPlay();
-
 	/** 
 	 * Called when this state has been entered for the owning Equippable.
+	 * This can happen when this state is added to the top of the stack, or the stack
+	 * has returned to this state.
 	 */
 	virtual void OnEnteredState();
 
 	/**
 	* Called when this state is exiting for the owning Equippable.
-	* This happens when the state is popped off the state stack, or a new
+	* This happens when this state is popped off the state stack, or a new
 	* state has been pushed onto the stack.
 	*/
 	virtual void OnExitedState();
 
 	/**
-	* Called when this state has been returned to from another state.
-	* For example, if this state pushes another state onto the Equippable, then that state
-	* is popped.
+	* Called when this state has been pushed onto the top of the stack.
 	*/
-	virtual void OnReturnedState();
+	virtual void OnStatePushed();
+
+	/**
+	* Called when this state has been popped onto from the stack.
+	*/
+	virtual void OnStatePopped();
 
 	template <typename EquippableType = AHeroEquippable>
 	EquippableType* GetEquippable() const
