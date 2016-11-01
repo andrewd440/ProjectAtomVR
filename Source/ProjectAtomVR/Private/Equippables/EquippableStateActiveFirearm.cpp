@@ -44,9 +44,31 @@ void UEquippableStateActiveFirearm::BindStateInputs(UInputComponent* InputCompon
 	}
 }
 
+void UEquippableStateActiveFirearm::OnRep_IsFiring()
+{
+	UEquippableState* const FiringState = GetEquippable<AHeroFirearm>()->GetFiringState();
+
+	if (bIsFiring)
+	{
+		if (GetEquippable()->GetCurrentState() != FiringState)
+		{
+			GetEquippable()->PushState(FiringState);
+		}
+	}
+	else
+	{
+		if (GetEquippable()->GetCurrentState() == FiringState)
+		{
+			GetEquippable()->PopState(FiringState);
+		}
+	}
+}
+
 void UEquippableStateActiveFirearm::OnEnteredState()
 {
 	Super::OnEnteredState();
+
+	bIsFiring = false;
 
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
@@ -64,15 +86,32 @@ void UEquippableStateActiveFirearm::OnStatePushed()
 	OnClipChangedHandle = Firearm->OnClipChanged.AddUObject(this, &UEquippableStateActiveFirearm::OnClipAttachmentChanged);
 }
 
-void UEquippableStateActiveFirearm::OnStatePopped()
+void UEquippableStateActiveFirearm::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
 {
-	Super::OnStatePopped();
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(UEquippableStateActiveFirearm, bIsFiring, COND_SkipOwner);
+}
+
+void UEquippableStateActiveFirearm::OnExitedState()
+{
+	if (GetEquippable()->GetCurrentState() == GetEquippable<AHeroFirearm>()->GetFiringState())
+	{
+		bIsFiring = true;
+	}
+
+	Super::OnExitedState();
+}
+
+void UEquippableStateActiveFirearm::OnStatePopped()
+{	
 	if (OnClipChangedHandle.IsValid())
 	{
 		AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 		Firearm->OnClipChanged.Remove(OnClipChangedHandle);
 	}
+
+	Super::OnStatePopped();
 }
 
 void UEquippableStateActiveFirearm::OnClipAttachmentChanged()

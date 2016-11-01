@@ -25,7 +25,7 @@ public:
 
 	/**
 	* Called when this state is exiting for the owning Equippable.
-	* This happens when this state is popped off the state stack, or a new
+	* This happens after this state is popped off the state stack, or a new
 	* state has been pushed onto the stack.
 	*/
 	virtual void OnExitedState();

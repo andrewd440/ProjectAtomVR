@@ -5,22 +5,21 @@
 
 #include "HeroEquippable.h"
 #include "Components/InputComponent.h"
+#include "HeroFirearm.h"
 
 void UEquippableStateFiring::OnEnteredState()
 {
 	Super::OnEnteredState();
 
-	bIsFiring = true;
 	StartFireShotTimer();
-	GetFirearm()->StartFiringSequence();
+	GetEquippable<AHeroFirearm>()->StartFiringSequence();
 }
 
 void UEquippableStateFiring::OnExitedState()
 {
 	Super::OnExitedState();
 
-	GetFirearm()->StopFiringSequence();
-	bIsFiring = false;
+	GetEquippable<AHeroFirearm>()->StopFiringSequence();
 
 	if (FireTimer.IsValid())
 	{
@@ -28,34 +27,9 @@ void UEquippableStateFiring::OnExitedState()
 	}
 }
 
-void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(UEquippableStateFiring, bIsFiring, COND_SkipOwner);
-}
-
 void UEquippableStateFiring::OnTriggerReleased()
 {
 	GetEquippable()->PopState(this);
-}
-
-void UEquippableStateFiring::OnRep_IsFiring()
-{
-	if (bIsFiring)
-	{
-		if (GetEquippable()->GetCurrentState() != this)
-		{
-			GetEquippable()->PushState(this);
-		}
-	}
-	else
-	{
-		if (GetEquippable()->GetCurrentState() == this)
-		{
-			GetEquippable()->PopState(this);
-		}
-	}
 }
 
 void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
@@ -80,7 +54,7 @@ void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
 
 void UEquippableStateFiring::StartFireShotTimer()
 {
-	const FFirearmStats& FirearmStats = GetFirearm()->GetFirearmStats();
+	const FFirearmStats& FirearmStats = GetEquippable<AHeroFirearm>()->GetFirearmStats();
 
 	const float ShotDelay = FMath::Max(0.f, FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp));
 	GetWorld()->GetTimerManager().SetTimer(FireTimer, this, &UEquippableStateFiring::OnFireShot, FirearmStats.FireRate, true, ShotDelay);
@@ -90,12 +64,12 @@ void UEquippableStateFiring::StartFireShotTimer()
 
 void UEquippableStateFiring::OnFireShot()
 {
-	GetFirearm()->FireShot();
+	GetEquippable<AHeroFirearm>()->FireShot();
 
 	LastShotTimestamp = GetWorld()->GetTimeSeconds();
 
 	++ShotsFired;
-	if ((BurstCount > 0 && ShotsFired >= BurstCount) || GetFirearm()->GetRemainingClip() <= 0)
+	if ((BurstCount > 0 && ShotsFired >= BurstCount) || GetEquippable<AHeroFirearm>()->GetRemainingClip() <= 0)
 	{
 		GetEquippable()->PopState(this);
 	}

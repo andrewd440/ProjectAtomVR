@@ -30,6 +30,13 @@ void AHeroEquippable::BeginPlay()
 	check(InactiveState);
 	check(ActiveState);
 	StateStack.Push(InactiveState);
+
+	// May already be equipped through replication. Call OnRep now since a call 
+	// prior to BeginPlay will be ignored.
+	if (EquipStatus.bIsEquipped)
+	{
+		OnRep_EquipStatus();
+	}
 }
 
 void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
@@ -127,8 +134,9 @@ void AHeroEquippable::PushState(UEquippableState* InPushState)
 		ServerPushState(InPushState);
 	}
 
-	StateStack.Top()->OnExitedState();
+	UEquippableState* const LastState = StateStack.Top();
 	StateStack.Push(InPushState);
+	LastState->OnExitedState();
 	InPushState->OnStatePushed();
 }
 
@@ -185,7 +193,7 @@ bool AHeroEquippable::ServerPopState_Validate(UEquippableState* InPopState)
 
 void AHeroEquippable::OnRep_EquipStatus()
 {
-	if (EquipStatus.EquipType == EEquipType::Normal)
+	if (EquipStatus.EquipType == EEquipType::Normal && HasActorBegunPlay())
 	{
 		if (EquipStatus.bIsEquipped)
 		{
