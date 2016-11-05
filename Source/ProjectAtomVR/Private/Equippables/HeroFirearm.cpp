@@ -83,6 +83,14 @@ void AHeroFirearm::Tick( float DeltaTime )
 
 			if (NewProgress >= 1.f)
 			{
+				// Play chambering sound if we hit a new checkpoint
+				if (ChamberingProgress < 1.f && 
+					ChamberingSounds.IsValidIndex(ChamberingIndex) && 
+					ChamberingSounds[ChamberingIndex])
+				{
+					UGameplayStatics::SpawnSoundAttached(ChamberingSounds[ChamberingIndex], GetMesh(), ChamberingHandleSocket);
+				}
+
 				if (ChamberHandleMovement.Num() > ChamberingIndex + 1)
 				{
 					// Move to the next movement if we have one
@@ -95,14 +103,23 @@ void AHeroFirearm::Tick( float DeltaTime )
 
 					if (LastChamberState == EChamberState::Set)
 					{	
-						ReloadChamber(false);
-						
+						ReloadChamber(false);					
+
 						LastChamberState = EChamberState::Unset;
 					}					
 				}
 			}
 			else if (NewProgress <= 0.f)
 			{
+				// Play chambering sound if we hit a new checkpoint
+				const int32 ChamberingSoundIndex = ChamberHandleMovement.Num() * 2 - ChamberingIndex - 1; // Invert when playing back
+				if (ChamberingProgress > 0.f &&
+					ChamberingSounds.IsValidIndex(ChamberingSoundIndex) &&
+					ChamberingSounds[ChamberingSoundIndex])
+				{
+					UGameplayStatics::SpawnSoundAttached(ChamberingSounds[ChamberingSoundIndex], GetMesh(), ChamberingHandleSocket);
+				}
+
 				if (ChamberingIndex > 0)
 				{
 					// Move to the last movement if we have one
@@ -150,7 +167,7 @@ bool AHeroFirearm::CanFire() const
 	return !IsChamberEmpty() && !bIsHoldingChamberHandle && !bIsSlideLockActive;
 }
 
-void AHeroFirearm::AttachMagazine(AFirearmClip* Clip)
+void AHeroFirearm::InsertMagazine(AFirearmClip* Clip)
 {
 	check(Clip);
 	ensure(CurrentMagazine == nullptr);
@@ -159,11 +176,16 @@ void AHeroFirearm::AttachMagazine(AFirearmClip* Clip)
 
 	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
 	{
-		ServerAttachMagazine(Clip);
+		ServerInsertMagazine(Clip);
 	}
 
 	CurrentMagazine = Clip;
 	Clip->LoadInto(this);
+
+	if (MagazineInsertSound)
+	{
+		UGameplayStatics::SpawnSoundAttached(MagazineInsertSound, GetMesh(), MagazineAttachSocket);
+	}
 
 	RemainingMagazine = FMath::Min(Stats.MagazineSize, (uint32)RemainingAmmo);
 	RemainingAmmo -= RemainingMagazine;
@@ -181,6 +203,11 @@ void AHeroFirearm::EjectMagazine()
 	if (CurrentMagazine)
 	{		
 		CurrentMagazine->EjectFrom(this);
+
+		if (MagazineEjectSound)
+		{
+			UGameplayStatics::SpawnSoundAttached(MagazineEjectSound, GetMesh(), MagazineAttachSocket);
+		}
 	}
 
 	CurrentMagazine = nullptr;
@@ -192,12 +219,12 @@ void AHeroFirearm::EjectMagazine()
 	OnMagazineChanged.Broadcast();
 }
 
-void AHeroFirearm::ServerAttachMagazine_Implementation(class AFirearmClip* Clip)
+void AHeroFirearm::ServerInsertMagazine_Implementation(class AFirearmClip* Clip)
 {
-	AttachMagazine(Clip);
+	InsertMagazine(Clip);
 }
 
-bool AHeroFirearm::ServerAttachMagazine_Validate(class AFirearmClip* Clip)
+bool AHeroFirearm::ServerInsertMagazine_Validate(class AFirearmClip* Clip)
 {
 	return true;
 }
@@ -244,11 +271,11 @@ void AHeroFirearm::FireShot()
 	}
 }
 
-void AHeroFirearm::FalseFire()
+void AHeroFirearm::DryFire()
 {
-	if (EmptyMagazinepSound)
+	if (DryFireSound)
 	{
-		UGameplayStatics::SpawnSoundAttached(EmptyMagazinepSound, GetMesh(), CartridgeAttachSocket);
+		UGameplayStatics::SpawnSoundAttached(DryFireSound, GetMesh(), CartridgeAttachSocket);
 	}	
 }
 
@@ -339,6 +366,17 @@ bool AHeroFirearm::CanGripChamberingHandle() const
 void AHeroFirearm::OnChamberingHandleReleased()
 {
 	bIsHoldingChamberHandle = false;
+
+	if (ChamberingProgress > 0.2f) // If has enough progress to make a sound
+	{
+		const int32 LastChamberingSoundIndex = ChamberHandleMovement.Num() * 2 - 1;
+		if (ChamberingSounds.IsValidIndex(LastChamberingSoundIndex) && ChamberingSounds[LastChamberingSoundIndex])
+		{
+			UGameplayStatics::SpawnSoundAttached(ChamberingSounds[LastChamberingSoundIndex], GetMesh(), ChamberingHandleSocket);
+		}
+	}
+
+	// Reset chambering params
 	ChamberingProgress = 0;
 	ChamberingIndex = 0;
 	LastChamberState = EChamberState::Set;
@@ -376,6 +414,7 @@ void AHeroFirearm::ActivateSlideLock()
 void AHeroFirearm::ReleaseSlideLock()
 {
 	bIsSlideLockActive = false;
+
 	GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Resume(FiringMontage);
 	ReloadChamber(false);
 }
@@ -413,6 +452,11 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 	}
 }
 
+void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
+{
+	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), CartridgeCollideSound, Location);
+}
+
 void AHeroFirearm::OnRep_CurrentMagazine()
 {
 	if (CurrentMagazine == nullptr)
@@ -425,7 +469,7 @@ void AHeroFirearm::OnRep_CurrentMagazine()
 		// Simulate attaching a new clip
 		AFirearmClip* NewClip = CurrentMagazine;
 		CurrentMagazine = nullptr;
-		AttachMagazine(NewClip);
+		InsertMagazine(NewClip);
 	}
 
 	RemoteConnectionMagazine = CurrentMagazine;
@@ -528,6 +572,11 @@ void AHeroFirearm::PostInitializeComponents()
 		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
 		CartridgeEjectComponent->bAutoActivate = false;
 		CartridgeEjectComponent->bAllowRecycling = true;
+
+		if (CartridgeCollideSound)
+		{
+			CartridgeEjectComponent->OnParticleCollide.AddDynamic(this, &AHeroFirearm::OnEjectedCartridgeCollide);
+		}		
 	}	
 
 	CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
@@ -537,6 +586,6 @@ void AHeroFirearm::PostInitializeComponents()
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = GetHeroOwner();
 		RemoteConnectionMagazine = GetWorld()->SpawnActor<AFirearmClip>(MagazineClass, GetMesh<UMeshComponent>()->GetSocketTransform(MagazineAttachSocket), SpawnParams);
-		AttachMagazine(RemoteConnectionMagazine);
+		InsertMagazine(RemoteConnectionMagazine);
 	}
 }

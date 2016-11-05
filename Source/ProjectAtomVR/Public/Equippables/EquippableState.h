@@ -8,7 +8,7 @@
 /**
  * 
  */
-UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced, Within=HeroEquippable)
+UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
 class PROJECTATOMVR_API UEquippableState : public UObject
 {
 	GENERATED_BODY()

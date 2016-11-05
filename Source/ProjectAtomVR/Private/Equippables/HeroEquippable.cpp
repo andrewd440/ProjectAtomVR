@@ -248,6 +248,11 @@ void AHeroEquippable::OnEquipped()
 		AttachHand->PlayAnimation(HandAnim, true);
 	}
 
+	if (EquipSound)
+	{
+		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
+	}
+
 	HeroOwner->OnEquipped(this, EquipStatus.EquippedHand);
 }
 
@@ -262,6 +267,11 @@ void AHeroEquippable::OnUnequipped()
 	else
 	{
 		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	}
+
+	if (EquipSound)
+	{
+		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
 	}
 
 	HeroOwner->OnUnequipped(this);

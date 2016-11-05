@@ -56,7 +56,7 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 
 		if (AttachRotation.AngularDistance(ClipRotation) <= ClipAttachRotationErrorRadians)
 		{
-			Firearm->AttachMagazine(OverlappingClip);
+			Firearm->InsertMagazine(OverlappingClip);
 		}
 	}
 }
@@ -64,10 +64,7 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 void UEquippableState_ClipReload::OnTriggerPressed()
 {
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
-	if (!Firearm->IsChamberEmpty())
-	{
-		Firearm->PushState(Firearm->GetFiringState());
-	}
+	Firearm->PushState(Firearm->GetFiringState());
 }
 
 void UEquippableState_ClipReload::BindStateInputs(UInputComponent* InputComponent)
@@ -75,10 +72,8 @@ void UEquippableState_ClipReload::BindStateInputs(UInputComponent* InputComponen
 	Super::BindStateInputs(InputComponent);
 
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
-	if (!Firearm->IsChamberEmpty())
-	{
-		// Allow firing if one is in the chamber
-		const FName FireAction = (Firearm->GetEquippedHand() == EHand::Left) ? TEXT("TriggerLeft") : TEXT("TriggerRight");
-		InputComponent->BindAction(FireAction, IE_Pressed, this, &UEquippableState_ClipReload::OnTriggerPressed);
-	}
+
+	// Allow firing for chambered round or dry fire
+	const FName FireAction = (Firearm->GetEquippedHand() == EHand::Left) ? TEXT("TriggerLeft") : TEXT("TriggerRight");
+	InputComponent->BindAction(FireAction, IE_Pressed, this, &UEquippableState_ClipReload::OnTriggerPressed);
 }

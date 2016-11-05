@@ -69,7 +69,7 @@ public:
 
 	TSubclassOf<AFirearmClip> GetMagazineClass() const;
 
-	virtual void AttachMagazine(class AFirearmClip* Clip);
+	virtual void InsertMagazine(class AFirearmClip* Clip);
 
 	virtual void EjectMagazine();
 
@@ -77,7 +77,7 @@ public:
 
 	void FireShot();
 
-	virtual void FalseFire();
+	virtual void DryFire();
 
 	virtual void StartFiringSequence();
 
@@ -121,6 +121,9 @@ protected:
 	void ReloadChamber(bool bIsFired);
 
 	UFUNCTION()
+	virtual void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
+
+	UFUNCTION()
 	virtual void OnRep_CurrentMagazine();
 
 private:
@@ -128,7 +131,7 @@ private:
 	void ServerFireShot(FShotData ShotData);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerAttachMagazine(class AFirearmClip* Clip);
+	void ServerInsertMagazine(class AFirearmClip* Clip);
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerEjectMagazine();
@@ -228,13 +231,30 @@ protected:
 	USoundBase* FireSound = nullptr;
 
 	/** Sound effect when the firearm stop firing. Only played if the FireSound is looping.
-	 * This is used to simulate the tail end of the FireSound to prevent sound cutoff. */
+	 ** This is used to simulate the tail end of the FireSound to prevent sound cutoff. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
 	USoundBase* EndFireSound = nullptr;
 
-	// Sound effect on weapon fire with empty magazine
+	/** Sound effect on weapon fire with empty magazine */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
-	USoundBase* EmptyMagazinepSound = nullptr;
+	USoundBase* DryFireSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
+	USoundBase* MagazineInsertSound = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
+	USoundBase* MagazineEjectSound = nullptr;
+
+	/** Sound played when an ejected cartridge hits a surface. The Cartridge Eject Template must generate
+	 ** collision event for this sound to play.*/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
+	USoundBase* CartridgeCollideSound = nullptr;
+
+	/** Sounds to played at each stage during ChamberHandleMovement. Sounds that correspond ChamberHandleMovement
+	 * going forward should be at the first ChamberHandleMovement count indices. Sounds that should be played when
+	 * reversing ChamberHandleMovement should be at the second half of this list. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
+	TArray<USoundBase*> ChamberingSounds;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
 	UAnimMontage* FiringMontage = nullptr;

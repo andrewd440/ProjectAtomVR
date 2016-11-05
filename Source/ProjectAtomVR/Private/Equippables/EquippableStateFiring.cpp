@@ -97,6 +97,6 @@ void UEquippableStateFiring::OnFalseFire()
 {
 	// #AtomTodo Signal false fire
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
-	Firearm->FalseFire();
+	Firearm->DryFire();
 	Firearm->PopState(this);
 }

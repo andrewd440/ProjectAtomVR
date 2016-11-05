@@ -137,6 +137,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FName HandAttachSocket = NAME_None;
 
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+	USoundBase* EquipSound = nullptr; // Played when equipped and unequipped
+
 	/** Hand animation used when this item is equipped */
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FHandAnim AnimHandEquip;
