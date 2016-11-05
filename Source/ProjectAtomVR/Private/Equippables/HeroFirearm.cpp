@@ -487,15 +487,15 @@ void AHeroFirearm::StopFiringSequence()
 		MuzzleFXComponent = nullptr;
 	}
 
-	if (FireSoundComponent && FireSound->IsLooping())
+	if (FireSoundComponent && FireSound->IsLooping() && FireSoundComponent->IsPlaying())
 	{
 		FireSoundComponent->FadeOut(0.1f, 0.0f);
 		FireSoundComponent = nullptr;
-	}
 
-	if (EndFireSound)
-	{
-		UGameplayStatics::SpawnSoundAttached(EndFireSound, GetMesh(), MuzzleSocket);
+		if (EndFireSound)
+		{
+			UGameplayStatics::SpawnSoundAttached(EndFireSound, GetMesh(), MuzzleSocket);
+		}
 	}
 
 	if (TriggerPullMontage)

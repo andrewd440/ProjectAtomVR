@@ -227,7 +227,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
 	USoundBase* FireSound = nullptr;
 
-	// Sound effect on weapon end fire
+	/** Sound effect when the firearm stop firing. Only played if the FireSound is looping.
+	 * This is used to simulate the tail end of the FireSound to prevent sound cutoff. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
 	USoundBase* EndFireSound = nullptr;
 
