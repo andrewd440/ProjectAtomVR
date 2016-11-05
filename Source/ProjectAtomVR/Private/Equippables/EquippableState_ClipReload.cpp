@@ -60,3 +60,25 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 		}
 	}
 }
+
+void UEquippableState_ClipReload::OnTriggerPressed()
+{
+	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	if (!Firearm->IsChamberEmpty())
+	{
+		Firearm->PushState(Firearm->GetFiringState());
+	}
+}
+
+void UEquippableState_ClipReload::BindStateInputs(UInputComponent* InputComponent)
+{
+	Super::BindStateInputs(InputComponent);
+
+	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	if (!Firearm->IsChamberEmpty())
+	{
+		// Allow firing if one is in the chamber
+		const FName FireAction = (Firearm->GetEquippedHand() == EHand::Left) ? TEXT("TriggerLeft") : TEXT("TriggerRight");
+		InputComponent->BindAction(FireAction, IE_Pressed, this, &UEquippableState_ClipReload::OnTriggerPressed);
+	}
+}
