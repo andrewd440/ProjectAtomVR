@@ -9,6 +9,6 @@ void UAnimNotify_Firearm::Notify(USkeletalMeshComponent* MeshComp, UAnimSequence
 {
 	if (AHeroFirearm* Firearm = Cast<AHeroFirearm>(MeshComp->GetOwner()))
 	{
-		Firearm->OnFirearmNotify(Type);
+		Firearm->OnFirearmAnimNotify(Type);
 	}
 }

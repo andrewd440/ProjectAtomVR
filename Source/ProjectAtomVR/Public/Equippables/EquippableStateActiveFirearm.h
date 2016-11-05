@@ -16,7 +16,7 @@ class PROJECTATOMVR_API UEquippableStateActiveFirearm : public UEquippableStateA
 protected:
 	virtual void OnTriggerPressed();
 	virtual void OnEjectClip();
-	void OnClipAttachmentChanged();
+	virtual void OnMagazineAttachmentChanged();
 
 private:
 	UFUNCTION()
@@ -25,17 +25,16 @@ private:
 	/** UEquippable Interface Begin */
 public:
 	virtual void OnEnteredState() override;
-	virtual void OnStatePopped() override;
-	virtual void OnStatePushed() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;
 	virtual void OnExitedState() override;
-
+	virtual void OnStatePushed() override;
+	virtual void OnStatePopped() override;	
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent) override;
 	/** UEquippable Interface End */
 
 private:
-	FDelegateHandle OnClipChangedHandle;
+	FDelegateHandle OnClipMagazineHandle;
 
 	// Used on server to notify clients of firing event
 	UPROPERTY(ReplicatedUsing = OnRep_IsFiring)

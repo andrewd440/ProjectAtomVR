@@ -45,7 +45,7 @@ void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
 	SetActorEnableCollision(false);
 	GetMesh()->SetSimulatePhysics(false);
 	
-	AttachToComponent(Firearm->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, Firearm->GetClipAttachSocket());
+	AttachToComponent(Firearm->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, Firearm->GetMagazineAttachSocket());
 }
 
 void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)

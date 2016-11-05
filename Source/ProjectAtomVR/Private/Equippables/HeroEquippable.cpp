@@ -12,6 +12,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogEquippable, Log, All);
 
 const FName AHeroEquippable::MeshComponentName = TEXT("Mesh");
+const FName AHeroEquippable::InactiveStateName = TEXT("InactiveState");
+const FName AHeroEquippable::ActiveStateName = TEXT("ActiveState");
 
 AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
@@ -19,6 +21,9 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
+
+	InactiveState = CreateDefaultSubobject<UEquippableStateInactive>(InactiveStateName);
+	ActiveState = CreateDefaultSubobject<UEquippableStateActive>(ActiveStateName);
 
 	bReturnToLoadout = true;
 }
@@ -54,6 +59,7 @@ void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 	{
 		// Enable input if locally controlled.
 		EnableInput(static_cast<APlayerController*>(HeroOwner->GetController()));
+		SetupInputComponent(InputComponent);
 	}
 
 	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
@@ -80,12 +86,6 @@ void AHeroEquippable::Unequip(const EEquipType EquipType)
 	// Make sure the equip update is sent to clients
 	EquipStatus.ForceReplication();
 
-	if (HeroOwner->IsLocallyControlled())
-	{
-		// Disable input if locally controlled.
-		DisableInput(static_cast<APlayerController*>(HeroOwner->GetController()));
-	}
-
 	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
 	{
 		ServerUnequip();
@@ -100,6 +100,15 @@ void AHeroEquippable::Unequip(const EEquipType EquipType)
 	// Notify inactive state of entered event
 	ensure(StateStack.Top() == InactiveState);
 	StateStack.Top()->OnEnteredState();
+
+	if (HeroOwner->IsLocallyControlled())
+	{
+		// Disable input if locally controlled.
+		check(InputComponent);
+		DisableInput(static_cast<APlayerController*>(HeroOwner->GetController()));
+		InputComponent->DestroyComponent();
+		InputComponent = nullptr;
+	}
 }
 
 void AHeroEquippable::SetCanReturnToLoadout(bool bCanReturn)
@@ -256,6 +265,11 @@ void AHeroEquippable::OnUnequipped()
 	}
 
 	HeroOwner->OnUnequipped(this);
+}
+
+void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
+{
+	check(InInputComponent);
 }
 
 void AHeroEquippable::ServerEquip_Implementation(const EHand Hand)

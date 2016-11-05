@@ -10,12 +10,22 @@ enum class EHand : uint8
 	Right
 };
 
+FORCEINLINE constexpr EHand operator !(EHand Hand)
+{
+	return static_cast<EHand>(!static_cast<__underlying_type(EHand)>(Hand));
+}
+
 UENUM()
 enum class EHandType : uint8
 {
 	Dominate,
 	Nondominate
 };
+
+FORCEINLINE constexpr EHandType operator !(EHandType HandType)
+{
+	return static_cast<EHandType>(!static_cast<__underlying_type(EHandType)>(HandType));
+}
 
 USTRUCT()
 struct PROJECTATOMVR_API FHandAnim

@@ -56,21 +56,47 @@ void UEquippableStateFiring::StartFireShotTimer()
 {
 	const FFirearmStats& FirearmStats = GetEquippable<AHeroFirearm>()->GetFirearmStats();
 
-	const float ShotDelay = FMath::Max(0.f, FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp));
-	GetWorld()->GetTimerManager().SetTimer(FireTimer, this, &UEquippableStateFiring::OnFireShot, FirearmStats.FireRate, true, ShotDelay);
+	const float ShotDelay = FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp);
+	if (ShotDelay > 0.f)
+	{
+		// Entered firing state faster than firing rate
+		OnFalseFire();
+	}
+	else
+	{
+		GetWorld()->GetTimerManager().SetTimer(FireTimer, this, &UEquippableStateFiring::OnFireShot, FirearmStats.FireRate, true, 0.f);
+	}	
 
 	ShotsFired = 0;
 }
 
 void UEquippableStateFiring::OnFireShot()
 {
-	GetEquippable<AHeroFirearm>()->FireShot();
+	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 
-	LastShotTimestamp = GetWorld()->GetTimeSeconds();
-
-	++ShotsFired;
-	if ((BurstCount > 0 && ShotsFired >= BurstCount) || GetEquippable<AHeroFirearm>()->GetRemainingClip() <= 0)
+	if (!Firearm->CanFire())
 	{
-		GetEquippable()->PopState(this);
+		OnFalseFire();
 	}
+	else
+	{
+		Firearm->FireShot();
+
+		LastShotTimestamp = GetWorld()->GetTimeSeconds();
+
+		++ShotsFired;
+		if (BurstCount > 0 && ShotsFired >= BurstCount)
+		{
+			GetEquippable()->PopState(this);
+		}
+	}
+
+}
+
+void UEquippableStateFiring::OnFalseFire()
+{
+	// #AtomTodo Signal false fire
+	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	Firearm->FalseFire();
+	Firearm->PopState(this);
 }

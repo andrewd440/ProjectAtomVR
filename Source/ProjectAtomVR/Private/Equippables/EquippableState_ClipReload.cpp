@@ -7,7 +7,7 @@
 
 namespace
 {
-	static constexpr float ClipAttachRotationErrorDegrees = 10.f;
+	static constexpr float ClipAttachRotationErrorDegrees = 15.f;
 	static constexpr float ClipAttachRotationErrorRadians = ClipAttachRotationErrorDegrees * (PI / 180.f);
 }
 
@@ -23,7 +23,7 @@ void UEquippableState_ClipReload::OnEnteredState()
 
 	if (GetEquippable()->GetHeroOwner()->IsLocallyControlled())
 	{
-		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
+		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetMagazineReloadTrigger();
 		ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
 	}
 }
@@ -34,7 +34,7 @@ void UEquippableState_ClipReload::OnExitedState()
 
 	if (GetEquippable()->GetHeroOwner()->IsLocallyControlled())
 	{
-		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetClipReloadTrigger();
+		UPrimitiveComponent* ReloadTrigger = GetEquippable<AHeroFirearm>()->GetMagazineReloadTrigger();
 		ReloadTrigger->OnComponentBeginOverlap.RemoveDynamic(this, &UEquippableState_ClipReload::OnClipEnteredReloadTrigger);
 	}
 }
@@ -49,14 +49,14 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 
 	if (OverlappingClip->GetHeroOwner() == Firearm->GetHeroOwner() &&
 		(!bRequiresEquippedClip || OverlappingClip->IsEquipped()) &&
-		OverlappingClip->IsA(Firearm->GetClipClass()))
+		OverlappingClip->IsA(Firearm->GetMagazineClass()))
 	{
-		FQuat AttachRotation = Firearm->GetMesh<UMeshComponent>()->GetSocketQuaternion(Firearm->GetClipAttachSocket());
+		FQuat AttachRotation = Firearm->GetMesh<UMeshComponent>()->GetSocketQuaternion(Firearm->GetMagazineAttachSocket());
 		FQuat ClipRotation = OverlappingClip->GetActorQuat();
 
 		if (AttachRotation.AngularDistance(ClipRotation) <= ClipAttachRotationErrorRadians)
 		{
-			Firearm->AttachClip(OverlappingClip);
+			Firearm->AttachMagazine(OverlappingClip);
 		}
 	}
 }

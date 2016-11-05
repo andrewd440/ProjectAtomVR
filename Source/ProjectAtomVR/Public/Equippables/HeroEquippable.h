@@ -23,10 +23,10 @@ struct FEquipStatus
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	EHand EquippedHand;
+	EEquipType EquipType;
 
 	UPROPERTY()
-	EEquipType EquipType;
+	EHand EquippedHand;
 
 	UPROPERTY()
 	uint32 bIsEquipped : 1;
@@ -46,8 +46,10 @@ class PROJECTATOMVR_API AHeroEquippable : public AActor
 {
 	GENERATED_BODY()
 
-public:
+protected:
 	static const FName MeshComponentName;
+	static const FName InactiveStateName;
+	static const FName ActiveStateName;	
 
 public:
 	/** Broadcasted when the return to loadout flag is changed for this Equippable. */
@@ -99,6 +101,9 @@ public:
 	* Called from InactiveState when entered.
 	*/
 	virtual void OnUnequipped();
+
+protected:
+	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)

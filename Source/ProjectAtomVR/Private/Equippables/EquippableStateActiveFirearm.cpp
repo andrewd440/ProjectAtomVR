@@ -10,20 +10,16 @@
 void UEquippableStateActiveFirearm::OnTriggerPressed()
 {
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
-
-	if (Firearm->GetRemainingClip() > 0 && Firearm->GetClip() != nullptr)
-	{
-		Firearm->PushState(Firearm->GetFiringState());
-	}
+	Firearm->PushState(Firearm->GetFiringState());	
 }
 
 void UEquippableStateActiveFirearm::OnEjectClip()
 {
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
-	if (Firearm->GetClip())
+	if (Firearm->GetMagazine())
 	{
-		Firearm->EjectClip();
+		Firearm->EjectMagazine();
 	}
 }
 
@@ -64,6 +60,13 @@ void UEquippableStateActiveFirearm::OnRep_IsFiring()
 	}
 }
 
+void UEquippableStateActiveFirearm::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UEquippableStateActiveFirearm, bIsFiring, COND_SkipOwner);
+}
+
 void UEquippableStateActiveFirearm::OnEnteredState()
 {
 	Super::OnEnteredState();
@@ -72,25 +75,10 @@ void UEquippableStateActiveFirearm::OnEnteredState()
 
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
-	if (Firearm->GetClip() == nullptr)
+	if (Firearm->GetMagazine() == nullptr)
 	{
 		Firearm->PushState(Firearm->GetReloadingState());
 	}
-}
-
-void UEquippableStateActiveFirearm::OnStatePushed()
-{
-	Super::OnStatePushed();
-
-	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
-	OnClipChangedHandle = Firearm->OnClipChanged.AddUObject(this, &UEquippableStateActiveFirearm::OnClipAttachmentChanged);
-}
-
-void UEquippableStateActiveFirearm::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(UEquippableStateActiveFirearm, bIsFiring, COND_SkipOwner);
 }
 
 void UEquippableStateActiveFirearm::OnExitedState()
@@ -103,21 +91,27 @@ void UEquippableStateActiveFirearm::OnExitedState()
 	Super::OnExitedState();
 }
 
+void UEquippableStateActiveFirearm::OnStatePushed()
+{
+	Super::OnStatePushed();
+
+	OnClipMagazineHandle = GetEquippable<AHeroFirearm>()->OnMagazineChanged.AddUObject(this, &UEquippableStateActiveFirearm::OnMagazineAttachmentChanged);
+}
+
 void UEquippableStateActiveFirearm::OnStatePopped()
-{	
-	if (OnClipChangedHandle.IsValid())
+{
+	if (OnClipMagazineHandle.IsValid())
 	{
-		AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
-		Firearm->OnClipChanged.Remove(OnClipChangedHandle);
+		GetEquippable<AHeroFirearm>()->OnMagazineChanged.Remove(OnClipMagazineHandle);
 	}
 
 	Super::OnStatePopped();
 }
 
-void UEquippableStateActiveFirearm::OnClipAttachmentChanged()
+void UEquippableStateActiveFirearm::OnMagazineAttachmentChanged()
 {
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
-	if (Firearm->GetClip() != nullptr)
+	if (Firearm->GetMagazine() != nullptr)
 	{
 		if (Firearm->GetCurrentState() == Firearm->GetReloadingState())
 		{

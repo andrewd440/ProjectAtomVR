@@ -24,18 +24,24 @@ struct FFirearmStats
 	uint32 MaxAmmo;
 
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
-	uint32 ClipSize;
+	uint32 MagazineSize;
+
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	uint32 bHasSlideLock : 1;
 };
 
+/**
+ * Shots are fired from the socket name "Muzzle" on the firearm mesh.
+ */
 UCLASS(Abstract)
 class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
 {
 	GENERATED_BODY()
 	
 public:
-	/** Broadcasted when a clip has been attached or ejected. */
+	/** Broadcasted when a magazine has been attached or ejected. */
 	DECLARE_EVENT(AHeroFirearm, FOnClipChanged)
-	FOnClipChanged OnClipChanged;
+	FOnClipChanged OnMagazineChanged;
 
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -50,27 +56,34 @@ public:
 
 	int32 GetRemainingAmmo() const;
 
-	int32 GetRemainingClip() const;
+	int32 GetRemainingMagazine() const;
 
-	class AFirearmClip* GetClip() const;
+	bool IsChamberEmpty() const;
 
-	TSubclassOf<AFirearmClip> GetClipClass() const;
+	UFUNCTION(BlueprintCallable, Category = Firearm)
+	float GetChamberingProgress() const;
 
-	virtual void AttachClip(class AFirearmClip* Clip);
+	bool CanFire() const;
 
-	virtual void EjectClip();
+	class AFirearmClip* GetMagazine() const;
 
-	void ConsumeAmmo();
+	TSubclassOf<AFirearmClip> GetMagazineClass() const;
+
+	virtual void AttachMagazine(class AFirearmClip* Clip);
+
+	virtual void EjectMagazine();
 
 	const FFirearmStats& GetFirearmStats() const;
 
 	void FireShot();
 
+	virtual void FalseFire();
+
 	virtual void StartFiringSequence();
 
 	virtual void StopFiringSequence();
 
-	virtual void OnFirearmNotify(EFirearmNotify Type);
+	virtual void OnFirearmAnimNotify(EFirearmNotify Type);
 
 	//bool IsBoltPullNeeded() const;
 
@@ -80,39 +93,57 @@ public:
 	UEquippableState* GetChargingState() const;
 	UEquippableState* GetReloadingState() const;
 
-	USkeletalMeshComponent* GetSkeletalMesh() const;
-
 	/** 
-	 * Gets trigger used to determine valid overlap for a clip to be loaded.
+	 * Gets trigger used to determine valid overlap for a magazine to be loaded.
 	 */
-	UShapeComponent* GetClipReloadTrigger() const;
-
-	const FName GetClipAttachSocket() const;
-
-	/** AHeroEquippable Interface Begin */
-	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PostInitializeComponents() override;
-	/** AHeroEquippable Interface End */
+	UShapeComponent* GetMagazineReloadTrigger() const;
+	const FName GetMagazineAttachSocket() const;
 
 protected:
 	virtual void PlaySingleShotSequence();
 	
+	virtual bool ShouldDisableTick() const;
+
+	virtual void OnOppositeHandTriggerPressed();
+	virtual void OnOppositeHandTriggerReleased();
+
+	bool CanGripChamberingHandle() const;
+	void OnChamberingHandleReleased();
+	void OnSlideLockPressed();
+	void ActivateSlideLock();
+	void ReleaseSlideLock();
+
+	/**
+	* Ejects a cartridge.
+	* 
+	* @param bIsFired True if the cartridge is fired.
+	*/
+	void ReloadChamber(bool bIsFired);
+
 	UFUNCTION()
-	virtual void OnRep_CurrentClip();
+	virtual void OnRep_CurrentMagazine();
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerFireShot(FShotData ShotData);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerAttachClip(class AFirearmClip* Clip);
+	void ServerAttachMagazine(class AFirearmClip* Clip);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerEjectClip();
+	void ServerEjectMagazine();
 
 	UFUNCTION()
-	void OnRep_DefaultClip();
+	void OnRep_DefaultMagazine();
+
+	/** AHeroEquippable Interface Begin */
+public:
+	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitializeComponents() override;
+protected:
+	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
+	/** AHeroEquippable Interface End */
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
@@ -120,17 +151,18 @@ protected:
 
 	int32 RemainingAmmo;
 
-	int32 RemainingClip;
+	int32 RemainingMagazine;
 
+	/** The type of magazine this firearm uses. Magazines will be attached to the "MagazineAttach" socket.*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
-	TSubclassOf<class AFirearmClip> ClipClass;
+	TSubclassOf<class AFirearmClip> MagazineClass;
 
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentClip, BlueprintReadOnly, Category = Firearm)
-	AFirearmClip* CurrentClip;
+	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentMagazine, BlueprintReadOnly, Category = Firearm)
+	AFirearmClip* CurrentMagazine;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	FName ClipAttachSocket;
-
+	/**
+	* Shots type for this firearm. Shots are fired from the socket name "Muzzle" on the mesh.
+	*/
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UShotType* ShotType;
 
@@ -143,28 +175,44 @@ protected:
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
 	UEquippableState* ReloadingState;
 
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	//FName BoltCarrierGripSocket;
-
-	//UPROPERTY(EditDefaultsOnly, Category = Firearm)
-	//TArray<FVector> BoltCarrierTargets;
-
+	/** 
+	 * Particle system used to eject shells from the firearm. The emitter named "CartridgeFired" will be
+	 * used when ejecting a fired cartridge and "CartridgeUnfired" will be used when ejecting a unfired cartridge. 
+	 * This system will be attached to the "CartridgeEject" socket.
+	 * */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	FName ShellEjectSocket;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	UParticleSystem* ShellEjectTemplate = nullptr;
+	UParticleSystem* CartridgeEjectTemplate = nullptr;
 
 	UPROPERTY(transient)
-	UParticleSystemComponent* ShellEjectComponent = nullptr;
+	UParticleSystemComponent* CartridgeEjectComponent = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Firearm)
-	FName MuzzleSocket;
+	/** 
+	 * Radius the hand "Grip" socket is required to be within to grab the chamber handle. The chambering handle location
+	 * is the location of the "ChamberingHandle" socket. 
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	float ChamberingHandleRadius;
 
-	// Spawned particle system component for muzzle FX
+	/** List of movement vectors required to reset the chamber. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	TArray<FVector> ChamberHandleMovement;
+
+	/** Mesh attached to "CartridgeAttach" socket for fired cartridges */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	UStaticMesh* CartridgeFiredMesh;
+
+	/** Mesh attached to "CartridgeAttach" socket for unfired cartridges */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	UStaticMesh* CartridgeUnfiredMesh;
+
+	UPROPERTY(transient)
+	UStaticMeshComponent* CartridgeMeshComponent = nullptr;
+
+	/** Spawned particle system component for muzzle FX */
 	UPROPERTY(Transient)
 	UParticleSystemComponent* MuzzleFXComponent = nullptr;
 
+	/** Particle system component for muzzle FX. Will be attached to the "Muzzle" socket. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	UParticleSystem* MuzzleFX = nullptr;
 
@@ -183,33 +231,42 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
 	USoundBase* EndFireSound = nullptr;
 
-	// Sound effect on weapon fire with empty clip
+	// Sound effect on weapon fire with empty magazine
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
-	USoundBase* EmptyClipSound = nullptr;
+	USoundBase* EmptyMagazinepSound = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
-	UAnimMontage* BoltCarrierMontage = nullptr;
+	UAnimMontage* FiringMontage = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
 	UAnimMontage* TriggerPullMontage = nullptr;
 
-	/** True if the bolt carrier should be automatically reset if the grip is let go. */
-	//UPROPERTY(EditDefaultsOnly, Category = Firearm)
-	//uint32 bAutoResetBoltCarrier : 1;
-
-	// Is a bolt pull currently needed
-	uint32 bNeedsBoltPull : 1;	
-
 private:
-	/** Clip that is added to the firearm when spawned for owning clients. Is also used to save
-	 ** a copy of the current clip to have a reference to the old clip once overwritten from replication. */
-	UPROPERTY(ReplicatedUsing = OnRep_DefaultClip)
-	AFirearmClip* RemoteConnectionClip = nullptr;
+	/** Magazine that is added to the firearm when spawned for owning clients. Is also used to save
+	 ** a copy of the current magazine to have a reference to the old magazine once overwritten from replication. */
+	UPROPERTY(ReplicatedUsing = OnRep_DefaultMagazine)
+	AFirearmClip* RemoteConnectionMagazine = nullptr;
 
-	/** Trigger used to determine valid overlap for a clip to be loaded.*/
+	/** Trigger used to determine valid overlap for a magazine to be loaded.*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Firearm, meta = (AllowPrivateAccess = "true"))
-	UShapeComponent* ClipReloadTrigger;
+	UShapeComponent* MagazineReloadTrigger;
 
+	/** The origin hand location at the start of the current chambering index. This is relative to the actor. */
+	FVector ChamberingHandStartLocation = FVector::ZeroVector;
+	float ChamberingProgress = 0.f;
+	uint8 ChamberingIndex = 0;
+
+	uint32 bIsChamberEmpty : 1;
+	uint32 bIsHoldingChamberHandle : 1;
+
+	enum class EChamberState : uint8
+	{
+		Set,
+		Unset, // In pulled position
+	};
+
+	EChamberState LastChamberState : 1;
+	uint32 bIsSlideLockActive : 1;
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
@@ -220,19 +277,15 @@ FORCEINLINE UEquippableState* AHeroFirearm::GetReloadingState() const { return R
 
 FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
 
-FORCEINLINE int32 AHeroFirearm::GetRemainingClip() const { return RemainingClip; }
+FORCEINLINE int32 AHeroFirearm::GetRemainingMagazine() const { return RemainingMagazine; }
 
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
 
-FORCEINLINE USkeletalMeshComponent* AHeroFirearm::GetSkeletalMesh() const { return static_cast<USkeletalMeshComponent*>(GetMesh()); }
+FORCEINLINE class AFirearmClip* AHeroFirearm::GetMagazine() const { return CurrentMagazine; }
 
-FORCEINLINE class AFirearmClip* AHeroFirearm::GetClip() const { return CurrentClip; }
+FORCEINLINE TSubclassOf<AFirearmClip> AHeroFirearm::GetMagazineClass() const { return MagazineClass; }
 
-FORCEINLINE TSubclassOf<AFirearmClip> AHeroFirearm::GetClipClass() const { return ClipClass; }
-
-FORCEINLINE UShapeComponent* AHeroFirearm::GetClipReloadTrigger() const { return ClipReloadTrigger; }
-
-FORCEINLINE const FName AHeroFirearm::GetClipAttachSocket() const { return ClipAttachSocket; }
+FORCEINLINE UShapeComponent* AHeroFirearm::GetMagazineReloadTrigger() const { return MagazineReloadTrigger; }
 
 //FORCEINLINE bool AHeroFirearm::IsBoltPullNeeded() const { return bNeedsBoltPull; }
 //FORCEINLINE void AHeroFirearm::SetNeedsBoltPull(bool bIsNeeded) { bIsNeeded = bIsNeeded; }

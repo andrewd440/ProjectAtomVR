@@ -17,6 +17,7 @@ protected:
 	virtual void OnTriggerReleased();
 	virtual void StartFireShotTimer();
 	virtual void OnFireShot();
+	virtual void OnFalseFire();
 
 	/** UEquippableState Interface Begin */
 public:

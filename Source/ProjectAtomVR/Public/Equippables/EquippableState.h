@@ -48,8 +48,8 @@ public:
 	}
 
 	/** UObject Interface Begin */
-	virtual class UWorld* GetWorld() const override;
-	virtual bool IsSupportedForNetworking() const override;
+	virtual class UWorld* GetWorld() const override final;
+	virtual bool IsSupportedForNetworking() const override final;
 	/** UObject Interface End */
 
 protected:

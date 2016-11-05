@@ -8,30 +8,58 @@
 #include "Animation/AnimInstance.h"
 #include "AnimNotify_Firearm.h"
 #include "FirearmClip.h"
+#include "EquippableStateActiveFirearm.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimMontage.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
+namespace
+{
+	static const FName CartridgeFiredEmitterName{ TEXT("CartridgeFired") };
+	static const FName CartridgeUnfiredEmitterName{ TEXT("CartridgeUnfired") };
+	static const FName CartridgeAttachSocket{ TEXT("CartridgeAttach") };
+	static const FName MagazineAttachSocket{ TEXT("MagazineAttach") };
+	static const FName HandGripSocket{ TEXT("Grip") };
+	static const FName CartridgeEjectSocket{ TEXT("CartridgeEject") };
+	static const FName ChamberingHandleSocket{ TEXT("ChamberingHandle") };
+	static const FName MuzzleSocket{ TEXT("Muzzle") };
+	static const FName SlideLockSection{ TEXT("SlideLock") };
+}
+
 AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponent>(AHeroEquippable::MeshComponentName))
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponent>(AHeroEquippable::MeshComponentName).
+							  SetDefaultSubobjectClass<UEquippableStateActiveFirearm>(AHeroEquippable::ActiveStateName))
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+
 	bReplicates = true;
 
 	Stats.Damage = 20;
 	Stats.FireRate = 0.1f;
 	Stats.MaxAmmo = 160;
-	Stats.ClipSize = 30;
+	Stats.MagazineSize = 30;
 
-	bNeedsBoltPull = false;
+	ChamberingHandleRadius = 10.f;
+	bIsChamberEmpty = false;
+	bIsSlideLockActive = false;
+	bIsHoldingChamberHandle = false;
 
-	GetSkeletalMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
-	ClipReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("ClipReloadTrigger"));
-	ClipReloadTrigger->SetIsReplicated(false);
-	ClipReloadTrigger->bGenerateOverlapEvents = true;
-	ClipReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
-	ClipReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	ClipReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
+	MagazineReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));
+	MagazineReloadTrigger->SetupAttachment(GetMesh());
+	MagazineReloadTrigger->SetIsReplicated(false);
+	MagazineReloadTrigger->bGenerateOverlapEvents = true;
+	MagazineReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
+	MagazineReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	MagazineReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
+
+	CartridgeMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CartridgeMesh"));
+	CartridgeMeshComponent->SetupAttachment(GetMesh(), CartridgeAttachSocket);
+	CartridgeMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	CartridgeMeshComponent->SetIsReplicated(false);
 }
 
 
@@ -39,6 +67,62 @@ void AHeroFirearm::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
+	if (bIsHoldingChamberHandle)
+	{
+		if (CanGripChamberingHandle())
+		{
+			check(ChamberingIndex < ChamberHandleMovement.Num());
+
+			const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
+			const FVector HandLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
+
+			// Get the current movement progress based on the project of the hand delta on the chamber movement vector
+			const FVector& RequiredChamberMovement = ChamberHandleMovement[ChamberingIndex];
+			const FVector HandDelta = HandLocation - ChamberingHandStartLocation;
+			float NewProgress = FVector::DotProduct(RequiredChamberMovement, HandDelta.ProjectOnTo(RequiredChamberMovement)) / FMath::Square(RequiredChamberMovement.Size());
+
+			if (NewProgress >= 1.f)
+			{
+				if (ChamberHandleMovement.Num() > ChamberingIndex + 1)
+				{
+					// Move to the next movement if we have one
+					++ChamberingIndex;
+					NewProgress = 0.f;
+				}
+				else
+				{
+					NewProgress = 1.f;
+
+					if (LastChamberState == EChamberState::Set)
+					{	
+						ReloadChamber(false);
+						
+						LastChamberState = EChamberState::Unset;
+					}					
+				}
+			}
+			else if (NewProgress <= 0.f)
+			{
+				if (ChamberingIndex > 0)
+				{
+					// Move to the last movement if we have one
+					--ChamberingIndex;
+					NewProgress = 1.f;
+				}
+				else
+				{
+					NewProgress = 0.f;
+					LastChamberState = EChamberState::Set;
+				}
+			}
+
+			ChamberingProgress = NewProgress;
+		}				
+		else
+		{
+			OnChamberingHandleReleased();
+		}
+	}
 }
 
 FVector AHeroFirearm::GetMuzzleLocation() const
@@ -51,72 +135,81 @@ FQuat AHeroFirearm::GetMuzzleRotation() const
 	return GetMesh()->GetSocketQuaternion(MuzzleSocket);
 }
 
-void AHeroFirearm::AttachClip(AFirearmClip* Clip)
+bool AHeroFirearm::IsChamberEmpty() const
+{
+	return bIsChamberEmpty;
+}
+
+float AHeroFirearm::GetChamberingProgress() const
+{
+	return (ChamberingProgress + ChamberingIndex) / (float)ChamberHandleMovement.Num();
+}
+
+bool AHeroFirearm::CanFire() const
+{
+	return !IsChamberEmpty() && !bIsHoldingChamberHandle && !bIsSlideLockActive;
+}
+
+void AHeroFirearm::AttachMagazine(AFirearmClip* Clip)
 {
 	check(Clip);
-	ensure(CurrentClip == nullptr);
-	ensureMsgf(Clip->IsA(ClipClass), 
-		TEXT("Attached HeroFirearm clip is not compatible with assigned type. Was %s, while ClipType is %s"), Clip->StaticClass()->GetName(), ClipClass->StaticClass()->GetName());
+	ensure(CurrentMagazine == nullptr);
+	ensureMsgf(Clip->IsA(MagazineClass), 
+		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineType is %s"), Clip->StaticClass()->GetName(), MagazineClass->StaticClass()->GetName());
 
 	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
 	{
-		ServerAttachClip(Clip);
+		ServerAttachMagazine(Clip);
 	}
 
-	CurrentClip = Clip;
+	CurrentMagazine = Clip;
 	Clip->LoadInto(this);
 
-	RemainingClip = FMath::Min(Stats.ClipSize, (uint32)RemainingAmmo);
-	RemainingAmmo -= RemainingClip;
+	RemainingMagazine = FMath::Min(Stats.MagazineSize, (uint32)RemainingAmmo);
+	RemainingAmmo -= RemainingMagazine;
 
-	OnClipChanged.Broadcast();
+	OnMagazineChanged.Broadcast();
 }
 
-void AHeroFirearm::EjectClip()
+void AHeroFirearm::EjectMagazine()
 {
 	if (GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
 	{
-		ServerEjectClip();
+		ServerEjectMagazine();
 	}
 
-	if (CurrentClip)
+	if (CurrentMagazine)
 	{		
-		CurrentClip->EjectFrom(this);
+		CurrentMagazine->EjectFrom(this);
 	}
 
-	CurrentClip = nullptr;
+	CurrentMagazine = nullptr;
 
-	// Add ammo back and reset clip count
-	RemainingAmmo += RemainingClip;
-	RemainingClip = 0;
+	// Add ammo back and reset magazine count
+	RemainingAmmo += RemainingMagazine;
+	RemainingMagazine = 0;
 
-	OnClipChanged.Broadcast();
+	OnMagazineChanged.Broadcast();
 }
 
-void AHeroFirearm::ServerAttachClip_Implementation(class AFirearmClip* Clip)
+void AHeroFirearm::ServerAttachMagazine_Implementation(class AFirearmClip* Clip)
 {
-	AttachClip(Clip);
+	AttachMagazine(Clip);
 }
 
-bool AHeroFirearm::ServerAttachClip_Validate(class AFirearmClip* Clip)
-{
-	return true;
-}
-
-void AHeroFirearm::ServerEjectClip_Implementation()
-{
-	EjectClip();
-}
-
-bool AHeroFirearm::ServerEjectClip_Validate()
+bool AHeroFirearm::ServerAttachMagazine_Validate(class AFirearmClip* Clip)
 {
 	return true;
 }
 
-void AHeroFirearm::ConsumeAmmo()
+void AHeroFirearm::ServerEjectMagazine_Implementation()
 {
-	ensure(RemainingClip > 0);
-	--RemainingClip;
+	EjectMagazine();
+}
+
+bool AHeroFirearm::ServerEjectMagazine_Validate()
+{
+	return true;
 }
 
 void AHeroFirearm::FireShot()
@@ -143,32 +236,33 @@ void AHeroFirearm::FireShot()
 		}
 
 		PlaySingleShotSequence();
-		ConsumeAmmo();
 	}
 	else if(Role == ENetRole::ROLE_SimulatedProxy)
 	{
 		ShotType->SimulateShot(ShotData);
 		PlaySingleShotSequence();
-		ConsumeAmmo();
 	}
 }
 
-void AHeroFirearm::StartFiringSequence()
+void AHeroFirearm::FalseFire()
 {
-	if (TriggerPullMontage)
+	if (EmptyMagazinepSound)
 	{
-		GetSkeletalMesh()->GetAnimInstance()->Montage_Play(TriggerPullMontage);
-	}
+		UGameplayStatics::SpawnSoundAttached(EmptyMagazinepSound, GetMesh(), CartridgeAttachSocket);
+	}	
 }
 
 void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 {
-	ConsumeAmmo();
 	ShotType->FireShot(ShotData);
 
 	if (GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
 		PlaySingleShotSequence();
+	}
+	else
+	{
+		ReloadChamber(true);
 	}
 }
 
@@ -186,45 +280,181 @@ void AHeroFirearm::PlaySingleShotSequence()
 		MuzzleFXComponent->ActivateSystem();
 	}
 
+	CartridgeMeshComponent->SetVisibility(true);
+	CartridgeMeshComponent->SetStaticMesh(CartridgeFiredMesh);
+
 	if (FireSound && (!FireSound->IsLooping() || !FireSoundComponent))
 	{
 		FireSoundComponent = UGameplayStatics::SpawnSoundAttached(FireSound, GetMesh(), MuzzleSocket);
 		FireSoundComponent->Play();
 	}
 
-	if (BoltCarrierMontage)
+	if (FiringMontage)
 	{
-		GetSkeletalMesh()->GetAnimInstance()->Montage_Play(BoltCarrierMontage);
+		const float MontageLength = FiringMontage->CalculateSequenceLength();
+		GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Play(FiringMontage, MontageLength / Stats.FireRate);
 	}
 }
 
-void AHeroFirearm::OnRep_CurrentClip()
+bool AHeroFirearm::ShouldDisableTick() const
 {
-	if (CurrentClip == nullptr)
+	return !bIsHoldingChamberHandle;
+}
+
+void AHeroFirearm::OnOppositeHandTriggerPressed()
+{
+	if (CanGripChamberingHandle())
+	{		
+		bIsHoldingChamberHandle = true;
+		ChamberingIndex = 0;
+		LastChamberState = EChamberState::Set;
+
+		// Assign relative hand location
+		const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
+		ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
+
+		PrimaryActorTick.SetTickFunctionEnable(true);
+	}
+}
+
+void AHeroFirearm::OnOppositeHandTriggerReleased()
+{
+	OnChamberingHandleReleased();	
+}
+
+bool AHeroFirearm::CanGripChamberingHandle() const
+{
+	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.EquippedHand) == nullptr)
+	{		
+		FVector HandLocation = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand)->GetSocketLocation(HandGripSocket);
+		if (FVector::DistSquared(HandLocation, GetMesh()->GetSocketLocation(ChamberingHandleSocket)) <= ChamberingHandleRadius * ChamberingHandleRadius)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void AHeroFirearm::OnChamberingHandleReleased()
+{
+	bIsHoldingChamberHandle = false;
+	ChamberingProgress = 0;
+	ChamberingIndex = 0;
+	LastChamberState = EChamberState::Set;
+
+	if (ShouldDisableTick())
 	{
-		CurrentClip = RemoteConnectionClip;
-		EjectClip();
+		PrimaryActorTick.SetTickFunctionEnable(false);
+	}
+}
+
+void AHeroFirearm::OnSlideLockPressed()
+{
+	if (bIsSlideLockActive && RemainingMagazine > 0)
+	{
+		ReleaseSlideLock();
+	}	
+}
+
+void AHeroFirearm::ActivateSlideLock()
+{
+	if (FiringMontage && FiringMontage->IsValidSectionName(SlideLockSection))
+	{
+		auto AnimInstance = GetMesh<USkeletalMeshComponent>()->GetAnimInstance();
+		AnimInstance->Montage_Play(FiringMontage);
+		AnimInstance->Montage_JumpToSection(SlideLockSection, FiringMontage);
+		AnimInstance->Montage_Pause(FiringMontage);
+		bIsSlideLockActive = true;
+	}
+	else
+	{
+		UE_LOG(LogFirearm, Warning, TEXT("No SlideLock section found on FiringMontage. Disabling slide lock for %s"), *GetName());
+	}
+}
+
+void AHeroFirearm::ReleaseSlideLock()
+{
+	bIsSlideLockActive = false;
+	GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Resume(FiringMontage);
+	ReloadChamber(false);
+}
+
+void AHeroFirearm::ReloadChamber(bool bIsFired)
+{
+	// Eject first if not empty
+	if (!bIsChamberEmpty && CartridgeEjectComponent)
+	{
+		CartridgeEjectComponent->Activate(true);
+		CartridgeEjectComponent->SetEmitterEnable(CartridgeFiredEmitterName, bIsFired);
+		CartridgeEjectComponent->SetEmitterEnable(CartridgeUnfiredEmitterName, !bIsFired);
+	}
+
+	// Now update the magazine and chamber
+	bIsChamberEmpty = (RemainingMagazine <= 0);
+	RemainingMagazine = FMath::Max(0, RemainingMagazine - 1);
+
+	UE_LOG(LogFirearm, Log, TEXT("Remaining Magazine: %d IsChamberEmpty: %d"), RemainingMagazine, bIsChamberEmpty);
+
+	// Then update visible chamber bullet and set slide lock if available
+	if (bIsChamberEmpty)
+	{
+		CartridgeMeshComponent->SetVisibility(false);
+
+		if (Stats.bHasSlideLock)
+		{
+			ActivateSlideLock();			
+		}
+	}
+	else
+	{
+		CartridgeMeshComponent->SetVisibility(true);
+		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
+	}
+}
+
+void AHeroFirearm::OnRep_CurrentMagazine()
+{
+	if (CurrentMagazine == nullptr)
+	{
+		CurrentMagazine = RemoteConnectionMagazine;
+		EjectMagazine();
 	}
 	else
 	{
 		// Simulate attaching a new clip
-		AFirearmClip* NewClip = CurrentClip;
-		CurrentClip = nullptr;
-		AttachClip(NewClip);
+		AFirearmClip* NewClip = CurrentMagazine;
+		CurrentMagazine = nullptr;
+		AttachMagazine(NewClip);
 	}
 
-	RemoteConnectionClip = CurrentClip;
+	RemoteConnectionMagazine = CurrentMagazine;
 }
 
-void AHeroFirearm::OnRep_DefaultClip()
+void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 {
-	if (RemoteConnectionClip)
-	{
-		CurrentClip = RemoteConnectionClip;
-		CurrentClip->LoadInto(this);
+	Super::SetupInputComponent(InInputComponent);
 
-		RemainingClip = FMath::Min(Stats.ClipSize, (uint32)RemainingAmmo);
-		RemainingAmmo -= RemainingClip;
+	const FName TriggerName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("TriggerLeft") : TEXT("TriggerRight");
+	InInputComponent->BindAction(TriggerName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed);
+	InInputComponent->BindAction(TriggerName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased);
+
+	if (Stats.bHasSlideLock)
+	{
+		const FName SlideLockName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
+		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AHeroFirearm::OnSlideLockPressed);
+	}
+}
+
+void AHeroFirearm::OnRep_DefaultMagazine()
+{
+	if (RemoteConnectionMagazine)
+	{
+		CurrentMagazine = RemoteConnectionMagazine;
+		CurrentMagazine->LoadInto(this);
+
+		RemainingMagazine = FMath::Min(Stats.MagazineSize, (uint32)RemainingAmmo);
+		RemainingAmmo -= RemainingMagazine;
 	}
 }
 
@@ -237,8 +467,16 @@ void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentClip, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AHeroFirearm, RemoteConnectionClip, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentMagazine, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AHeroFirearm, RemoteConnectionMagazine, COND_OwnerOnly);
+}
+
+void AHeroFirearm::StartFiringSequence()
+{
+	if (TriggerPullMontage)
+	{
+		GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Play(TriggerPullMontage);
+	}
 }
 
 void AHeroFirearm::StopFiringSequence()
@@ -262,19 +500,21 @@ void AHeroFirearm::StopFiringSequence()
 
 	if (TriggerPullMontage)
 	{
-		GetSkeletalMesh()->GetAnimInstance()->Montage_Stop(.1f, TriggerPullMontage);
+		GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Stop(.1f, TriggerPullMontage);
 	}
 }
 
-void AHeroFirearm::OnFirearmNotify(EFirearmNotify Type)
+void AHeroFirearm::OnFirearmAnimNotify(EFirearmNotify Type)
 {
 	if (Type == EFirearmNotify::ShellEject)
 	{
-		if (ShellEjectComponent)
-		{
-			ShellEjectComponent->Activate(true);
-		}		
+		ReloadChamber(true);	
 	}
+}
+
+const FName AHeroFirearm::GetMagazineAttachSocket() const
+{
+	return MagazineAttachSocket;
 }
 
 void AHeroFirearm::PostInitializeComponents()
@@ -283,19 +523,20 @@ void AHeroFirearm::PostInitializeComponents()
 
 	RemainingAmmo = Stats.MaxAmmo;
 
-	ClipReloadTrigger->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, ClipAttachSocket);
-
-	if (ShellEjectTemplate)
+	if (CartridgeEjectTemplate)
 	{
-		ShellEjectComponent = UGameplayStatics::SpawnEmitterAttached(ShellEjectTemplate, GetMesh(), ShellEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
-		ShellEjectComponent->bAutoActivate = false;
-	}
+		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+		CartridgeEjectComponent->bAutoActivate = false;
+		CartridgeEjectComponent->bAllowRecycling = true;
+	}	
 
-	if (HasAuthority() && ClipClass)
+	CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
+
+	if (HasAuthority() && MagazineClass)
 	{
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = GetHeroOwner();
-		RemoteConnectionClip = GetWorld()->SpawnActor<AFirearmClip>(ClipClass, GetMesh<UMeshComponent>()->GetSocketTransform(ClipAttachSocket), SpawnParams);
-		AttachClip(RemoteConnectionClip);
+		RemoteConnectionMagazine = GetWorld()->SpawnActor<AFirearmClip>(MagazineClass, GetMesh<UMeshComponent>()->GetSocketTransform(MagazineAttachSocket), SpawnParams);
+		AttachMagazine(RemoteConnectionMagazine);
 	}
 }
