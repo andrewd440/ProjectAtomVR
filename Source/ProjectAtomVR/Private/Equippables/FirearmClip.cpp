@@ -34,9 +34,10 @@ AFirearmClip::AFirearmClip(const FObjectInitializer& ObjectInitializer /*= FObje
 
 void AFirearmClip::LoadInto(class AHeroFirearm* Firearm)
 {
+	SetCanReturnToLoadout(false);
+
 	if (EquipStatus.bIsEquipped)
-	{
-		SetCanReturnToLoadout(false);
+	{		
 		Unequip(EEquipType::Deferred);
 	}
 

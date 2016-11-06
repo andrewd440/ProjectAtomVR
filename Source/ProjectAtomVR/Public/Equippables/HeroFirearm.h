@@ -63,6 +63,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Firearm)
 	float GetChamberingProgress() const;
 
+	UFUNCTION(BlueprintCallable, Category = Firearm)
+	bool IsHoldingChamberingHandle() const;
+
 	bool CanFire() const;
 
 	class AFirearmClip* GetMagazine() const;
@@ -177,7 +180,7 @@ protected:
 	/** 
 	 * Particle system used to eject shells from the firearm. The emitter named "CartridgeFired" will be
 	 * used when ejecting a fired cartridge and "CartridgeUnfired" will be used when ejecting a unfired cartridge. 
-	 * This system will be attached to the "CartridgeEject" socket.
+	 * This system will be attached to the "CartridgeAttach" socket.
 	 * */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	UParticleSystem* CartridgeEjectTemplate = nullptr;
@@ -265,6 +268,8 @@ private:
 
 	/** The origin hand location at the start of the current chambering index. This is relative to the actor. */
 	FVector ChamberingHandStartLocation = FVector::ZeroVector;
+
+	/** State of the interactive chambering process. Only valid while chambering handle is being held. */
 	float ChamberingProgress = 0.f;
 	uint8 ChamberingIndex = 0;
 

@@ -21,7 +21,6 @@ namespace
 	static const FName CartridgeAttachSocket{ TEXT("CartridgeAttach") };
 	static const FName MagazineAttachSocket{ TEXT("MagazineAttach") };
 	static const FName HandGripSocket{ TEXT("Grip") };
-	static const FName CartridgeEjectSocket{ TEXT("CartridgeEject") };
 	static const FName ChamberingHandleSocket{ TEXT("ChamberingHandle") };
 	static const FName MuzzleSocket{ TEXT("Muzzle") };
 	static const FName SlideLockSection{ TEXT("SlideLock") };
@@ -104,7 +103,6 @@ void AHeroFirearm::Tick( float DeltaTime )
 					if (LastChamberState == EChamberState::Set)
 					{	
 						ReloadChamber(false);					
-
 						LastChamberState = EChamberState::Unset;
 					}					
 				}
@@ -160,6 +158,11 @@ bool AHeroFirearm::IsChamberEmpty() const
 float AHeroFirearm::GetChamberingProgress() const
 {
 	return (ChamberingProgress + ChamberingIndex) / (float)ChamberHandleMovement.Num();
+}
+
+bool AHeroFirearm::IsHoldingChamberingHandle() const
+{
+	return bIsHoldingChamberHandle;
 }
 
 bool AHeroFirearm::CanFire() const
@@ -346,7 +349,10 @@ void AHeroFirearm::OnOppositeHandTriggerPressed()
 
 void AHeroFirearm::OnOppositeHandTriggerReleased()
 {
-	OnChamberingHandleReleased();	
+	if (bIsHoldingChamberHandle)
+	{
+		OnChamberingHandleReleased();
+	}	
 }
 
 bool AHeroFirearm::CanGripChamberingHandle() const
@@ -367,7 +373,7 @@ void AHeroFirearm::OnChamberingHandleReleased()
 {
 	bIsHoldingChamberHandle = false;
 
-	if (ChamberingProgress > 0.2f) // If has enough progress to make a sound
+	if (!bIsSlideLockActive && ChamberingProgress > 0.2f) // If has enough progress to make a sound
 	{
 		const int32 LastChamberingSoundIndex = ChamberHandleMovement.Num() * 2 - 1;
 		if (ChamberingSounds.IsValidIndex(LastChamberingSoundIndex) && ChamberingSounds[LastChamberingSoundIndex])
@@ -399,11 +405,17 @@ void AHeroFirearm::ActivateSlideLock()
 {
 	if (FiringMontage && FiringMontage->IsValidSectionName(SlideLockSection))
 	{
+		bIsSlideLockActive = true;
+
+		if (bIsHoldingChamberHandle)
+		{
+			OnChamberingHandleReleased();
+		}
+
 		auto AnimInstance = GetMesh<USkeletalMeshComponent>()->GetAnimInstance();
 		AnimInstance->Montage_Play(FiringMontage);
 		AnimInstance->Montage_JumpToSection(SlideLockSection, FiringMontage);
-		AnimInstance->Montage_Pause(FiringMontage);
-		bIsSlideLockActive = true;
+		AnimInstance->Montage_Pause(FiringMontage);		
 	}
 	else
 	{
@@ -414,6 +426,13 @@ void AHeroFirearm::ActivateSlideLock()
 void AHeroFirearm::ReleaseSlideLock()
 {
 	bIsSlideLockActive = false;
+
+	// Play the last chambering sound if valid
+	const int32 LastChamberingSoundIndex = ChamberHandleMovement.Num() * 2 - 1;
+	if (ChamberingSounds.IsValidIndex(LastChamberingSoundIndex) && ChamberingSounds[LastChamberingSoundIndex])
+	{
+		UGameplayStatics::SpawnSoundAttached(ChamberingSounds[LastChamberingSoundIndex], GetMesh(), ChamberingHandleSocket);
+	}
 
 	GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Resume(FiringMontage);
 	ReloadChamber(false);
@@ -564,7 +583,7 @@ void AHeroFirearm::PostInitializeComponents()
 
 	if (CartridgeEjectTemplate)
 	{
-		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeEjectSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeAttachSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
 		CartridgeEjectComponent->bAutoActivate = false;
 		CartridgeEjectComponent->bAllowRecycling = true;
 

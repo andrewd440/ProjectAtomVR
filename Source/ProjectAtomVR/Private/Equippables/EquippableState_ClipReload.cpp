@@ -56,6 +56,8 @@ void UEquippableState_ClipReload::OnClipEnteredReloadTrigger(UPrimitiveComponent
 
 		if (AttachRotation.AngularDistance(ClipRotation) <= ClipAttachRotationErrorRadians)
 		{
+			// Align magazine and insert into firearm
+			OverlappingClip->SetActorLocationAndRotation(OverlappedComponent->GetComponentLocation(), ClipRotation);
 			Firearm->InsertMagazine(OverlappingClip);
 		}
 	}
