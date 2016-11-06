@@ -40,6 +40,11 @@ public:
 	*/
 	virtual void OnStatePopped();
 
+	/**
+	* Called by owning Equippable on BeginPlay
+	*/
+	virtual void BeginPlay();
+
 	template <typename EquippableType = AHeroEquippable>
 	EquippableType* GetEquippable() const
 	{

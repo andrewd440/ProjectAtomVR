@@ -66,6 +66,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsHoldingChamberingHandle() const;
 
+	bool IsSlideLockActive() const { return bIsSlideLockActive; }
+
 	bool CanFire() const;
 
 	class AFirearmClip* GetMagazine() const;
@@ -107,23 +109,30 @@ protected:
 	virtual void OnOppositeHandTriggerReleased();
 
 	bool CanGripChamberingHandle() const;
+	void OnChamberingHandleGrabbed();
 	void OnChamberingHandleReleased();
 	void OnSlideLockPressed();
 	void ActivateSlideLock();
 	void ReleaseSlideLock();
 
 	/**
-	* Ejects a cartridge.
+	* Ejects a cartridge and reloads the chamber.
 	* 
 	* @param bIsFired True if the cartridge is fired.
 	*/
 	void ReloadChamber(bool bIsFired);
 
 	UFUNCTION()
-	virtual void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
+	void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
 
 	UFUNCTION()
-	virtual void OnRep_CurrentMagazine();
+	void OnRep_CurrentMagazine();
+
+	UFUNCTION()
+	void OnRep_IsHoldingChamberHandle();
+
+	UFUNCTION()
+	void OnRep_IsSlideLockActive();
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
@@ -134,6 +143,12 @@ private:
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerEjectMagazine();
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerSetSlideLock(bool bIsActive);
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerSetIsHoldingChamberingHandle(bool bIsHeld);
 
 	UFUNCTION()
 	void OnRep_DefaultMagazine();
@@ -271,18 +286,26 @@ private:
 
 	/** State of the interactive chambering process. Only valid while chambering handle is being held. */
 	float ChamberingProgress = 0.f;
+
+	/** Current index in ChamberHandleMovement we are at. Only valid when chambering handle is held. */
 	uint8 ChamberingIndex = 0;
 
 	uint32 bIsChamberEmpty : 1;
+
+	UPROPERTY(ReplicatedUsing=OnRep_IsHoldingChamberHandle)
 	uint32 bIsHoldingChamberHandle : 1;
 
 	enum class EChamberState : uint8
 	{
-		Set,
+		Set, // In start position
 		Unset, // In pulled position
 	};
 
+	/** The last full chambering state we were in. Used to determine if we are moving forward or backwards in
+	 ** ChamberHandleMovement. */
 	EChamberState LastChamberState : 1;
+
+	UPROPERTY(ReplicatedUsing = OnRep_IsSlideLockActive)
 	uint32 bIsSlideLockActive : 1;
 };
 

@@ -19,10 +19,15 @@ protected:
 	virtual void OnFireShot();
 	virtual void OnFalseFire();
 
+private:
+	UFUNCTION()
+	void OnRep_TotalShotCounter();
+
 	/** UEquippableState Interface Begin */
 public:
 	virtual void OnEnteredState() override;
 	virtual void OnExitedState() override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;	
 
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent);
@@ -41,4 +46,10 @@ protected:
 
 	// Number of shots fired since entering the state.
 	int32 ShotsFired = 0;
+
+	uint8 RemoteShotCounter = 0;
+
+	// Used on server to notify clients of firing event
+	UPROPERTY(ReplicatedUsing = OnRep_TotalShotCounter)
+	uint8 TotalShotCounter = 0;
 };

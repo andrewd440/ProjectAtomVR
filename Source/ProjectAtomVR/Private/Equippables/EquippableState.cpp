@@ -52,6 +52,11 @@ void UEquippableState::OnStatePopped()
 	OnExitedState();
 }
 
+void UEquippableState::BeginPlay()
+{
+
+}
+
 class UWorld* UEquippableState::GetWorld() const
 {
 	return Equippable->GetWorld();

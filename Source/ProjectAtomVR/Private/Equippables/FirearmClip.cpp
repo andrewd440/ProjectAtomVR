@@ -62,10 +62,11 @@ void AFirearmClip::EjectFrom(class AHeroFirearm* Firearm)
 	bTearOff = true;
 	ClipLoadTrigger->bGenerateOverlapEvents = false; // Disable trigger on eject, pending destroy
 
-	GetMesh()->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+	UMeshComponent* const MyMesh = GetMesh();
+	MyMesh->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	SetActorEnableCollision(true);
 
-	GetMesh()->SetSimulatePhysics(true);
+	MyMesh->SetSimulatePhysics(true);
 
 	SetLifeSpan(10.f);
 }

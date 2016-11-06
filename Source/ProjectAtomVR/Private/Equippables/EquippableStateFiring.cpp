@@ -16,15 +16,22 @@ void UEquippableStateFiring::OnEnteredState()
 }
 
 void UEquippableStateFiring::OnExitedState()
-{
-	Super::OnExitedState();
-
+{	
 	GetEquippable<AHeroFirearm>()->StopFiringSequence();
 
 	if (FireTimer.IsValid())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(FireTimer);
 	}
+
+	Super::OnExitedState();
+}
+
+void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(UEquippableStateFiring, TotalShotCounter, COND_SkipOwner);
 }
 
 void UEquippableStateFiring::OnTriggerReleased()
@@ -74,6 +81,9 @@ void UEquippableStateFiring::OnFireShot()
 {
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 
+	// Used to update remotes with shot count. Should always increment.
+	++TotalShotCounter;
+
 	if (!Firearm->CanFire())
 	{
 		OnFalseFire();
@@ -101,8 +111,34 @@ void UEquippableStateFiring::OnFireShot()
 
 void UEquippableStateFiring::OnFalseFire()
 {
-	// #AtomTodo Signal false fire
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 	Firearm->DryFire();
 	Firearm->PopState(this);
+}
+
+void UEquippableStateFiring::OnRep_TotalShotCounter()
+{
+	const int32 ShotDiff = FMath::Abs(TotalShotCounter - RemoteShotCounter); // Abs to allow wrapping
+	RemoteShotCounter = TotalShotCounter;
+
+	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+
+	if (Firearm->HasActorBegunPlay())
+	{
+		if (ShotDiff > 0)
+		{
+			// Push state for burst diff
+			BurstCount = ShotDiff;
+
+			if (Firearm->GetCurrentState() != this)
+			{
+				Firearm->PushState(this);
+			}
+		}
+		else if (Firearm->GetCurrentState() == this)
+		{
+			// Pop state since we are updated
+			Firearm->PopState(this);
+		}
+	}
 }

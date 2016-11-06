@@ -40,55 +40,15 @@ void UEquippableStateActiveFirearm::BindStateInputs(UInputComponent* InputCompon
 	}
 }
 
-void UEquippableStateActiveFirearm::OnRep_IsFiring()
-{
-	UEquippableState* const FiringState = GetEquippable<AHeroFirearm>()->GetFiringState();
-
-	if (bIsFiring)
-	{
-		if (GetEquippable()->GetCurrentState() != FiringState)
-		{
-			GetEquippable()->PushState(FiringState);
-		}
-	}
-	else
-	{
-		if (GetEquippable()->GetCurrentState() == FiringState)
-		{
-			GetEquippable()->PopState(FiringState);
-		}
-	}
-}
-
-void UEquippableStateActiveFirearm::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(UEquippableStateActiveFirearm, bIsFiring, COND_SkipOwner);
-}
-
 void UEquippableStateActiveFirearm::OnEnteredState()
 {
 	Super::OnEnteredState();
-
-	bIsFiring = false;
-
 	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
 
 	if (Firearm->GetMagazine() == nullptr)
 	{
 		Firearm->PushState(Firearm->GetReloadingState());
 	}
-}
-
-void UEquippableStateActiveFirearm::OnExitedState()
-{
-	if (GetEquippable()->GetCurrentState() == GetEquippable<AHeroFirearm>()->GetFiringState())
-	{
-		bIsFiring = true;
-	}
-
-	Super::OnExitedState();
 }
 
 void UEquippableStateActiveFirearm::OnStatePushed()

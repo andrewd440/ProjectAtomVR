@@ -335,15 +335,8 @@ void AHeroFirearm::OnOppositeHandTriggerPressed()
 {
 	if (CanGripChamberingHandle())
 	{		
-		bIsHoldingChamberHandle = true;
-		ChamberingIndex = 0;
-		LastChamberState = EChamberState::Set;
-
-		// Assign relative hand location
-		const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
-		ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
-
-		PrimaryActorTick.SetTickFunctionEnable(true);
+		OnChamberingHandleGrabbed();
+		ServerSetIsHoldingChamberingHandle(true);
 	}
 }
 
@@ -352,6 +345,7 @@ void AHeroFirearm::OnOppositeHandTriggerReleased()
 	if (bIsHoldingChamberHandle)
 	{
 		OnChamberingHandleReleased();
+		ServerSetIsHoldingChamberingHandle(false);
 	}	
 }
 
@@ -367,6 +361,19 @@ bool AHeroFirearm::CanGripChamberingHandle() const
 	}
 
 	return false;
+}
+
+void AHeroFirearm::OnChamberingHandleGrabbed()
+{
+	bIsHoldingChamberHandle = true;
+	ChamberingIndex = 0;
+	LastChamberState = EChamberState::Set;
+
+	// Assign relative hand location
+	const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
+	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
+
+	PrimaryActorTick.SetTickFunctionEnable(true);
 }
 
 void AHeroFirearm::OnChamberingHandleReleased()
@@ -398,6 +405,7 @@ void AHeroFirearm::OnSlideLockPressed()
 	if (bIsSlideLockActive && RemainingMagazine > 0)
 	{
 		ReleaseSlideLock();
+		ServerSetSlideLock(false);
 	}	
 }
 
@@ -494,19 +502,81 @@ void AHeroFirearm::OnRep_CurrentMagazine()
 	RemoteConnectionMagazine = CurrentMagazine;
 }
 
+void AHeroFirearm::OnRep_IsHoldingChamberHandle()
+{
+	if (bIsHoldingChamberHandle)
+	{
+		OnChamberingHandleGrabbed();
+	}
+	else
+	{
+		OnChamberingHandleReleased();
+	}
+}
+
+void AHeroFirearm::OnRep_IsSlideLockActive()
+{
+	if(!bIsSlideLockActive)
+	{
+		ReleaseSlideLock();
+	}
+	
+	// Slide lock will automatically activate on remotes at the appropriate time
+}
+
 void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	Super::SetupInputComponent(InInputComponent);
 
-	const FName TriggerName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("TriggerLeft") : TEXT("TriggerRight");
-	InInputComponent->BindAction(TriggerName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed);
-	InInputComponent->BindAction(TriggerName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased);
+	const FName WeaponInteractName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("WeaponInteractLeft") : TEXT("WeaponInteractRight");
+	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed);
+	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased);
 
 	if (Stats.bHasSlideLock)
 	{
 		const FName SlideLockName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
 		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AHeroFirearm::OnSlideLockPressed);
 	}
+}
+
+void AHeroFirearm::ServerSetSlideLock_Implementation(bool bIsActive)
+{
+	if (bIsActive != bIsSlideLockActive)
+	{
+		if (bIsActive)
+		{
+			ActivateSlideLock();
+		}
+		else
+		{
+			ReleaseSlideLock();
+		}
+	}
+}
+
+bool AHeroFirearm::ServerSetSlideLock_Validate(bool bIsActive)
+{
+	return true;
+}
+
+void AHeroFirearm::ServerSetIsHoldingChamberingHandle_Implementation(bool bIsHeld)
+{
+	if (bIsHeld != bIsHoldingChamberHandle)
+	{
+		if (bIsHeld)
+		{
+			OnChamberingHandleGrabbed();
+		}
+		else
+		{
+			OnChamberingHandleReleased();
+		}
+	}
+}
+
+bool AHeroFirearm::ServerSetIsHoldingChamberingHandle_Validate(bool bIsHeld)
+{
+	return true;
 }
 
 void AHeroFirearm::OnRep_DefaultMagazine()
@@ -532,6 +602,9 @@ void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentMagazine, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AHeroFirearm, RemoteConnectionMagazine, COND_OwnerOnly);
+
+	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsHoldingChamberHandle, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsSlideLockActive, COND_SkipOwner);
 }
 
 void AHeroFirearm::StartFiringSequence()

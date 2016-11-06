@@ -42,6 +42,11 @@ void AHeroEquippable::BeginPlay()
 	{
 		OnRep_EquipStatus();
 	}
+
+	for (auto State : EquippableStates)
+	{
+		State->BeginPlay();
+	}
 }
 
 void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
