@@ -85,10 +85,6 @@ public:
 
 	virtual void OnFirearmAnimNotify(EFirearmNotify Type);
 
-	//bool IsBoltPullNeeded() const;
-
-	//void SetNeedsBoltPull(bool bIsNeeded);
-
 	UEquippableState* GetFiringState() const;
 	UEquippableState* GetChargingState() const;
 	UEquippableState* GetReloadingState() const;
@@ -226,14 +222,9 @@ protected:
 	// Sound effect when the weapon is fire. This audio will loop while in the
 	// firing weapon state if it is a looping sound. Otherwise, it will be played
 	// at the time of each shot. For automatic weapons, it is recommended to use
-	// looping firing sounds.
+	// looping firing sounds with the SoundNodeFadeOut used for the tail sound.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
 	USoundBase* FireSound = nullptr;
-
-	/** Sound effect when the firearm stop firing. Only played if the FireSound is looping.
-	 ** This is used to simulate the tail end of the FireSound to prevent sound cutoff. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
-	USoundBase* EndFireSound = nullptr;
 
 	/** Sound effect on weapon fire with empty magazine */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
@@ -307,6 +298,3 @@ FORCEINLINE class AFirearmClip* AHeroFirearm::GetMagazine() const { return Curre
 FORCEINLINE TSubclassOf<AFirearmClip> AHeroFirearm::GetMagazineClass() const { return MagazineClass; }
 
 FORCEINLINE UShapeComponent* AHeroFirearm::GetMagazineReloadTrigger() const { return MagazineReloadTrigger; }
-
-//FORCEINLINE bool AHeroFirearm::IsBoltPullNeeded() const { return bNeedsBoltPull; }
-//FORCEINLINE void AHeroFirearm::SetNeedsBoltPull(bool bIsNeeded) { bIsNeeded = bIsNeeded; }

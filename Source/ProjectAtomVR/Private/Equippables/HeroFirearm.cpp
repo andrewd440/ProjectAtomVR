@@ -533,13 +533,8 @@ void AHeroFirearm::StopFiringSequence()
 
 	if (FireSoundComponent && FireSound->IsLooping() && FireSoundComponent->IsPlaying())
 	{
-		FireSoundComponent->FadeOut(0.1f, 0.0f);
+		FireSoundComponent->FadeOut(1.0f, 1.0f); // Allow SoundNodeFadeOut nodes to play tail fire sound
 		FireSoundComponent = nullptr;
-
-		if (EndFireSound)
-		{
-			UGameplayStatics::SpawnSoundAttached(EndFireSound, GetMesh(), MuzzleSocket);
-		}
 	}
 
 	if (TriggerPullMontage)

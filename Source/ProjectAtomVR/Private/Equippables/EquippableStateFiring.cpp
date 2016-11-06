@@ -89,6 +89,12 @@ void UEquippableStateFiring::OnFireShot()
 		{
 			GetEquippable()->PopState(this);
 		}
+		else if (!Firearm->CanFire())
+		{
+			// This will be the last shot, so stop the sequence. Don't pop state to allow
+			// dry fire.
+			Firearm->StopFiringSequence();
+		}
 	}
 
 }
