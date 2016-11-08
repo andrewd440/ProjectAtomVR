@@ -11,6 +11,8 @@
 #include "EquippableStateActiveFirearm.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimMontage.h"
+#include "EquippableStateFiring.h"
+#include "EquippableState_ClipReload.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
@@ -46,6 +48,9 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	bIsHoldingChamberHandle = false;
 
 	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+
+	ReloadingState = CreateDefaultSubobject<UEquippableState_ClipReload>(TEXT("ReloadingState"));
+	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
 
 	MagazineReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));
 	MagazineReloadTrigger->SetupAttachment(GetMesh());
@@ -529,8 +534,8 @@ void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 	Super::SetupInputComponent(InInputComponent);
 
 	const FName WeaponInteractName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("WeaponInteractLeft") : TEXT("WeaponInteractRight");
-	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed);
-	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased);
+	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed).bConsumeInput = false;
+	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased).bConsumeInput = false;
 
 	if (Stats.bHasSlideLock)
 	{

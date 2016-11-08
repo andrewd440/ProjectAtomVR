@@ -128,6 +128,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
+	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList) override;
 
 protected:
 	virtual void OnRep_Owner() override;

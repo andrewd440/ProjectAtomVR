@@ -351,3 +351,21 @@ bool AHeroEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FO
 
 	return WroteSomething;
 }
+
+void AHeroEquippable::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList)
+{
+	Super::GetSubobjectsWithStableNamesForNetworking(ObjList);
+
+	// For experimenting with replicating ALL stably named components initially
+	for (UEquippableState* State : EquippableStates)
+	{		
+		if (State && State->IsNameStableForNetworking())
+		{
+			ObjList.Add(State);
+			State->GetSubobjectsWithStableNamesForNetworking(ObjList);
+		}
+	}
+
+	// Sort to keep lists consistent on server and clients
+	Sort(ObjList.GetData(), ObjList.Num(), [](const UObject& A, const UObject& B) {return A.GetName() < B.GetName(); });
+}
