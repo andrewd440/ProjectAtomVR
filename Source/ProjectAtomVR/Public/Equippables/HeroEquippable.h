@@ -105,6 +105,8 @@ public:
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
+	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
+
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerEquip(const EHand Hand);
@@ -182,6 +184,12 @@ private:
 	/** True the Equippable should be returned to the loadout when unequipped. If false,
 	* the Equippable will just be detached from the attached parent. */
 	uint32 bReturnToLoadout : 1;
+
+	/** The original location and rotation for our attached parent when initially equipped. 
+	 ** When unequipped, the parent will be reset with these values in case the Equippable
+	 ** modified them. */
+	FVector OriginalParentLocation = FVector::ZeroVector;
+	FRotator OriginalParentRotation = FRotator::ZeroRotator;
 
 public:
 	AHeroBase* GetHeroOwner() const;

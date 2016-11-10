@@ -33,7 +33,7 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 							  SetDefaultSubobjectClass<UEquippableStateActiveFirearm>(AHeroEquippable::ActiveStateName))
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	bReplicates = true;
 
@@ -71,6 +71,12 @@ void AHeroFirearm::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
+	UpdateChamberingHandle();
+	UpdateRecoilOffset(DeltaTime);
+}
+
+void AHeroFirearm::UpdateChamberingHandle()
+{
 	if (bIsHoldingChamberHandle)
 	{
 		if (CanGripChamberingHandle())
@@ -88,8 +94,8 @@ void AHeroFirearm::Tick( float DeltaTime )
 			if (NewProgress >= 1.f)
 			{
 				// Play chambering sound if we hit a new checkpoint
-				if (ChamberingProgress < 1.f && 
-					ChamberingSounds.IsValidIndex(ChamberingIndex) && 
+				if (ChamberingProgress < 1.f &&
+					ChamberingSounds.IsValidIndex(ChamberingIndex) &&
 					ChamberingSounds[ChamberingIndex])
 				{
 					UGameplayStatics::SpawnSoundAttached(ChamberingSounds[ChamberingIndex], GetMesh(), ChamberingHandleSocket);
@@ -106,10 +112,10 @@ void AHeroFirearm::Tick( float DeltaTime )
 					NewProgress = 1.f;
 
 					if (LastChamberState == EChamberState::Set)
-					{	
-						ReloadChamber(false);					
+					{
+						ReloadChamber(false);
 						LastChamberState = EChamberState::Unset;
-					}					
+					}
 				}
 			}
 			else if (NewProgress <= 0.f)
@@ -137,12 +143,28 @@ void AHeroFirearm::Tick( float DeltaTime )
 			}
 
 			ChamberingProgress = NewProgress;
-		}				
+		}
 		else
 		{
 			OnChamberingHandleReleased();
 		}
 	}
+}
+
+void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
+{
+	// #AtomTodo Disable this call when no recoil is present
+	USceneComponent* MyMesh = GetMesh();
+	USceneComponent* Parent = MyMesh->GetAttachParent();
+
+	FVector OriginLocation;
+	FRotator OriginRotation;
+	GetOriginalParentLocationAndRotation(OriginLocation, OriginRotation);
+	
+	const FVector UpdateLocation = FMath::VInterpConstantTo(Parent->RelativeLocation, OriginLocation, DeltaSeconds, Stats.Stability);
+	const FRotator UpdateRotation = FMath::RInterpConstantTo(Parent->RelativeRotation, OriginRotation, DeltaSeconds, Stats.Stability);
+
+	Parent->SetRelativeLocationAndRotation(UpdateLocation, UpdateRotation);
 }
 
 FVector AHeroFirearm::GetMuzzleLocation() const
@@ -250,8 +272,12 @@ bool AHeroFirearm::ServerEjectMagazine_Validate()
 void AHeroFirearm::FireShot()
 {
 	check(ShotType);
-
+	
+	// Get shot data before applying recoil
 	const FShotData ShotData = ShotType->GetShotData();
+
+	const int32 Seed = FMath::Rand();
+	GenerateShotRecoil(Seed);
 
 	// Since the firing state will be call FireShot while active, it will be
 	// call by Autonomous, Authority, and Simulated connections. We will allow simulated
@@ -267,7 +293,7 @@ void AHeroFirearm::FireShot()
 		else
 		{
 			ShotType->SimulateShot(ShotData);
-			ServerFireShot(ShotData);
+			ServerFireShot(ShotData, Seed);
 		}
 
 		PlaySingleShotSequence();
@@ -287,21 +313,22 @@ void AHeroFirearm::DryFire()
 	}	
 }
 
-void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
+void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData, int32 RecoilSeed)
 {
+	GenerateShotRecoil(RecoilSeed);
 	ShotType->FireShot(ShotData);
 
 	if (GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		PlaySingleShotSequence();
-	}
+		PlaySingleShotSequence(); // Drive ReloadChamber with animation
+	}	
 	else
 	{
 		ReloadChamber(true);
-	}
+	}	
 }
 
-bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData)
+bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData, int32 RecoilSeed)
 {
 	return true;
 }
@@ -329,11 +356,6 @@ void AHeroFirearm::PlaySingleShotSequence()
 		const float MontageLength = FiringMontage->CalculateSequenceLength();
 		GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Play(FiringMontage, MontageLength / Stats.FireRate);
 	}
-}
-
-bool AHeroFirearm::ShouldDisableTick() const
-{
-	return !bIsHoldingChamberHandle;
 }
 
 void AHeroFirearm::OnOppositeHandTriggerPressed()
@@ -377,8 +399,6 @@ void AHeroFirearm::OnChamberingHandleGrabbed()
 	// Assign relative hand location
 	const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
 	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
-
-	PrimaryActorTick.SetTickFunctionEnable(true);
 }
 
 void AHeroFirearm::OnChamberingHandleReleased()
@@ -398,11 +418,6 @@ void AHeroFirearm::OnChamberingHandleReleased()
 	ChamberingProgress = 0;
 	ChamberingIndex = 0;
 	LastChamberState = EChamberState::Set;
-
-	if (ShouldDisableTick())
-	{
-		PrimaryActorTick.SetTickFunctionEnable(false);
-	}
 }
 
 void AHeroFirearm::OnSlideLockPressed()
@@ -449,6 +464,33 @@ void AHeroFirearm::ReleaseSlideLock()
 
 	GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Resume(FiringMontage);
 	ReloadChamber(false);
+}
+
+void AHeroFirearm::GenerateShotRecoil(int Seed)
+{
+	FRandomStream RecoilOffsetStream(Seed);
+
+	// Get random rotation [-1, 1] to factor in with RecoilPushSpread and
+	// apply the rotation to RecoilPush
+	const float RSeed = 2.f * FMath::FRand() - 1.f;
+	const float Rotation = RSeed * Stats.RecoilPushSpread;
+	const FVector2D RecoilInput = Stats.RecoilPush.GetRotated(Rotation);
+
+	USceneComponent* MyMesh = GetMesh();
+	USceneComponent* Parent = MyMesh->GetAttachParent();
+
+	const FVector RecoilPivot{ Stats.RecoilPivotOffset, 0.f };
+	const FVector RecoilPivotWorld = MyMesh->ComponentToWorld.TransformPosition(RecoilPivot);
+
+	const FQuat LocalRotation = FQuat::MakeFromEuler(FVector{ 0.f, RecoilInput.Y, RecoilInput.X });
+	const FQuat WorldRotation = MyMesh->GetComponentQuat() * LocalRotation;
+
+	// Target location of MyMesh
+	const FVector TargetWorldLocation = RecoilPivotWorld + FVector::Dist(MyMesh->GetComponentLocation(), RecoilPivotWorld) * WorldRotation.GetForwardVector();
+
+	const FTransform TransformOffset = MyMesh->ComponentToWorld.GetRelativeTransform(Parent->ComponentToWorld);
+	FVector LocationOffset = Parent->ComponentToWorld.TransformVector(TransformOffset.GetLocation() + FVector{ Stats.RecoilKick, 0, 0 });
+	Parent->SetWorldLocationAndRotation(TargetWorldLocation - LocationOffset, WorldRotation * TransformOffset.GetRotation().Inverse());
 }
 
 void AHeroFirearm::ReloadChamber(bool bIsFired)

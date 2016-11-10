@@ -26,6 +26,28 @@ struct FFirearmStats
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
 	uint32 MagazineSize;
 
+	// Determines how fast weapon recoil offsets are reset after firing the weapon.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
+	float Stability;
+
+	/** The average direction that recoil from each shot will push the weapon.
+	 ** X is uses as kick, offset forward and back. YZ is used as rotation around
+	 ** the RecoilPivotOffset. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
+	FVector2D RecoilPush;
+
+	/** Offset in the XZ plane used as the pivot point for recoil push. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
+	FVector2D RecoilPivotOffset;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
+	float RecoilKick;
+
+	// Angle, in degrees, of recoil spread for the weapon. This is the max angle that RecoilPush
+	// will be offset when calculating the final recoil push direction for each shot.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
+	float RecoilPushSpread;
+
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
 	uint32 bHasSlideLock : 1;
 };
@@ -46,7 +68,7 @@ public:
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
-	virtual void Tick( float DeltaSeconds ) override;
+	virtual void Tick( float DeltaSeconds ) override;	
 
 	/** Get the location of the firearm muzzle in world space. */
 	FVector GetMuzzleLocation() const;
@@ -101,9 +123,10 @@ public:
 	const FName GetMagazineAttachSocket() const;
 
 protected:
+	void UpdateChamberingHandle();
+	void UpdateRecoilOffset(float DeltaSeconds);
+
 	virtual void PlaySingleShotSequence();
-	
-	virtual bool ShouldDisableTick() const;
 
 	virtual void OnOppositeHandTriggerPressed();
 	virtual void OnOppositeHandTriggerReleased();
@@ -114,6 +137,8 @@ protected:
 	void OnSlideLockPressed();
 	void ActivateSlideLock();
 	void ReleaseSlideLock();
+
+	void GenerateShotRecoil(int Seed);
 
 	/**
 	* Ejects a cartridge and reloads the chamber.
@@ -136,7 +161,7 @@ protected:
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerFireShot(FShotData ShotData);
+	void ServerFireShot(FShotData ShotData, int32 RecoilSeed);
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerInsertMagazine(class AFirearmClip* Clip);

@@ -242,7 +242,9 @@ void AHeroEquippable::OnRep_Owner()
 void AHeroEquippable::OnEquipped()
 {
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(EquipStatus.EquippedHand);
-
+	OriginalParentLocation = AttachHand->RelativeLocation;
+	OriginalParentRotation = AttachHand->RelativeRotation;
+	
 	// Set return storage before attaching to hero
 	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
 	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket); 
@@ -265,6 +267,9 @@ void AHeroEquippable::OnUnequipped()
 {
 	UnequipTimeStamp = GetWorld()->GetTimeSeconds();
 
+	// Reset parent location and rotation
+	Mesh->GetAttachParent()->SetRelativeLocationAndRotation(OriginalParentLocation, OriginalParentRotation);
+
 	if (LoadoutAttachComponent && bReturnToLoadout)
 	{
 		AttachToComponent(LoadoutAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutAttachSocket);
@@ -285,6 +290,12 @@ void AHeroEquippable::OnUnequipped()
 void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	check(InInputComponent);
+}
+
+void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
+{
+	LocationOut = OriginalParentLocation;
+	RotationOut = OriginalParentRotation;
 }
 
 void AHeroEquippable::ServerEquip_Implementation(const EHand Hand)
