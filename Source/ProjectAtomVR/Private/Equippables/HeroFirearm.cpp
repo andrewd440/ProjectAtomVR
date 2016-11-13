@@ -41,8 +41,12 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	Stats.FireRate = 0.1f;
 	Stats.MaxAmmo = 160;
 	Stats.MagazineSize = 30;
+	Stats.RecoilDampening = .5f;
+	Stats.RecoilDirectionalPush = -FVector2D{ -1.f, 0.f };
+	Stats.RecoilRotationalPush = FVector2D{ 0.f, 1.f };
+	Stats.RecoilPushSpread = 30.f;
 
-	RecoilVelocity.Kickback = 0.f;
+	RecoilVelocity.Directional = FVector::ZeroVector;
 	RecoilVelocity.Angular = FVector::ZeroVector;
 	bIsRecoilActive = false;
 
@@ -162,64 +166,51 @@ void AHeroFirearm::UpdateChamberingHandle()
 
 void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 {
-	USceneComponent* Parent = GetMesh()->GetAttachParent();
+	USceneComponent* MyMesh = GetMesh();
+	USceneComponent* Parent = MyMesh->GetAttachParent();
+
+	const FTransform ToParentTransform = MyMesh->ComponentToWorld.GetRelativeTransform(Parent->ComponentToWorld);
 
 	// Get the move and rotation delta in local space
 	const FVector AngularVelocityLocal = RecoilVelocity.Angular * DeltaSeconds;
-	const FVector PivolOffsetLocal = FVector{ Stats.RecoilPivotOffset, 0.f };
 
-	FVector MoveDeltaLocal = FVector::CrossProduct(AngularVelocityLocal, -PivolOffsetLocal);
-	MoveDeltaLocal.X -= RecoilVelocity.Kickback * DeltaSeconds;
+	const FQuat RotationDeltaLocal{ ToParentTransform.TransformVector(AngularVelocityLocal.GetSafeNormal()), AngularVelocityLocal.Size() };
+	const FVector DirectionalDeltaLocal = ToParentTransform.TransformVector(RecoilVelocity.Directional);
 
-	const FQuat RotationDeltaLocal{ AngularVelocityLocal.GetSafeNormal(), AngularVelocityLocal.Size() };
+	Parent->AddLocalTransform(FTransform{ RotationDeltaLocal, DirectionalDeltaLocal });
 
-	Parent->AddLocalTransform(FTransform{ RotationDeltaLocal, MoveDeltaLocal });
-
-	//// Apply force to return to original location/rotation
-	const FTransform ParentRelativeTransform = Parent->GetRelativeTransform();
-
+	//----------------------------------------------------------------------------------------------
+	// Apply force to return to original location/rotation
+	//----------------------------------------------------------------------------------------------
 	FVector OriginalRelativeLocation;
 	FQuat OriginalRelativeRotation;
 	GetOriginalParentLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 
-	// Original data for pivot position
-	const FVector OriginalPivotVectorRelative = OriginalRelativeRotation.RotateVector(PivolOffsetLocal);
-	const FVector OriginalPivotLocationRelative = OriginalRelativeLocation + OriginalPivotVectorRelative;
-
-	// Check if the current pivot is in front of original
-	const float CurrentPivotDotOriginal = FVector::DotProduct(ParentRelativeTransform.TransformPosition(PivolOffsetLocal) - OriginalPivotLocationRelative, -OriginalPivotVectorRelative);
-
 	bool bIsFinished = true;
+	const FTransform ParentRelativeTransform = Parent->GetRelativeTransform();
+	
+	// Rotation delta needed to get to original rotation
+	FQuat ToOriginalRotation = OriginalRelativeRotation * ParentRelativeTransform.GetRotation().Inverse();
 
-	if (RecoilVelocity.Kickback < 0.f && CurrentPivotDotOriginal > 0.f)
-	{
-		RecoilVelocity.Kickback = 0;
-	}
-	else
-	{
-		RecoilVelocity.Kickback -= DeltaSeconds * Stats.Stability;
-		bIsFinished = false;
-	}
+	FVector ToOriginalAxis; float ToOriginalAngle;
+	ToOriginalRotation.ToAxisAndAngle(ToOriginalAxis, ToOriginalAngle);
 
-	// Get rotation need to return to original
-	const FQuat ToOriginalRotation = OriginalRelativeRotation * ParentRelativeTransform.GetRotation().Inverse();
+	FQuat ParentRelativeToMeshRotation = (ParentRelativeTransform.GetRotation() * ToParentTransform.GetRotation()).Inverse();
+	ToOriginalAxis = ParentRelativeToMeshRotation.RotateVector(ToOriginalAxis);
 
-	FVector DeltaAxis;
-	float DeltaAngle;
-	ToOriginalRotation.ToAxisAndAngle(DeltaAxis, DeltaAngle);	
+	// Apply to angular velocity
+	RecoilVelocity.Angular *= Stats.RecoilDampening;
+	RecoilVelocity.Angular += ToOriginalAxis * FMath::Min(ToOriginalAngle, Stats.Stability * DeltaSeconds);
 
-	if (FVector::DotProduct(DeltaAxis, ParentRelativeTransform.GetRotation().GetRotationAxis()) < 0.01f) // Check if rotation is below parrallel from original
-	{
-		DeltaAngle = DeltaSeconds * Stats.Stability;
-		RecoilVelocity.Angular = FVector::ZeroVector;		
-	}
-	else
-	{
-		RecoilVelocity.Angular += ParentRelativeTransform.InverseTransformVector(DeltaAxis * DeltaAngle);
-		bIsFinished = false;
-	}	
+	// Move to original location
+	RecoilVelocity.Directional *= Stats.RecoilDampening;
+	FVector ToOriginalLocation = ParentRelativeToMeshRotation.RotateVector(OriginalRelativeLocation - ParentRelativeTransform.GetTranslation());
 
-	if (bIsFinished)
+	const float DistanceToOriginalLocation = ToOriginalLocation.Size();
+
+	RecoilVelocity.Directional += ToOriginalLocation.GetSafeNormal() * FMath::Min(DistanceToOriginalLocation, Stats.Stability * DeltaSeconds);
+
+	if (ToOriginalAngle <= FLOAT_NORMAL_THRESH && DistanceToOriginalLocation < 0.1f)
 	{
 		Parent->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 		bIsRecoilActive = false;
@@ -527,12 +518,15 @@ void AHeroFirearm::ReleaseSlideLock()
 
 void AHeroFirearm::GenerateShotRecoil(int Seed)
 {
+	// Get random rotation [-1, 1] to factor in with RecoilPushSpread and
+	// apply the rotation to RecoilPush
 	FMath::RandInit(Seed);
-	const FVector RecoilInpout = FMath::VRandCone(Stats.RecoilPush, FMath::DegreesToRadians(Stats.RecoilPushSpread));
-
+	const float Rotation = FMath::FRandRange(-1.f, 1.f) * Stats.RecoilPushSpread;
+	const FVector2D RecoilInput = Stats.RecoilRotationalPush.GetRotated(Rotation);
+	
 	// Apply recoil impulses
-	RecoilVelocity.Angular = RecoilInpout * Stats.RecoilPush.Size();
-	RecoilVelocity.Kickback = Stats.RecoilKick;
+	RecoilVelocity.Angular = FVector::CrossProduct(FVector{ 0.f, RecoilInput.X, RecoilInput.Y}, FVector::ForwardVector);
+	RecoilVelocity.Directional = FVector{ Stats.RecoilDirectionalPush.X, 0.f, Stats.RecoilDirectionalPush.Y } * FMath::FRandRange(0.5f, 1.f);
 
 	bIsRecoilActive = true;
 }

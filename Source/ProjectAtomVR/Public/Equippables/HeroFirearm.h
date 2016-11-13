@@ -34,14 +34,14 @@ struct FFirearmStats
 	 ** X is uses as kick, offset forward and back. YZ is used as rotation around
 	 ** the RecoilPivotOffset. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
-	FVector RecoilPush;
+	FVector2D RecoilRotationalPush;
 
 	/** Offset in the XZ plane used as the pivot point for recoil push relative to the hand. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
-	FVector2D RecoilPivotOffset;
+	FVector2D RecoilDirectionalPush;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
-	float RecoilKick;
+	float RecoilDampening;
 
 	// Angle, in degrees, of recoil spread for the weapon. This is the max angle that RecoilPush
 	// will be offset when calculating the final recoil push direction for each shot.
@@ -195,7 +195,7 @@ protected:
 	struct FRecoilVelocity
 	{
 		FVector Angular;
-		float Kickback;
+		FVector Directional;
 	} RecoilVelocity;
 
 	int32 RemainingAmmo;
