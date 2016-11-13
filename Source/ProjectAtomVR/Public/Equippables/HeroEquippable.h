@@ -105,7 +105,7 @@ public:
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
-	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
+	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FQuat& RotationOut) const;
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
@@ -137,8 +137,17 @@ protected:
 	/** AActor Interface End */
 
 protected:
+	/** Attach socket on the Equipped hand mesh to attach this mesh to. */
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	FName HandAttachSocket = NAME_None;
+	FName PrimaryHandAttachSocket = NAME_None;
+
+	/** If valid, the attach socket for the hand when grabbing this Equippable with the secondary hand. 
+	 ** This must be a socket on this Equippables' mesh. */
+	UPROPERTY(EditDefaultsOnly, Category = Equippable)
+	FName SecondaryHandAttachSocket = NAME_None;
+
+	UPROPERTY(EditDefaultsOnly, Category = Equippable)
+	float SecondaryHandAttachRadius = 10.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 	USoundBase* EquipSound = nullptr; // Played when equipped and unequipped
@@ -175,6 +184,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class AHeroBase* HeroOwner = nullptr;
 
+	USphereComponent* SecondaryHandGripTrigger = nullptr;
+
 	/** Component that is attached to when unequipped */
 	USceneComponent* LoadoutAttachComponent = nullptr;
 
@@ -189,7 +200,7 @@ private:
 	 ** When unequipped, the parent will be reset with these values in case the Equippable
 	 ** modified them. */
 	FVector OriginalParentLocation = FVector::ZeroVector;
-	FRotator OriginalParentRotation = FRotator::ZeroRotator;
+	FQuat OriginalParentRotation = FQuat::Identity;
 
 public:
 	AHeroBase* GetHeroOwner() const;

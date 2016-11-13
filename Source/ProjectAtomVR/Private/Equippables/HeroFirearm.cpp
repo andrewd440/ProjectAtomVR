@@ -42,6 +42,10 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	Stats.MaxAmmo = 160;
 	Stats.MagazineSize = 30;
 
+	RecoilVelocity.Kickback = 0.f;
+	RecoilVelocity.Angular = FVector::ZeroVector;
+	bIsRecoilActive = false;
+
 	ChamberingHandleRadius = 10.f;
 	bIsChamberEmpty = false;
 	bIsSlideLockActive = false;
@@ -72,7 +76,12 @@ void AHeroFirearm::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 
 	UpdateChamberingHandle();
-	UpdateRecoilOffset(DeltaTime);
+
+	if (bIsRecoilActive)
+	{
+		UpdateRecoilOffset(DeltaTime);
+	}
+	
 }
 
 void AHeroFirearm::UpdateChamberingHandle()
@@ -153,18 +162,68 @@ void AHeroFirearm::UpdateChamberingHandle()
 
 void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 {
-	// #AtomTodo Disable this call when no recoil is present
-	USceneComponent* MyMesh = GetMesh();
-	USceneComponent* Parent = MyMesh->GetAttachParent();
+	USceneComponent* Parent = GetMesh()->GetAttachParent();
 
-	FVector OriginLocation;
-	FRotator OriginRotation;
-	GetOriginalParentLocationAndRotation(OriginLocation, OriginRotation);
-	
-	const FVector UpdateLocation = FMath::VInterpConstantTo(Parent->RelativeLocation, OriginLocation, DeltaSeconds, Stats.Stability);
-	const FRotator UpdateRotation = FMath::RInterpConstantTo(Parent->RelativeRotation, OriginRotation, DeltaSeconds, Stats.Stability);
+	// Get the move and rotation delta in local space
+	const FVector AngularVelocityLocal = RecoilVelocity.Angular * DeltaSeconds;
+	const FVector PivolOffsetLocal = FVector{ Stats.RecoilPivotOffset, 0.f };
 
-	Parent->SetRelativeLocationAndRotation(UpdateLocation, UpdateRotation);
+	FVector MoveDeltaLocal = FVector::CrossProduct(AngularVelocityLocal, -PivolOffsetLocal);
+	MoveDeltaLocal.X -= RecoilVelocity.Kickback * DeltaSeconds;
+
+	const FQuat RotationDeltaLocal{ AngularVelocityLocal.GetSafeNormal(), AngularVelocityLocal.Size() };
+
+	Parent->AddLocalTransform(FTransform{ RotationDeltaLocal, MoveDeltaLocal });
+
+	//// Apply force to return to original location/rotation
+	const FTransform ParentRelativeTransform = Parent->GetRelativeTransform();
+
+	FVector OriginalRelativeLocation;
+	FQuat OriginalRelativeRotation;
+	GetOriginalParentLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
+
+	// Original data for pivot position
+	const FVector OriginalPivotVectorRelative = OriginalRelativeRotation.RotateVector(PivolOffsetLocal);
+	const FVector OriginalPivotLocationRelative = OriginalRelativeLocation + OriginalPivotVectorRelative;
+
+	// Check if the current pivot is in front of original
+	const float CurrentPivotDotOriginal = FVector::DotProduct(ParentRelativeTransform.TransformPosition(PivolOffsetLocal) - OriginalPivotLocationRelative, -OriginalPivotVectorRelative);
+
+	bool bIsFinished = true;
+
+	if (RecoilVelocity.Kickback < 0.f && CurrentPivotDotOriginal > 0.f)
+	{
+		RecoilVelocity.Kickback = 0;
+	}
+	else
+	{
+		RecoilVelocity.Kickback -= DeltaSeconds * Stats.Stability;
+		bIsFinished = false;
+	}
+
+	// Get rotation need to return to original
+	const FQuat ToOriginalRotation = OriginalRelativeRotation * ParentRelativeTransform.GetRotation().Inverse();
+
+	FVector DeltaAxis;
+	float DeltaAngle;
+	ToOriginalRotation.ToAxisAndAngle(DeltaAxis, DeltaAngle);	
+
+	if (FVector::DotProduct(DeltaAxis, ParentRelativeTransform.GetRotation().GetRotationAxis()) < 0.01f) // Check if rotation is below parrallel from original
+	{
+		DeltaAngle = DeltaSeconds * Stats.Stability;
+		RecoilVelocity.Angular = FVector::ZeroVector;		
+	}
+	else
+	{
+		RecoilVelocity.Angular += ParentRelativeTransform.InverseTransformVector(DeltaAxis * DeltaAngle);
+		bIsFinished = false;
+	}	
+
+	if (bIsFinished)
+	{
+		Parent->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
+		bIsRecoilActive = false;
+	}
 }
 
 FVector AHeroFirearm::GetMuzzleLocation() const
@@ -468,29 +527,14 @@ void AHeroFirearm::ReleaseSlideLock()
 
 void AHeroFirearm::GenerateShotRecoil(int Seed)
 {
-	FRandomStream RecoilOffsetStream(Seed);
+	FMath::RandInit(Seed);
+	const FVector RecoilInpout = FMath::VRandCone(Stats.RecoilPush, FMath::DegreesToRadians(Stats.RecoilPushSpread));
 
-	// Get random rotation [-1, 1] to factor in with RecoilPushSpread and
-	// apply the rotation to RecoilPush
-	const float RSeed = 2.f * FMath::FRand() - 1.f;
-	const float Rotation = RSeed * Stats.RecoilPushSpread;
-	const FVector2D RecoilInput = Stats.RecoilPush.GetRotated(Rotation);
+	// Apply recoil impulses
+	RecoilVelocity.Angular = RecoilInpout * Stats.RecoilPush.Size();
+	RecoilVelocity.Kickback = Stats.RecoilKick;
 
-	USceneComponent* MyMesh = GetMesh();
-	USceneComponent* Parent = MyMesh->GetAttachParent();
-
-	const FVector RecoilPivot{ Stats.RecoilPivotOffset, 0.f };
-	const FVector RecoilPivotWorld = MyMesh->ComponentToWorld.TransformPosition(RecoilPivot);
-
-	const FQuat LocalRotation = FQuat::MakeFromEuler(FVector{ 0.f, RecoilInput.Y, RecoilInput.X });
-	const FQuat WorldRotation = MyMesh->GetComponentQuat() * LocalRotation;
-
-	// Target location of MyMesh
-	const FVector TargetWorldLocation = RecoilPivotWorld + FVector::Dist(MyMesh->GetComponentLocation(), RecoilPivotWorld) * WorldRotation.GetForwardVector();
-
-	const FTransform TransformOffset = MyMesh->ComponentToWorld.GetRelativeTransform(Parent->ComponentToWorld);
-	FVector LocationOffset = Parent->ComponentToWorld.TransformVector(TransformOffset.GetLocation() + FVector{ Stats.RecoilKick, 0, 0 });
-	Parent->SetWorldLocationAndRotation(TargetWorldLocation - LocationOffset, WorldRotation * TransformOffset.GetRotation().Inverse());
+	bIsRecoilActive = true;
 }
 
 void AHeroFirearm::ReloadChamber(bool bIsFired)

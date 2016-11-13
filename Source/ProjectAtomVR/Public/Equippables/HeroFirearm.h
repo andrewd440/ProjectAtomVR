@@ -34,9 +34,9 @@ struct FFirearmStats
 	 ** X is uses as kick, offset forward and back. YZ is used as rotation around
 	 ** the RecoilPivotOffset. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
-	FVector2D RecoilPush;
+	FVector RecoilPush;
 
-	/** Offset in the XZ plane used as the pivot point for recoil push. */
+	/** Offset in the XZ plane used as the pivot point for recoil push relative to the hand. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
 	FVector2D RecoilPivotOffset;
 
@@ -191,6 +191,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	FFirearmStats Stats;
 
+
+	struct FRecoilVelocity
+	{
+		FVector Angular;
+		float Kickback;
+	} RecoilVelocity;
+
 	int32 RemainingAmmo;
 
 	int32 RemainingMagazine;
@@ -332,6 +339,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsSlideLockActive)
 	uint32 bIsSlideLockActive : 1;
+
+	/** True when there is active recoil and needs to return to the original location/rotation */
+	uint32 bIsRecoilActive : 1;
 };
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }

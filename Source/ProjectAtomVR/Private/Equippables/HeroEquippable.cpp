@@ -242,12 +242,14 @@ void AHeroEquippable::OnRep_Owner()
 void AHeroEquippable::OnEquipped()
 {
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(EquipStatus.EquippedHand);
-	OriginalParentLocation = AttachHand->RelativeLocation;
-	OriginalParentRotation = AttachHand->RelativeRotation;
+
+	const FTransform AttachTransform = AttachHand->GetRelativeTransform();
+	OriginalParentLocation = AttachTransform.GetLocation();
+	OriginalParentRotation = AttachTransform.GetRotation();
 	
 	// Set return storage before attaching to hero
 	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
-	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, HandAttachSocket); 
+	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, PrimaryHandAttachSocket); 
 
 	UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimHandEquip.Right : AnimHandEquip.Left;
 	if (HandAnim)
@@ -292,7 +294,7 @@ void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 	check(InInputComponent);
 }
 
-void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
+void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FQuat& RotationOut) const
 {
 	LocationOut = OriginalParentLocation;
 	RotationOut = OriginalParentRotation;
@@ -340,6 +342,19 @@ void AHeroEquippable::PostInitializeComponents()
 		{
 			EquippableStates.Push(State);
 		}
+	}
+
+	if (SecondaryHandAttachSocket != NAME_None)
+	{
+		SecondaryHandGripTrigger = NewObject<USphereComponent>(this, TEXT("SecondaryHandGripTrigger"));
+		SecondaryHandGripTrigger->SetupAttachment(Mesh);
+		SecondaryHandGripTrigger->SetIsReplicated(false);
+		SecondaryHandGripTrigger->bGenerateOverlapEvents = true;
+		SecondaryHandGripTrigger->SetSphereRadius(SecondaryHandAttachRadius);
+		SecondaryHandGripTrigger->SetHiddenInGame(false);
+		//SecondaryHandGripTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
+		SecondaryHandGripTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+		//SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
 	}
 }
 
