@@ -27,6 +27,8 @@ namespace AtomCollisionProfiles
 
 namespace CollisionChannelAliases
 {
+	static constexpr ECollisionChannel HeroHand = ECC_GameTraceChannel1;
+	static constexpr ECollisionChannel HandTrigger = ECC_GameTraceChannel2;
 	static constexpr ECollisionChannel InstantShot = ECC_GameTraceChannel3;
 	static constexpr ECollisionChannel ClipLoadTrigger = ECC_GameTraceChannel4;
 	static constexpr ECollisionChannel FirearmReloadTrigger = ECC_GameTraceChannel5;

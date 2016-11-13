@@ -102,10 +102,18 @@ public:
 	*/
 	virtual void OnUnequipped();
 
+	bool IsSecondaryHandAttached() const;
+
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
-	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FQuat& RotationOut) const;
+	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
+
+	UFUNCTION()
+	virtual void OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+	bool ShouldDetachSecondaryHand() const;
+	void DetachSecondaryHand();
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
@@ -131,6 +139,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList) override;
+	virtual void Tick(float DeltaSeconds) override;
 
 protected:
 	virtual void OnRep_Owner() override;
@@ -141,20 +150,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FName PrimaryHandAttachSocket = NAME_None;
 
-	/** If valid, the attach socket for the hand when grabbing this Equippable with the secondary hand. 
-	 ** This must be a socket on this Equippables' mesh. */
-	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	FName SecondaryHandAttachSocket = NAME_None;
-
-	UPROPERTY(EditDefaultsOnly, Category = Equippable)
-	float SecondaryHandAttachRadius = 10.f;
-
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 	USoundBase* EquipSound = nullptr; // Played when equipped and unequipped
 
 	/** Hand animation used when this item is equipped */
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FHandAnim AnimHandEquip;
+
+	/** Hand animation used when the secondary hand is attached */
+	UPROPERTY(EditDefaultsOnly, Category = Equippable)
+	FHandAnim AnimSecondaryHandEquip;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
 	UEquippableState* InactiveState;
@@ -184,7 +189,8 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	class AHeroBase* HeroOwner = nullptr;
 
-	USphereComponent* SecondaryHandGripTrigger = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
+	USphereComponent* SecondaryHandGripTrigger;
 
 	/** Component that is attached to when unequipped */
 	USceneComponent* LoadoutAttachComponent = nullptr;
@@ -196,11 +202,12 @@ private:
 	* the Equippable will just be detached from the attached parent. */
 	uint32 bReturnToLoadout : 1;
 
-	/** The original location and rotation for our attached parent when initially equipped. 
-	 ** When unequipped, the parent will be reset with these values in case the Equippable
-	 ** modified them. */
-	FVector OriginalParentLocation = FVector::ZeroVector;
-	FQuat OriginalParentRotation = FQuat::Identity;
+	uint32 bIsSecondaryHandAttached : 1;
+
+	/** If true, when a unequipped hand overlaps SecondaryHandGripTrigger the hand can be attached to
+	 ** SecondaryHandAttachLeft or SecondaryHandAttachRight sockets, depending on the hand.*/
+	UPROPERTY(EditDefaultsOnly, Category = Equippable)
+	uint32 bIsSecondaryHandAttachmentAllowed : 1;
 
 public:
 	AHeroBase* GetHeroOwner() const;
@@ -222,3 +229,4 @@ FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return
 FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
 FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
 FORCEINLINE bool AHeroEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }
+FORCEINLINE bool AHeroEquippable::IsSecondaryHandAttached() const { return bIsSecondaryHandAttached; }

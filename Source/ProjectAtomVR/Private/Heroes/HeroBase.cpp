@@ -54,6 +54,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	LeftHandController->SetIsReplicated(true);
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
+	LeftHandMesh->SetIsReplicated(false);
 	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	LeftHandMesh->SetAnimation(AnimDefaultHand.Left);
 	LeftHandMesh->SetupAttachment(LeftHandController);
@@ -67,6 +68,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	RightHandController->SetIsReplicated(true);
 	
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
+	RightHandMesh->SetIsReplicated(false);
 	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	RightHandMesh->SetAnimation(AnimDefaultHand.Right);
 	RightHandMesh->SetupAttachment(RightHandController);
@@ -145,6 +147,12 @@ void AHeroBase::PostInitializeComponents()
 	Super::PostInitializeComponents();		
 
 	NeckBaseSocketLocation = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation();
+
+	DefaultLeftHandTransform.Location = LeftHandMesh->RelativeLocation;
+	DefaultLeftHandTransform.Rotation = LeftHandMesh->RelativeRotation;
+
+	DefaultRightHandTransform.Location = RightHandMesh->RelativeLocation;
+	DefaultRightHandTransform.Rotation = RightHandMesh->RelativeRotation;
 }
 
 void AHeroBase::PostNetReceiveLocationAndRotation()
@@ -240,10 +248,9 @@ void AHeroBase::OnEquipped(AHeroEquippable* Item, const EHand Hand)
 	}
 }
 
-void AHeroBase::Unequip(AHeroEquippable* Item)
+void AHeroBase::Unequip(AHeroEquippable* Item, const EHand Hand)
 {
 	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
-	EHand Hand = (Item == LeftHandEquippable) ? EHand::Left : EHand::Right;
 
 	if (Hand == EHand::Left)
 	{		
@@ -255,11 +262,11 @@ void AHeroBase::Unequip(AHeroEquippable* Item)
 	}
 }
 
-void AHeroBase::OnUnequipped(AHeroEquippable* Item)
+void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 {
 	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
 
-	if (Item == LeftHandEquippable)
+	if (Hand == EHand::Left)
 	{
 		LeftHandEquippable = nullptr;
 
@@ -267,6 +274,9 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item)
 		{
 			LeftHandMesh->PlayAnimation(AnimDefaultHand.Left, true);
 		}
+
+		LeftHandMesh->SetRelativeLocationAndRotation(DefaultLeftHandTransform.Location, DefaultLeftHandTransform.Rotation);
+		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::KeepRelativeTransform);		
 	}
 	else
 	{
@@ -276,7 +286,28 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item)
 		{
 			RightHandMesh->PlayAnimation(AnimDefaultHand.Right, true);
 		}
+
+		RightHandMesh->SetRelativeLocationAndRotation(DefaultRightHandTransform.Location, DefaultRightHandTransform.Rotation);
+		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::KeepRelativeTransform);
 	}
+}
+
+void AHeroBase::GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const
+{
+	const FDefaultHandTransform& HandTransform = (Hand == EHand::Left) ? DefaultLeftHandTransform : DefaultRightHandTransform;
+
+	Location = HandTransform.Location;
+	Rotation = HandTransform.Rotation;
+}
+
+FVector AHeroBase::GetDefaultHandMeshLocation(const EHand Hand) const
+{
+	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Location : DefaultRightHandTransform.Location;
+}
+
+FRotator AHeroBase::GetDefaultHandMeshRotation(const EHand Hand) const
+{
+	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Rotation : DefaultRightHandTransform.Rotation;
 }
 
 template <EHand Hand>

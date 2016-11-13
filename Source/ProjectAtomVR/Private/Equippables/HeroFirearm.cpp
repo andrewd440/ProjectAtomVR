@@ -42,8 +42,8 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	Stats.MaxAmmo = 160;
 	Stats.MagazineSize = 30;
 	Stats.RecoilDampening = .5f;
-	Stats.RecoilDirectionalPush = -FVector2D{ -1.f, 0.f };
-	Stats.RecoilRotationalPush = FVector2D{ 0.f, 1.f };
+	Stats.RecoilDirectionalPush = FVector2D{ -1.f, 0.f };
+	Stats.RecoilRotationalPush = FVector2D{ 0.f, -1.f };
 	Stats.RecoilPushSpread = 30.f;
 
 	RecoilVelocity.Directional = FVector::ZeroVector;
@@ -183,14 +183,14 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	// Apply force to return to original location/rotation
 	//----------------------------------------------------------------------------------------------
 	FVector OriginalRelativeLocation;
-	FQuat OriginalRelativeRotation;
+	FRotator OriginalRelativeRotation;
 	GetOriginalParentLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 
 	bool bIsFinished = true;
 	const FTransform ParentRelativeTransform = Parent->GetRelativeTransform();
 	
 	// Rotation delta needed to get to original rotation
-	FQuat ToOriginalRotation = OriginalRelativeRotation * ParentRelativeTransform.GetRotation().Inverse();
+	FQuat ToOriginalRotation = OriginalRelativeRotation.Quaternion() * ParentRelativeTransform.GetRotation().Inverse();
 
 	FVector ToOriginalAxis; float ToOriginalAngle;
 	ToOriginalRotation.ToAxisAndAngle(ToOriginalAxis, ToOriginalAngle);
@@ -526,6 +526,12 @@ void AHeroFirearm::GenerateShotRecoil(int Seed)
 	
 	// Apply recoil impulses
 	RecoilVelocity.Angular = FVector::CrossProduct(FVector{ 0.f, RecoilInput.X, RecoilInput.Y}, FVector::ForwardVector);
+	if (IsSecondaryHandAttached())
+	{
+		RecoilVelocity.Angular *= Stats.RecoilDampening;
+	}
+
+
 	RecoilVelocity.Directional = FVector{ Stats.RecoilDirectionalPush.X, 0.f, Stats.RecoilDirectionalPush.Y } * FMath::FRandRange(0.5f, 1.f);
 
 	bIsRecoilActive = true;

@@ -34,10 +34,14 @@ public:
 	/** Called by Equippable when the equipping process is complete. */
 	virtual void OnEquipped(AHeroEquippable* Item, const EHand Hand);
 
-	virtual void Unequip(AHeroEquippable* Item);
+	virtual void Unequip(AHeroEquippable* Item, const EHand Hand);
 
 	/** Called by Equippable when the unequipping process is complete. */
-	virtual void OnUnequipped(AHeroEquippable* Item);
+	virtual void OnUnequipped(AHeroEquippable* Item, const EHand Hand);
+
+	void GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const;
+	FVector GetDefaultHandMeshLocation(const EHand Hand) const;
+	FRotator GetDefaultHandMeshRotation(const EHand Hand) const;
 
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -105,6 +109,15 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* RightHandMesh;
 
+	struct FDefaultHandTransform
+	{
+		FVector Location;
+		FRotator Rotation;
+	};
+
+	FDefaultHandTransform DefaultLeftHandTransform;
+	FDefaultHandTransform DefaultRightHandTransform;
+
 	/** If the player is right hand dominant. */
 	UPROPERTY(config)
 	uint32 bIsRightHanded : 1;
@@ -128,6 +141,8 @@ public:
 
 	template <EHand Hand>
 	UNetMotionControllerComponent* GetHandController() const;
+
+	UNetMotionControllerComponent* GetHandController(EHand Hand) const;
 
 	template <EHandType Hand>
 	USkeletalMeshComponent* GetHandMesh() const;	
@@ -173,6 +188,11 @@ FORCEINLINE UStaticMeshComponent* AHeroBase::GetBodyMesh() const
 FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHand Hand) const
 {
 	return Hand == EHand::Right ? RightHandMesh : LeftHandMesh;
+}
+
+FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHand Hand) const
+{
+	return Hand == EHand::Right ? RightHandController : LeftHandController;
 }
 
 FORCEINLINE AHeroEquippable* AHeroBase::GetEquippable(EHand Hand) const

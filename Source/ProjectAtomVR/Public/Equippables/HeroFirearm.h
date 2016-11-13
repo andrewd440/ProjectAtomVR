@@ -31,20 +31,21 @@ struct FFirearmStats
 	float Stability;
 
 	/** The average direction that recoil from each shot will push the weapon.
-	 ** X is uses as kick, offset forward and back. YZ is used as rotation around
-	 ** the RecoilPivotOffset. */
+	 ** This on the x plane, so X = right and Y = up */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
 	FVector2D RecoilRotationalPush;
 
-	/** Offset in the XZ plane used as the pivot point for recoil push relative to the hand. */
+	/** Direction in the XZ plane that a directional offset is applied due to recoil. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
 	FVector2D RecoilDirectionalPush;
 
+	/** Value used to damped recoil velocity and directional offset. This is also applied to 
+	 ** recoil angular velocity input when a secondary hand is attached. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
 	float RecoilDampening;
 
-	// Angle, in degrees, of recoil spread for the weapon. This is the max angle that RecoilPush
-	// will be offset when calculating the final recoil push direction for each shot.
+	/** Angle, in degrees, of recoil spread for the weapon. This is the max angle that RecoilRotationalPush
+	 ** will be offset when calculating the final recoil push direction for each shot. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Recoil)
 	float RecoilPushSpread;
 
@@ -190,7 +191,6 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	FFirearmStats Stats;
-
 
 	struct FRecoilVelocity
 	{

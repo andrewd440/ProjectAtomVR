@@ -6,10 +6,17 @@
 #include "EquippableState.h"
 #include "EquippableStateInactive.h"
 #include "EquippableStateActive.h"
+#include "NetMotionControllerComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Engine/ActorChannel.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEquippable, Log, All);
+
+namespace 
+{
+	static const FName SecondaryHandAttachLeftSocket{ TEXT("SecondaryHandAttachLeft") };
+	static const FName SecondaryHandAttachRightSocket{ TEXT("SecondaryHandAttachRight") };
+}
 
 const FName AHeroEquippable::MeshComponentName = TEXT("Mesh");
 const FName AHeroEquippable::InactiveStateName = TEXT("InactiveState");
@@ -25,6 +32,20 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 	InactiveState = CreateDefaultSubobject<UEquippableStateInactive>(InactiveStateName);
 	ActiveState = CreateDefaultSubobject<UEquippableStateActive>(ActiveStateName);
 
+	// Setup secondary attach trigger
+	SecondaryHandGripTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("SecondaryHandGripTrigger"));
+	SecondaryHandGripTrigger->SetIsReplicated(false);
+	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;
+	SecondaryHandGripTrigger->SetupAttachment(Mesh);
+
+	// Overlap only Hero hand
+	SecondaryHandGripTrigger->SetCollisionObjectType(CollisionChannelAliases::HandTrigger);
+	SecondaryHandGripTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::HeroHand, ECollisionResponse::ECR_Overlap);
+
+	SecondaryHandGripTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHeroEquippable::OnBeginOverlapSecondaryHandTrigger);
+
+	bIsSecondaryHandAttachmentAllowed = true;
 	bReturnToLoadout = true;
 }
 
@@ -46,6 +67,16 @@ void AHeroEquippable::BeginPlay()
 	for (auto State : EquippableStates)
 	{
 		State->BeginPlay();
+	}
+}
+
+void AHeroEquippable::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (bIsSecondaryHandAttached && ShouldDetachSecondaryHand())
+	{
+		DetachSecondaryHand();
 	}
 }
 
@@ -242,10 +273,6 @@ void AHeroEquippable::OnRep_Owner()
 void AHeroEquippable::OnEquipped()
 {
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(EquipStatus.EquippedHand);
-
-	const FTransform AttachTransform = AttachHand->GetRelativeTransform();
-	OriginalParentLocation = AttachTransform.GetLocation();
-	OriginalParentRotation = AttachTransform.GetRotation();
 	
 	// Set return storage before attaching to hero
 	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
@@ -262,15 +289,17 @@ void AHeroEquippable::OnEquipped()
 		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
 	}
 
+	if (bIsSecondaryHandAttachmentAllowed)
+	{
+		SecondaryHandGripTrigger->bGenerateOverlapEvents = true;
+	}	
+
 	HeroOwner->OnEquipped(this, EquipStatus.EquippedHand);
 }
 
 void AHeroEquippable::OnUnequipped()
 {
 	UnequipTimeStamp = GetWorld()->GetTimeSeconds();
-
-	// Reset parent location and rotation
-	Mesh->GetAttachParent()->SetRelativeLocationAndRotation(OriginalParentLocation, OriginalParentRotation);
 
 	if (LoadoutAttachComponent && bReturnToLoadout)
 	{
@@ -286,7 +315,9 @@ void AHeroEquippable::OnUnequipped()
 		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
 	}
 
-	HeroOwner->OnUnequipped(this);
+	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;
+
+	HeroOwner->OnUnequipped(this, EquipStatus.EquippedHand);
 }
 
 void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
@@ -294,10 +325,56 @@ void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 	check(InInputComponent);
 }
 
-void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FQuat& RotationOut) const
+void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
 {
-	LocationOut = OriginalParentLocation;
-	RotationOut = OriginalParentRotation;
+	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.EquippedHand, LocationOut, RotationOut);
+}
+
+void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	const EHand SecondaryHand = !EquipStatus.EquippedHand;
+
+	if (EquipStatus.bIsEquipped &&
+		HeroOwner->GetHandMesh(SecondaryHand) == OtherComp && // Is it the other hand and is it empty	
+		HeroOwner->GetEquippable(SecondaryHand) == nullptr)
+	{
+		USkeletalMeshComponent* const HandMesh = static_cast<USkeletalMeshComponent*>(OtherComp);
+
+		HandMesh->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, (SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
+
+		UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimSecondaryHandEquip.Left : AnimSecondaryHandEquip.Right;
+		if (HandAnim)
+		{
+			HandMesh->PlayAnimation(HandAnim, true);
+		}
+
+		bIsSecondaryHandAttached = true;
+		HeroOwner->OnEquipped(this, SecondaryHand);
+	}
+}
+
+bool AHeroEquippable::ShouldDetachSecondaryHand() const
+{
+	ensure(bIsSecondaryHandAttached);
+
+	// Check distance from the true hand position and the trigger radius
+	const FVector OriginalLocationRelative = HeroOwner->GetDefaultHandMeshLocation(!EquipStatus.EquippedHand);
+
+	const USceneComponent* Controller = HeroOwner->GetHandController(!EquipStatus.EquippedHand);
+	const FVector TrueHandLocation = Controller->ComponentToWorld.TransformPosition(OriginalLocationRelative);
+
+	const float DistanceError = FVector::Dist(TrueHandLocation, HeroOwner->GetHandMesh(!EquipStatus.EquippedHand)->GetComponentLocation());
+
+	return DistanceError > SecondaryHandGripTrigger->GetUnscaledSphereRadius() * 2.f;
+}
+
+void AHeroEquippable::DetachSecondaryHand()
+{
+	ensure(bIsSecondaryHandAttached);
+	ensure(HeroOwner->GetEquippable(!EquipStatus.EquippedHand) == this);
+
+	bIsSecondaryHandAttached = false;
+	HeroOwner->OnUnequipped(this, !EquipStatus.EquippedHand);
 }
 
 void AHeroEquippable::ServerEquip_Implementation(const EHand Hand)
@@ -344,18 +421,7 @@ void AHeroEquippable::PostInitializeComponents()
 		}
 	}
 
-	if (SecondaryHandAttachSocket != NAME_None)
-	{
-		SecondaryHandGripTrigger = NewObject<USphereComponent>(this, TEXT("SecondaryHandGripTrigger"));
-		SecondaryHandGripTrigger->SetupAttachment(Mesh);
-		SecondaryHandGripTrigger->SetIsReplicated(false);
-		SecondaryHandGripTrigger->bGenerateOverlapEvents = true;
-		SecondaryHandGripTrigger->SetSphereRadius(SecondaryHandAttachRadius);
-		SecondaryHandGripTrigger->SetHiddenInGame(false);
-		//SecondaryHandGripTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
-		SecondaryHandGripTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		//SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
-	}
+	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;		
 }
 
 void AHeroEquippable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

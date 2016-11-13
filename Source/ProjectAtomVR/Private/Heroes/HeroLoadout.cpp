@@ -95,7 +95,7 @@ bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEq
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
-		HeroOwner->Unequip(Item);
+		HeroOwner->Unequip(Item, Item->GetEquippedHand());
 		return true;
 	}
 
