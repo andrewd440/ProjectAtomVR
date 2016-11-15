@@ -44,6 +44,7 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 	SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::HeroHand, ECollisionResponse::ECR_Overlap);
 
 	SecondaryHandGripTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHeroEquippable::OnBeginOverlapSecondaryHandTrigger);
+	SecondaryHandGripTrigger->OnComponentEndOverlap.AddDynamic(this, &AHeroEquippable::OnEndOverlapSecondaryHandTrigger);
 
 	bIsSecondaryHandAttachmentAllowed = true;
 	bReturnToLoadout = true;
@@ -73,11 +74,6 @@ void AHeroEquippable::BeginPlay()
 void AHeroEquippable::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	if (bIsSecondaryHandAttached && ShouldDetachSecondaryHand())
-	{
-		DetachSecondaryHand();
-	}
 }
 
 void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
@@ -335,10 +331,10 @@ void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 	const EHand SecondaryHand = !EquipStatus.EquippedHand;
 
 	if (EquipStatus.bIsEquipped &&
-		HeroOwner->GetHandMesh(SecondaryHand) == OtherComp && // Is it the other hand and is it empty	
+		HeroOwner->GetHandTrigger(SecondaryHand) == OtherComp && // Is it the other hand and is it empty	
 		HeroOwner->GetEquippable(SecondaryHand) == nullptr)
 	{
-		USkeletalMeshComponent* const HandMesh = static_cast<USkeletalMeshComponent*>(OtherComp);
+		USkeletalMeshComponent* const HandMesh = HeroOwner->GetHandMesh(SecondaryHand);
 
 		HandMesh->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, (SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
 
@@ -353,28 +349,19 @@ void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 	}
 }
 
-bool AHeroEquippable::ShouldDetachSecondaryHand() const
+void AHeroEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	ensure(bIsSecondaryHandAttached);
+	const EHand SecondaryHand = !EquipStatus.EquippedHand;
 
-	// Check distance from the true hand position and the trigger radius
-	const FVector OriginalLocationRelative = HeroOwner->GetDefaultHandMeshLocation(!EquipStatus.EquippedHand);
+	ensure(!bIsSecondaryHandAttached || HeroOwner->GetHandTrigger(SecondaryHand) != OtherComp || HeroOwner->GetEquippable(SecondaryHand) == this);
 
-	const USceneComponent* Controller = HeroOwner->GetHandController(!EquipStatus.EquippedHand);
-	const FVector TrueHandLocation = Controller->ComponentToWorld.TransformPosition(OriginalLocationRelative);
-
-	const float DistanceError = FVector::Dist(TrueHandLocation, HeroOwner->GetHandMesh(!EquipStatus.EquippedHand)->GetComponentLocation());
-
-	return DistanceError > SecondaryHandGripTrigger->GetUnscaledSphereRadius() * 2.f;
-}
-
-void AHeroEquippable::DetachSecondaryHand()
-{
-	ensure(bIsSecondaryHandAttached);
-	ensure(HeroOwner->GetEquippable(!EquipStatus.EquippedHand) == this);
-
-	bIsSecondaryHandAttached = false;
-	HeroOwner->OnUnequipped(this, !EquipStatus.EquippedHand);
+	if (bIsSecondaryHandAttached && EquipStatus.bIsEquipped &&
+		HeroOwner->GetHandTrigger(SecondaryHand) == OtherComp && // Is it the other hand and is it holding this	
+		HeroOwner->GetEquippable(SecondaryHand) == this)
+	{
+		bIsSecondaryHandAttached = false;
+		HeroOwner->OnUnequipped(this, !EquipStatus.EquippedHand);
+	}
 }
 
 void AHeroEquippable::ServerEquip_Implementation(const EHand Hand)

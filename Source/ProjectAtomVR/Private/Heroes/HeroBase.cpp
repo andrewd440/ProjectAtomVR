@@ -53,13 +53,19 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	LeftHandController->SetupAttachment(RootComponent);
 	LeftHandController->SetIsReplicated(true);
 
+	LeftHandTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("LeftHandTrigger"));		
+	LeftHandTrigger->SetupAttachment(LeftHandController);
+	LeftHandTrigger->SetIsReplicated(false);
+	LeftHandTrigger->SetSphereRadius(4.f);
+	LeftHandTrigger->bGenerateOverlapEvents = true;
+	LeftHandTrigger->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
+
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
+	LeftHandMesh->SetupAttachment(LeftHandController);
 	LeftHandMesh->SetIsReplicated(false);
 	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	LeftHandMesh->SetAnimation(AnimDefaultHand.Left);
-	LeftHandMesh->SetupAttachment(LeftHandController);
-	LeftHandMesh->bGenerateOverlapEvents = true;
-	LeftHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
+	LeftHandMesh->SetAnimation(AnimDefaultHand.Left);		
+	LeftHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	// Setup right hand
 	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("RightHandController"));
@@ -67,13 +73,19 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	RightHandController->SetupAttachment(RootComponent);
 	RightHandController->SetIsReplicated(true);
 	
+	RightHandTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("RightHandTrigger"));
+	RightHandTrigger->SetupAttachment(RightHandController);
+	RightHandTrigger->SetIsReplicated(false);
+	RightHandTrigger->SetSphereRadius(4.f);
+	RightHandTrigger->bGenerateOverlapEvents = true;
+	RightHandTrigger->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
+
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
+	RightHandMesh->SetupAttachment(RightHandController);
 	RightHandMesh->SetIsReplicated(false);
 	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	RightHandMesh->SetAnimation(AnimDefaultHand.Right);
-	RightHandMesh->SetupAttachment(RightHandController);
-	RightHandMesh->bGenerateOverlapEvents = true;
-	RightHandMesh->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
+	RightHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	// Setup loadout
 	Loadout = CreateDefaultSubobject<UHeroLoadout>(TEXT("Loadout"));
@@ -317,22 +329,22 @@ void AHeroBase::OnEquipPressed()
 	{
 		if (LeftHandEquippable == nullptr)
 		{
-			Loadout->RequestEquip(LeftHandMesh, Hand);
+			Loadout->RequestEquip(LeftHandTrigger, Hand);
 		}
 		else
 		{
-			Loadout->RequestUnequip(LeftHandMesh, LeftHandEquippable);
+			Loadout->RequestUnequip(LeftHandTrigger, LeftHandEquippable);
 		}
 	}
 	else
 	{
 		if (RightHandEquippable == nullptr)
 		{
-			Loadout->RequestEquip(RightHandMesh, Hand);
+			Loadout->RequestEquip(RightHandTrigger, Hand);
 		}
 		else
 		{
-			Loadout->RequestUnequip(RightHandMesh, RightHandEquippable);
+			Loadout->RequestUnequip(RightHandTrigger, RightHandEquippable);
 		}
 	}	
 }

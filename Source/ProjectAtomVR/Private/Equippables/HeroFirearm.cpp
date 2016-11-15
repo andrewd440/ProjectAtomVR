@@ -96,7 +96,7 @@ void AHeroFirearm::UpdateChamberingHandle()
 		{
 			check(ChamberingIndex < ChamberHandleMovement.Num());
 
-			const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
+			const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand);
 			const FVector HandLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 
 			// Get the current movement progress based on the project of the hand delta on the chamber movement vector
@@ -430,8 +430,8 @@ bool AHeroFirearm::CanGripChamberingHandle() const
 {
 	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.EquippedHand) == nullptr)
 	{		
-		FVector HandLocation = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand)->GetSocketLocation(HandGripSocket);
-		if (FVector::DistSquared(HandLocation, GetMesh()->GetSocketLocation(ChamberingHandleSocket)) <= ChamberingHandleRadius * ChamberingHandleRadius)
+		FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand)->GetComponentLocation();
+		if (FVector::DistSquared(GripLocation, GetMesh()->GetSocketLocation(ChamberingHandleSocket)) <= ChamberingHandleRadius * ChamberingHandleRadius)
 		{
 			return true;
 		}
@@ -447,7 +447,7 @@ void AHeroFirearm::OnChamberingHandleGrabbed()
 	LastChamberState = EChamberState::Set;
 
 	// Assign relative hand location
-	const USceneComponent* const Hand = GetHeroOwner()->GetHandMesh(!EquipStatus.EquippedHand);
+	const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand);
 	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 }
 

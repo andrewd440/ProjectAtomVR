@@ -119,8 +119,8 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 		EControllerHand ControllerHand = EControllerHand::Left;
 		EHand Hand = EHand::Left;
 
-		ensureMsgf(OtherComp == HeroOwner->GetHandMesh<EHand::Right>() || OtherComp == HeroOwner->GetHandMesh<EHand::Left>(), TEXT("Loadout slot triggers should only overlapped hero hand meshes. Check your collision setups."));
-		if (OtherComp == HeroOwner->GetHandMesh<EHand::Right>())
+		ensureMsgf(OtherComp == HeroOwner->GetHandTrigger<EHand::Right>() || OtherComp == HeroOwner->GetHandTrigger<EHand::Left>(), TEXT("Loadout slot triggers should only overlapped hero hand triggers. Check your collision setups."));
+		if (OtherComp == HeroOwner->GetHandTrigger<EHand::Right>())
 		{
 			ControllerHand = EControllerHand::Right;
 			Hand = EHand::Right;

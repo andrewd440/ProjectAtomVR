@@ -8,6 +8,7 @@
 #include "HeroBase.generated.h"
 
 class AHeroEquippable;
+class UNetMotionControllerComponent;
 
 UCLASS(Abstract, Config=Game)
 class PROJECTATOMVR_API AHeroBase : public ACharacter
@@ -83,31 +84,37 @@ private:
 	class UHMDCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* HeadMesh;
+	UStaticMeshComponent* HeadMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* BodyMesh;
+	UStaticMeshComponent* BodyMesh;
 
 	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHeroLoadout* Loadout;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class AHeroEquippable* LeftHandEquippable;
+	AHeroEquippable* LeftHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UNetMotionControllerComponent* LeftHandController;
+	UNetMotionControllerComponent* LeftHandController;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class USkeletalMeshComponent* LeftHandMesh;
+	USkeletalMeshComponent* LeftHandMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class AHeroEquippable* RightHandEquippable;
+	USphereComponent* LeftHandTrigger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UNetMotionControllerComponent* RightHandController;
+	AHeroEquippable* RightHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class USkeletalMeshComponent* RightHandMesh;
+	UNetMotionControllerComponent* RightHandController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	USkeletalMeshComponent* RightHandMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	USphereComponent* RightHandTrigger;
 
 	struct FDefaultHandTransform
 	{
@@ -127,9 +134,9 @@ public:
 
 	class UHMDCameraComponent* GetCamera() const;
 	
-	class UStaticMeshComponent* GetBodyMesh() const;
+	UStaticMeshComponent* GetBodyMesh() const;
 
-	class AHeroEquippable* GetEquippable(EHand Hand) const;
+	AHeroEquippable* GetEquippable(EHand Hand) const;
 
 	template <EHand Hand>
 	AHeroEquippable* GetEquippable() const;
@@ -149,6 +156,11 @@ public:
 
 	template <EHandType Hand>
 	UNetMotionControllerComponent* GetHandController() const;	
+
+	USphereComponent* GetHandTrigger(EHand Hand) const;
+
+	template <EHand Hand>
+	USphereComponent* GetHandTrigger() const;
 };
 
 template <EHand Hand>
@@ -209,4 +221,15 @@ AHeroEquippable* AHeroBase::GetEquippable() const
 FORCEINLINE UHeroMovementComponent* AHeroBase::GetHeroMovementComponent() const
 {
 	return static_cast<UHeroMovementComponent*>(GetMovementComponent());
+}
+
+FORCEINLINE USphereComponent* AHeroBase::GetHandTrigger(EHand Hand) const
+{
+	return (Hand == EHand::Left) ? LeftHandTrigger : RightHandTrigger;
+}
+
+template <EHand Hand>
+USphereComponent* AHeroBase::GetHandTrigger() const
+{
+	return (Hand == EHand::Left) ? LeftHandTrigger : RightHandTrigger;
 }
