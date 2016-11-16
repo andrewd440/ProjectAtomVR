@@ -139,7 +139,7 @@ protected:
 	void ActivateSlideLock();
 	void ReleaseSlideLock();
 
-	void GenerateShotRecoil(int Seed);
+	void GenerateShotRecoil(uint8 Seed);
 
 	/**
 	* Ejects a cartridge and reloads the chamber.
@@ -162,7 +162,7 @@ protected:
 
 private:
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerFireShot(FShotData ShotData, int32 RecoilSeed);
+	void ServerFireShot(FShotData ShotData);
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerInsertMagazine(class AFirearmClip* Clip);

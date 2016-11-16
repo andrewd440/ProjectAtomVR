@@ -21,6 +21,10 @@ struct FShotData
 	// The end location of the shot
 	UPROPERTY()
 	FVector_NetQuantize10 End;
+
+	// Seed used to generate any random data for the shot
+	UPROPERTY()
+	uint8 Seed;
 };
 
 /**

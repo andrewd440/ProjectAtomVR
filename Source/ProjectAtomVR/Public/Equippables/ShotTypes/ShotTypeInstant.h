@@ -38,17 +38,26 @@ public:
 	/** UShotType interface end */
 
 protected:
+	virtual void ProcessFiredShotImpact(const FHitResult& Impact);
+
+protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ShotTypeInstant)
 	TSubclassOf<UDamageType> DamageType;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ShotTypeInstant)
 	TSubclassOf<class UAtomImpactEffect> ImpactEffect;
 
-	/* Shot trail fx spawned each shot. The Distance parameter will be used to indicate the distance
+	/* Shot trail FX spawned each shot. The Distance parameter will be used to indicate the distance
 	 * of the shot. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = ShotTypeInstant)
 	UParticleSystem* TrailFX = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = ShotTypeInstant)
 	float ShotRadius = 0.f; // Radius used for sweep hits
+
+	UPROPERTY(EditDefaultsOnly, Category = ShotTypeInstant)
+	float SpreadConeHalfAngleRad = 0.f; // Half cone angle used to generate random direction offsets for shots
+
+	UPROPERTY(EditDefaultsOnly, Category = ShotTypeInstant)
+	int32 ShotCount = 1; // Number of shots that will be fired. Usually only > 1 for shotguns.
 };

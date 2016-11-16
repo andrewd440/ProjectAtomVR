@@ -18,23 +18,69 @@ FShotData UShotTypeInstant::GetShotData() const
 	ShotData.Start = Firearm->GetMuzzleLocation();
 	ShotData.End = ShotData.Start + Firearm->GetMuzzleRotation().Vector() * MAX_SHOT_RANGE;
 
+	ShotData.Seed = static_cast<uint8>(FMath::Rand() % 256);
+
 	return ShotData;
 }
 
 void UShotTypeInstant::SimulateShot(const FShotData& ShotData)
 {
-	const FHitResult Impact = WeaponTrace(ShotData.Start, ShotData.End);
+	FMath::RandInit(ShotData.Seed);
 
-	if (Impact.bBlockingHit)
-		PlayImpactEffects(Impact);
+	if (ShotCount > 1 || SpreadConeHalfAngleRad > 0.f)
+	{
+		const FVector ShotVector = (ShotData.End - ShotData.Start);
+		const float ShotDistance = ShotVector.Size();
 
-	PlayTrailEffects(ShotData.Start, Impact.ImpactPoint);
+		for (int32 i = 0; i < ShotCount; ++i)
+		{
+			const FVector OffsetDirection = FMath::VRandCone(ShotVector, SpreadConeHalfAngleRad);
+
+			const FHitResult Impact = WeaponTrace(ShotData.Start, OffsetDirection * ShotDistance);
+
+			if (Impact.bBlockingHit)
+				PlayImpactEffects(Impact);
+
+			PlayTrailEffects(ShotData.Start, Impact.ImpactPoint);
+		}
+	}
+	else
+	{
+		const FHitResult Impact = WeaponTrace(ShotData.Start, ShotData.End);
+
+		if (Impact.bBlockingHit)
+			PlayImpactEffects(Impact);
+
+		PlayTrailEffects(ShotData.Start, Impact.ImpactPoint);
+	}
 }
 
 void UShotTypeInstant::FireShot(const FShotData& ShotData)
 {
-	const FHitResult Impact = WeaponTrace(ShotData.Start, ShotData.End);
+	FMath::RandInit(ShotData.Seed);
 
+	if (ShotCount > 1 || SpreadConeHalfAngleRad > 0.f)
+	{
+		const FVector ShotVector = (ShotData.End - ShotData.Start);
+		const float ShotDistance = ShotVector.Size();
+
+		for (int32 i = 0; i < ShotCount; ++i)
+		{
+			const FVector OffsetDirection = FMath::VRandCone(ShotVector, SpreadConeHalfAngleRad);
+
+			const FHitResult Impact = WeaponTrace(ShotData.Start, OffsetDirection * ShotDistance);
+			ProcessFiredShotImpact(Impact);
+		}
+	}
+	else
+	{
+		const FHitResult Impact = WeaponTrace(ShotData.Start, ShotData.End);
+		ProcessFiredShotImpact(Impact);
+	}
+}
+
+void UShotTypeInstant::ProcessFiredShotImpact(const FHitResult& Impact)
+{
 	AHeroFirearm* const Firearm = GetFirearm();
 
 	if (Impact.bBlockingHit && Impact.Actor.IsValid())
@@ -42,7 +88,7 @@ void UShotTypeInstant::FireShot(const FShotData& ShotData)
 		AActor& HitActor = *Impact.Actor;
 
 		const float BaseDamage = Firearm->GetFirearmStats().Damage;
-		const FPointDamageEvent DamageEvent{ BaseDamage, Impact, (ShotData.Start - ShotData.End).GetSafeNormal(), DamageType };
+		const FPointDamageEvent DamageEvent{ BaseDamage, Impact, (Impact.TraceStart - Impact.TraceEnd).GetSafeNormal(), DamageType };
 
 		HitActor.TakeDamage(BaseDamage, DamageEvent, Firearm->GetInstigatorController(), Firearm->GetHeroOwner());
 	}
@@ -53,7 +99,7 @@ void UShotTypeInstant::FireShot(const FShotData& ShotData)
 		if (Impact.bBlockingHit)
 			PlayImpactEffects(Impact);
 
-		PlayTrailEffects(ShotData.Start, Impact.ImpactPoint);
+		PlayTrailEffects(Impact.TraceStart, Impact.ImpactPoint);
 	}
 }
 
@@ -64,8 +110,7 @@ void UShotTypeInstant::PlayTrailEffects(const FVector& Start, const FVector& End
 		const FVector DirectionVector = (End - Start);
 
 		UParticleSystemComponent* TrailComponent = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TrailFX, Start, DirectionVector.GetUnsafeNormal().Rotation());
-		TrailComponent->SetFloatParameter(TEXT("Distance"), DirectionVector.Size());
-		
+		TrailComponent->SetFloatParameter(TEXT("Distance"), DirectionVector.Size());		
 	}
 }
 

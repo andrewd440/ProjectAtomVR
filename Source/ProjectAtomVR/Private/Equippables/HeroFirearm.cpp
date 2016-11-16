@@ -326,8 +326,7 @@ void AHeroFirearm::FireShot()
 	// Get shot data before applying recoil
 	const FShotData ShotData = ShotType->GetShotData();
 
-	const int32 Seed = FMath::Rand();
-	GenerateShotRecoil(Seed);
+	GenerateShotRecoil(ShotData.Seed);
 
 	// Since the firing state will be call FireShot while active, it will be
 	// call by Autonomous, Authority, and Simulated connections. We will allow simulated
@@ -343,7 +342,7 @@ void AHeroFirearm::FireShot()
 		else
 		{
 			ShotType->SimulateShot(ShotData);
-			ServerFireShot(ShotData, Seed);
+			ServerFireShot(ShotData);
 		}
 
 		PlaySingleShotSequence();
@@ -363,9 +362,9 @@ void AHeroFirearm::DryFire()
 	}	
 }
 
-void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData, int32 RecoilSeed)
+void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 {
-	GenerateShotRecoil(RecoilSeed);
+	GenerateShotRecoil(ShotData.Seed);
 	ShotType->FireShot(ShotData);
 
 	if (GetNetMode() != ENetMode::NM_DedicatedServer)
@@ -378,7 +377,7 @@ void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData, int32 Recoi
 	}	
 }
 
-bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData, int32 RecoilSeed)
+bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData)
 {
 	return true;
 }
@@ -516,7 +515,7 @@ void AHeroFirearm::ReleaseSlideLock()
 	ReloadChamber(false);
 }
 
-void AHeroFirearm::GenerateShotRecoil(int Seed)
+void AHeroFirearm::GenerateShotRecoil(uint8 Seed)
 {
 	// Get random rotation [-1, 1] to factor in with RecoilPushSpread and
 	// apply the rotation to RecoilPush
