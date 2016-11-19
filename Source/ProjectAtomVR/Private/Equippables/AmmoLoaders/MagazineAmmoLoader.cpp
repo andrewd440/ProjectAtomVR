@@ -19,6 +19,7 @@ UMagazineAmmoLoader::UMagazineAmmoLoader(const FObjectInitializer& ObjectInitial
 {
 	bRequiresEquippedClip = true;
 	bIsLoadingMagazine = false;
+	bHasInitialMagazine = false;
 
 	if (AHeroFirearm* MyFirearm = GetFirearm())
 	{
@@ -106,21 +107,23 @@ void UMagazineAmmoLoader::InitializeLoader()
 
 bool UMagazineAmmoLoader::DiscardAmmo()
 {
-	if (Magazine)
+	if (!Magazine)
 	{
-		Magazine->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform); 
-
-		Magazine->bTearOff = true;
-		Magazine->GetLoadTrigger()->bGenerateOverlapEvents = false; // Disable trigger on eject, pending destroy
-
-		UMeshComponent* const MagazineMesh = Magazine->GetMesh();
-		MagazineMesh->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
-		Magazine->SetActorEnableCollision(true);
-
-		MagazineMesh->SetSimulatePhysics(true);
-
-		Magazine->SetLifeSpan(10.f);
+		return false;
 	}
+
+	Magazine->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform); 
+
+	Magazine->bTearOff = true;
+	Magazine->GetLoadTrigger()->bGenerateOverlapEvents = false; // Disable trigger on eject, pending destroy
+
+	UMeshComponent* const MagazineMesh = Magazine->GetMesh();
+	MagazineMesh->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+	Magazine->SetActorEnableCollision(true);
+
+	MagazineMesh->SetSimulatePhysics(true);
+
+	Magazine->SetLifeSpan(10.f);
 
 	bIsLoadingMagazine = false;
 	Magazine = nullptr;
@@ -153,10 +156,19 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	Magazine->SetActorEnableCollision(false);
 	Magazine->GetMesh()->SetSimulatePhysics(false);
 
-	Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, MagazineAttachSocket);
 	ReloadTrigger->bGenerateOverlapEvents = false;
 
-	bIsLoadingMagazine = true;
+	if (bHasInitialMagazine)
+	{
+		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, MagazineAttachSocket);
+		bIsLoadingMagazine = true;
+	}
+	else
+	{
+		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, MagazineAttachSocket);
+		AmmoCount = Magazine->GetCapacity();
+		bHasInitialMagazine = true;
+	}
 }
 
 void UMagazineAmmoLoader::SetupInputComponent(class UInputComponent* InputComponent)
@@ -195,12 +207,7 @@ void UMagazineAmmoLoader::OnRep_DefaultMagazine()
 {
 	if (RemoteConnectionMagazine)
 	{
-		Magazine = RemoteConnectionMagazine;
-		Magazine->SetCanReturnToLoadout(false);
-		Magazine->SetActorEnableCollision(false);
-		Magazine->GetMesh()->SetSimulatePhysics(false);
-		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, MagazineAttachSocket);
-		AmmoCount = Magazine->GetCapacity();
+		LoadAmmo(RemoteConnectionMagazine);
 	}
 }
 

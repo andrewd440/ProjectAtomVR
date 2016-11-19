@@ -168,7 +168,7 @@ void AHeroEquippable::PushState(UEquippableState* InPushState)
 	ensure(StateStack.Find(InPushState) == INDEX_NONE);
 	check(InPushState);
 
-	UE_LOG(LogEquippable, Log, TEXT("Pushed State: %s"), *InPushState->GetName());
+	//UE_LOG(LogEquippable, Log, TEXT("Pushed State: %s"), *InPushState->GetName());
 
 	if (!HeroOwner->HasAuthority() && HeroOwner->IsLocallyControlled())
 	{
@@ -206,7 +206,7 @@ void AHeroEquippable::PopState(UEquippableState* InPopState)
 	ensure(StateStack.Num() > 0);
 	check(InPopState);
 
-	UE_LOG(LogEquippable, Log, TEXT("Popped State: %s"), *InPopState->GetName());
+	//UE_LOG(LogEquippable, Log, TEXT("Popped State: %s"), *InPopState->GetName());
 
 	if (!HeroOwner->HasAuthority() && HeroOwner->IsLocallyControlled())
 	{

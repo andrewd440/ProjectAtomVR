@@ -7,8 +7,8 @@
 
 void UAnimNotify_Firearm::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
-	if (AHeroFirearm* Firearm = Cast<AHeroFirearm>(MeshComp->GetOwner()))
-	{
-		Firearm->OnFirearmAnimNotify(Type);
-	}
+	//if (AHeroFirearm* Firearm = Cast<AHeroFirearm>(MeshComp->GetOwner()))
+	//{
+	//	Firearm->OnFirearmAnimNotify(Type);
+	//}
 }

@@ -97,8 +97,6 @@ public:
 
 	virtual void StopFiringSequence();
 
-	virtual void OnFirearmAnimNotify(EFirearmNotify Type);
-
 	UEquippableState* GetFiringState() const;
 	UEquippableState* GetChargingState() const;
 

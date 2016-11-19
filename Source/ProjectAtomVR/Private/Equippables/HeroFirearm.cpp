@@ -303,11 +303,6 @@ bool AHeroFirearm::ServerDiscardAmmo_Validate()
 void AHeroFirearm::FireShot()
 {
 	check(ShotType);
-	
-	// Get shot data before applying recoil
-	const FShotData ShotData = ShotType->GetShotData();
-
-	GenerateShotRecoil(ShotData.Seed);
 
 	// Since the firing state will be call FireShot while active, it will be
 	// call by Autonomous, Authority, and Simulated connections. We will allow simulated
@@ -316,6 +311,10 @@ void AHeroFirearm::FireShot()
 	// client to sent a fire event through ServerFireShot.
 	if (GetHeroOwner()->IsLocallyControlled())
 	{
+		// Get shot data before applying recoil
+		const FShotData ShotData = ShotType->GetShotData();
+		GenerateShotRecoil(ShotData.Seed);
+
 		if (HasAuthority())
 		{			
 			ShotType->FireShot(ShotData);
@@ -327,11 +326,17 @@ void AHeroFirearm::FireShot()
 		}
 
 		PlaySingleShotSequence();
+		ReloadChamber(true);
 	}
 	else if(Role == ENetRole::ROLE_SimulatedProxy)
 	{
+		// Get shot data before applying recoil
+		const FShotData ShotData = ShotType->GetShotData();
+		GenerateShotRecoil(ShotData.Seed);
+
 		ShotType->SimulateShot(ShotData);
 		PlaySingleShotSequence();
+		ReloadChamber(true);
 	}
 }
 
@@ -350,12 +355,10 @@ void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 
 	if (GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		PlaySingleShotSequence(); // Drive ReloadChamber with animation
-	}	
-	else
-	{
-		ReloadChamber(true);
-	}	
+		PlaySingleShotSequence();
+	}
+
+	ReloadChamber(true);
 }
 
 bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData)
@@ -573,8 +576,10 @@ void AHeroFirearm::OnRep_IsSlideLockActive()
 	{
 		ReleaseSlideLock();
 	}
-	
-	// Slide lock will automatically activate on remotes at the appropriate time
+	else
+	{
+		ActivateSlideLock();
+	}
 }
 
 void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
@@ -667,14 +672,6 @@ void AHeroFirearm::StopFiringSequence()
 	if (TriggerPullMontage)
 	{
 		GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Stop(.1f, TriggerPullMontage);
-	}
-}
-
-void AHeroFirearm::OnFirearmAnimNotify(EFirearmNotify Type)
-{
-	if (Type == EFirearmNotify::ShellEject)
-	{
-		ReloadChamber(true);	
 	}
 }
 

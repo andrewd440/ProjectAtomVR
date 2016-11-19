@@ -71,4 +71,5 @@ protected:
 
 private:
 	uint32 bIsLoadingMagazine : 1;
+	uint32 bHasInitialMagazine : 1;
 };
