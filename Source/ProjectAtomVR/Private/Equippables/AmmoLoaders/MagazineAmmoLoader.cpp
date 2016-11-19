@@ -21,25 +21,21 @@ UMagazineAmmoLoader::UMagazineAmmoLoader(const FObjectInitializer& ObjectInitial
 	bIsLoadingMagazine = false;
 	bHasInitialMagazine = false;
 
-	if (AHeroFirearm* MyFirearm = GetFirearm())
-	{
-		ReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));
-		ReloadTrigger->SetupAttachment(MyFirearm->GetMesh());		
-		ReloadTrigger->SetIsReplicated(false);
-		ReloadTrigger->SetSphereRadius(2.f);
-		ReloadTrigger->SetHiddenInGame(false);
-		ReloadTrigger->bGenerateOverlapEvents = false;
-		ReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
-		ReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		ReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
+	ReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));	
+	ReloadTrigger->SetIsReplicated(false);
+	ReloadTrigger->SetSphereRadius(2.f);
+	ReloadTrigger->SetHiddenInGame(false);
+	ReloadTrigger->bGenerateOverlapEvents = false;
+	ReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
+	ReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	ReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
 
-		ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger);		
-	}
+	ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger);		
 }
 
 void UMagazineAmmoLoader::OnEquipped()
 {
-	if (Magazine == nullptr)
+	if (Magazine == nullptr && GetFirearm()->GetHeroOwner()->IsLocallyControlled())
 	{
 		ReloadTrigger->bGenerateOverlapEvents = true;
 	}	
@@ -58,15 +54,25 @@ void UMagazineAmmoLoader::GetLifetimeReplicatedProps(TArray<class FLifetimePrope
 	DOREPLIFETIME_CONDITION(UMagazineAmmoLoader, RemoteConnectionMagazine, COND_OwnerOnly);
 }
 
+UWorld* UMagazineAmmoLoader::GetTickableGameObjectWorld() const
+{
+	return GetWorld();
+}
+
 bool UMagazineAmmoLoader::IsTickable() const
 {
-	return Super::IsTickable() && bIsLoadingMagazine;
+	return	GetFirearm() != nullptr &&
+			GetFirearm()->IsEquipped() &&
+			bIsLoadingMagazine;
+}
+
+TStatId UMagazineAmmoLoader::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UMagazineAmmoLoader, STATGROUP_Tickables);
 }
 
 void UMagazineAmmoLoader::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
 	if (bIsLoadingMagazine)
 	{
 		UMeshComponent* const MagazineMesh = Magazine->GetMesh();
@@ -102,7 +108,10 @@ void UMagazineAmmoLoader::InitializeLoader()
 		LoadAmmo(RemoteConnectionMagazine);
 	}
 
-	ReloadTrigger->SetRelativeLocation(TriggerRelativeOffset);
+	if (!GetFirearm()->IsTemplate())
+	{
+		ReloadTrigger->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform);
+	}
 }
 
 bool UMagazineAmmoLoader::DiscardAmmo()
@@ -216,14 +225,14 @@ void UMagazineAmmoLoader::OnRep_Magazine()
 	if (Magazine == nullptr)
 	{
 		Magazine = RemoteConnectionMagazine;
-		DiscardAmmo();
+		GetFirearm()->DiscardAmmo();
 	}
 	else
 	{
 		// Simulate loading a new magazine
 		AFirearmMagazine* NewMagazine = Magazine;
 		Magazine = nullptr;
-		LoadAmmo(NewMagazine);
+		GetFirearm()->LoadAmmo(NewMagazine);
 	}
 
 	RemoteConnectionMagazine = Magazine;

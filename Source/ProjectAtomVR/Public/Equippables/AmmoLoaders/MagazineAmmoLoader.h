@@ -9,7 +9,7 @@
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API UMagazineAmmoLoader : public UAmmoLoader
+class PROJECTATOMVR_API UMagazineAmmoLoader : public UAmmoLoader, public FTickableGameObject
 {
 	GENERATED_BODY()
 	
@@ -23,13 +23,18 @@ public:
 	virtual bool DiscardAmmo() override;
 	virtual void LoadAmmo(UObject* LoadObject) override;
 	virtual void InitializeLoader() override;
-	virtual bool IsTickable() const override;
-	virtual void Tick(float DeltaTime) override;
 	/** UAmmoLoader Interface End */
 
 	/** UObject Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;	
 	/** UObject Interface End */
+
+	/** FTickableGameObject Interface Begin */
+	virtual UWorld* GetTickableGameObjectWorld() const override;
+	virtual void Tick(float DeltaTime) override;
+	virtual TStatId GetStatId() const override;
+	virtual bool IsTickable() const override;
+	/** FTickableGameObject Interface End */
 
 protected:
 	UFUNCTION()
@@ -51,9 +56,6 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_Magazine, BlueprintReadOnly, Category = MagazineAmmoLoader)
 	AFirearmMagazine* Magazine;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = MagazineAmmoLoader)
-	FVector TriggerRelativeOffset = FVector::ZeroVector;
-
 private:
 	/** Magazine that is added to the firearm when spawned for owning clients. Is also used to save
 	** a copy of the current magazine to have a reference to the old magazine once overwritten from replication. */
@@ -66,7 +68,7 @@ private:
 
 protected:
 	/** Does the clip need to be in hand to load into the firearm. */
-	UPROPERTY(EditDefaultsOnly, Category = MagazineAmmoLoader)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = MagazineAmmoLoader)
 	uint32 bRequiresEquippedClip : 1;
 
 private:

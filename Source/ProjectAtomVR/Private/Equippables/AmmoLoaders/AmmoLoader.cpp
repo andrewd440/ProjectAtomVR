@@ -56,24 +56,3 @@ class UWorld* UAmmoLoader::GetWorld() const
 {
 	return GetFirearm()->GetWorld();
 }
-
-UWorld* UAmmoLoader::GetTickableGameObjectWorld() const
-{
-	return GetWorld();
-}
-
-void UAmmoLoader::Tick(float DeltaTime)
-{
-	
-}
-
-TStatId UAmmoLoader::GetStatId() const
-{
-	RETURN_QUICK_DECLARE_CYCLE_STAT(UAmmoLoader, STATGROUP_Tickables);
-}
-
-bool UAmmoLoader::IsTickable() const
-{
-	return GetFirearm() != nullptr && 
-			GetFirearm()->IsEquipped();
-}

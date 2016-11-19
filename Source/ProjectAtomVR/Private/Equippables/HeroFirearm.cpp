@@ -57,7 +57,7 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
 
-	AmmoLoader = CreateDefaultSubobject<UMagazineAmmoLoader>(TEXT("AmmoLoader"));
+	//AmmoLoader = CreateDefaultSubobject<UMagazineAmmoLoader>(TEXT("AmmoLoader"));
 
 	CartridgeMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CartridgeMesh"));
 	CartridgeMeshComponent->SetupAttachment(GetMesh(), CartridgeAttachSocket);
@@ -531,8 +531,15 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 	}
 
 	// Now update the ammo loader and chamber
-	bIsChamberEmpty = (AmmoLoader->GetAmmoCount() <= 0);
-	AmmoLoader->ConsumeAmmo();
+	if (AmmoLoader->GetAmmoCount() <= 0)
+	{
+		bIsChamberEmpty = true;
+	}
+	else
+	{		
+		AmmoLoader->ConsumeAmmo();
+		bIsChamberEmpty = false;
+	}	
 
 	UE_LOG(LogFirearm, Log, TEXT("Remaining Ammo Loader Count: %d IsChamberEmpty: %d"), AmmoLoader->GetAmmoCount(), bIsChamberEmpty);
 
@@ -695,7 +702,10 @@ void AHeroFirearm::PostInitializeComponents()
 
 	CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
 
-	AmmoLoader->InitializeLoader();
+	if (AmmoLoader)
+	{
+		AmmoLoader->InitializeLoader();
+	}	
 }
 
 bool AHeroFirearm::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
