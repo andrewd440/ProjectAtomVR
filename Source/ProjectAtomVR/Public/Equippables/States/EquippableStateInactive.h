@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Equippables/EquippableState.h"
+#include "EquippableState.h"
 #include "EquippableStateInactive.generated.h"
 
 /**

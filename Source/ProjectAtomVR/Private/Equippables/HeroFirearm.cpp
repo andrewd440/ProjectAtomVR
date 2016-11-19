@@ -7,12 +7,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimInstance.h"
 #include "AnimNotify_Firearm.h"
-#include "FirearmClip.h"
 #include "EquippableStateActiveFirearm.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimMontage.h"
 #include "EquippableStateFiring.h"
-#include "EquippableState_ClipReload.h"
+#include "MagazineAmmoLoader.h"
+#include "Engine/ActorChannel.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
@@ -21,7 +21,6 @@ namespace
 	static const FName CartridgeFiredEmitterName{ TEXT("CartridgeFired") };
 	static const FName CartridgeUnfiredEmitterName{ TEXT("CartridgeUnfired") };
 	static const FName CartridgeAttachSocket{ TEXT("CartridgeAttach") };
-	static const FName MagazineAttachSocket{ TEXT("MagazineAttach") };
 	static const FName HandGripSocket{ TEXT("Grip") };
 	static const FName ChamberingHandleSocket{ TEXT("ChamberingHandle") };
 	static const FName MuzzleSocket{ TEXT("Muzzle") };
@@ -40,7 +39,6 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	Stats.Damage = 20;
 	Stats.FireRate = 0.1f;
 	Stats.MaxAmmo = 160;
-	Stats.MagazineSize = 30;
 	Stats.RecoilDampening = .5f;
 	Stats.RecoilDirectionalPush = FVector2D{ -1.f, 0.f };
 	Stats.RecoilRotationalPush = FVector2D{ 0.f, -1.f };
@@ -57,16 +55,9 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
-	ReloadingState = CreateDefaultSubobject<UEquippableState_ClipReload>(TEXT("ReloadingState"));
 	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
 
-	MagazineReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));
-	MagazineReloadTrigger->SetupAttachment(GetMesh());
-	MagazineReloadTrigger->SetIsReplicated(false);
-	MagazineReloadTrigger->bGenerateOverlapEvents = true;
-	MagazineReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
-	MagazineReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	MagazineReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
+	AmmoLoader = CreateDefaultSubobject<UMagazineAmmoLoader>(TEXT("AmmoLoader"));
 
 	CartridgeMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CartridgeMesh"));
 	CartridgeMeshComponent->SetupAttachment(GetMesh(), CartridgeAttachSocket);
@@ -247,74 +238,64 @@ bool AHeroFirearm::CanFire() const
 	return !IsChamberEmpty() && !bIsHoldingChamberHandle && !bIsSlideLockActive;
 }
 
-void AHeroFirearm::InsertMagazine(AFirearmClip* Clip)
+void AHeroFirearm::LoadAmmo(UObject* LoadObject)
 {
-	check(Clip);
-	ensure(CurrentMagazine == nullptr);
-	ensureMsgf(Clip->IsA(MagazineClass), 
-		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineType is %s"), Clip->StaticClass()->GetName(), MagazineClass->StaticClass()->GetName());
-
 	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
 	{
-		ServerInsertMagazine(Clip);
+		ServerLoadAmmo(LoadObject);
 	}
 
-	CurrentMagazine = Clip;
-	Clip->LoadInto(this);
+	AmmoLoader->LoadAmmo(LoadObject);	
 
-	if (MagazineInsertSound)
+	if (LoadAmmoSound)
 	{
-		UGameplayStatics::SpawnSoundAttached(MagazineInsertSound, GetMesh(), MagazineAttachSocket);
+		UGameplayStatics::SpawnSoundAttached(LoadAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
 	}
 
-	RemainingMagazine = FMath::Min(Stats.MagazineSize, (uint32)RemainingAmmo);
-	RemainingAmmo -= RemainingMagazine;
-
-	OnMagazineChanged.Broadcast();
+	RemainingAmmo -= AmmoLoader->GetAmmoCount();
 }
 
-void AHeroFirearm::EjectMagazine()
+void AHeroFirearm::DiscardAmmo()
 {
-	if (GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
+	// Add back remain ammo supply before discard
+	RemainingAmmo += AmmoLoader->GetAmmoCount();
+
+	if (AmmoLoader->DiscardAmmo())
 	{
-		ServerEjectMagazine();
-	}
-
-	if (CurrentMagazine)
-	{		
-		CurrentMagazine->EjectFrom(this);
-
-		if (MagazineEjectSound)
+		// Only replicate if successful
+		if (GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
 		{
-			UGameplayStatics::SpawnSoundAttached(MagazineEjectSound, GetMesh(), MagazineAttachSocket);
+			ServerDiscardAmmo();
+		}
+
+		if (DiscardAmmoSound)
+		{
+			UGameplayStatics::SpawnSoundAttached(DiscardAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
 		}
 	}
-
-	CurrentMagazine = nullptr;
-
-	// Add ammo back and reset magazine count
-	RemainingAmmo += RemainingMagazine;
-	RemainingMagazine = 0;
-
-	OnMagazineChanged.Broadcast();
+	else
+	{
+		// Didn't discard, restore ammo count
+		RemainingAmmo -= AmmoLoader->GetAmmoCount();
+	}
 }
 
-void AHeroFirearm::ServerInsertMagazine_Implementation(class AFirearmClip* Clip)
+void AHeroFirearm::ServerLoadAmmo_Implementation(UObject* LoadObject)
 {
-	InsertMagazine(Clip);
+	LoadAmmo(LoadObject);
 }
 
-bool AHeroFirearm::ServerInsertMagazine_Validate(class AFirearmClip* Clip)
+bool AHeroFirearm::ServerLoadAmmo_Validate(UObject* LoadObject)
 {
 	return true;
 }
 
-void AHeroFirearm::ServerEjectMagazine_Implementation()
+void AHeroFirearm::ServerDiscardAmmo_Implementation()
 {
-	EjectMagazine();
+	DiscardAmmo();
 }
 
-bool AHeroFirearm::ServerEjectMagazine_Validate()
+bool AHeroFirearm::ServerDiscardAmmo_Validate()
 {
 	return true;
 }
@@ -471,7 +452,7 @@ void AHeroFirearm::OnChamberingHandleReleased()
 
 void AHeroFirearm::OnSlideLockPressed()
 {
-	if (bIsSlideLockActive && RemainingMagazine > 0)
+	if (bIsSlideLockActive && AmmoLoader->GetAmmoCount() > 0)
 	{
 		ReleaseSlideLock();
 		ServerSetSlideLock(false);
@@ -546,11 +527,11 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		CartridgeEjectComponent->SetEmitterEnable(CartridgeUnfiredEmitterName, !bIsFired);
 	}
 
-	// Now update the magazine and chamber
-	bIsChamberEmpty = (RemainingMagazine <= 0);
-	RemainingMagazine = FMath::Max(0, RemainingMagazine - 1);
+	// Now update the ammo loader and chamber
+	bIsChamberEmpty = (AmmoLoader->GetAmmoCount() <= 0);
+	AmmoLoader->ConsumeAmmo();
 
-	UE_LOG(LogFirearm, Log, TEXT("Remaining Magazine: %d IsChamberEmpty: %d"), RemainingMagazine, bIsChamberEmpty);
+	UE_LOG(LogFirearm, Log, TEXT("Remaining Ammo Loader Count: %d IsChamberEmpty: %d"), AmmoLoader->GetAmmoCount(), bIsChamberEmpty);
 
 	// Then update visible chamber bullet and set slide lock if available
 	if (bIsChamberEmpty)
@@ -572,24 +553,6 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
 {
 	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), CartridgeCollideSound, Location);
-}
-
-void AHeroFirearm::OnRep_CurrentMagazine()
-{
-	if (CurrentMagazine == nullptr)
-	{
-		CurrentMagazine = RemoteConnectionMagazine;
-		EjectMagazine();
-	}
-	else
-	{
-		// Simulate attaching a new clip
-		AFirearmClip* NewClip = CurrentMagazine;
-		CurrentMagazine = nullptr;
-		InsertMagazine(NewClip);
-	}
-
-	RemoteConnectionMagazine = CurrentMagazine;
 }
 
 void AHeroFirearm::OnRep_IsHoldingChamberHandle()
@@ -627,6 +590,8 @@ void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 		const FName SlideLockName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
 		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AHeroFirearm::OnSlideLockPressed);
 	}
+
+	AmmoLoader->SetupInputComponent(InInputComponent);
 }
 
 void AHeroFirearm::ServerSetSlideLock_Implementation(bool bIsActive)
@@ -669,29 +634,9 @@ bool AHeroFirearm::ServerSetIsHoldingChamberingHandle_Validate(bool bIsHeld)
 	return true;
 }
 
-void AHeroFirearm::OnRep_DefaultMagazine()
-{
-	if (RemoteConnectionMagazine)
-	{
-		CurrentMagazine = RemoteConnectionMagazine;
-		CurrentMagazine->LoadInto(this);
-
-		RemainingMagazine = FMath::Min(Stats.MagazineSize, (uint32)RemainingAmmo);
-		RemainingAmmo -= RemainingMagazine;
-	}
-}
-
-void AHeroFirearm::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME_CONDITION(AHeroFirearm, CurrentMagazine, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AHeroFirearm, RemoteConnectionMagazine, COND_OwnerOnly);
 
 	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsHoldingChamberHandle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsSlideLockActive, COND_SkipOwner);
@@ -733,11 +678,6 @@ void AHeroFirearm::OnFirearmAnimNotify(EFirearmNotify Type)
 	}
 }
 
-const FName AHeroFirearm::GetMagazineAttachSocket() const
-{
-	return MagazineAttachSocket;
-}
-
 void AHeroFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -758,11 +698,28 @@ void AHeroFirearm::PostInitializeComponents()
 
 	CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
 
-	if (HasAuthority() && MagazineClass)
-	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = GetHeroOwner();
-		RemoteConnectionMagazine = GetWorld()->SpawnActor<AFirearmClip>(MagazineClass, GetMesh<UMeshComponent>()->GetSocketTransform(MagazineAttachSocket), SpawnParams);
-		InsertMagazine(RemoteConnectionMagazine);
-	}
+	AmmoLoader->InitializeLoader();
+}
+
+bool AHeroFirearm::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	WroteSomething |= Channel->ReplicateSubobject(AmmoLoader, *Bunch, *RepFlags);
+
+	return WroteSomething;
+}
+
+void AHeroFirearm::OnEquipped()
+{
+	Super::OnEquipped();
+
+	AmmoLoader->OnEquipped();
+}
+
+void AHeroFirearm::OnUnequipped()
+{
+	Super::OnUnequipped();
+
+	AmmoLoader->OnUnequipped();
 }

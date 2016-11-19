@@ -23,9 +23,6 @@ struct FFirearmStats
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
 	uint32 MaxAmmo;
 
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
-	uint32 MagazineSize;
-
 	// Determines how fast weapon recoil offsets are reset after firing the weapon.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
 	float Stability;
@@ -60,11 +57,6 @@ UCLASS(Abstract)
 class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
 {
 	GENERATED_BODY()
-	
-public:
-	/** Broadcasted when a magazine has been attached or ejected. */
-	DECLARE_EVENT(AHeroFirearm, FOnClipChanged)
-	FOnClipChanged OnMagazineChanged;
 
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -79,8 +71,6 @@ public:
 
 	int32 GetRemainingAmmo() const;
 
-	int32 GetRemainingMagazine() const;
-
 	bool IsChamberEmpty() const;
 
 	UFUNCTION(BlueprintCallable, Category = Firearm)
@@ -93,13 +83,9 @@ public:
 
 	bool CanFire() const;
 
-	class AFirearmClip* GetMagazine() const;
+	void LoadAmmo(UObject* LoadObject);
 
-	TSubclassOf<AFirearmClip> GetMagazineClass() const;
-
-	virtual void InsertMagazine(class AFirearmClip* Clip);
-
-	virtual void EjectMagazine();
+	virtual void DiscardAmmo();
 
 	const FFirearmStats& GetFirearmStats() const;
 
@@ -115,13 +101,6 @@ public:
 
 	UEquippableState* GetFiringState() const;
 	UEquippableState* GetChargingState() const;
-	UEquippableState* GetReloadingState() const;
-
-	/** 
-	 * Gets trigger used to determine valid overlap for a magazine to be loaded.
-	 */
-	UShapeComponent* GetMagazineReloadTrigger() const;
-	const FName GetMagazineAttachSocket() const;
 
 protected:
 	void UpdateChamberingHandle();
@@ -152,9 +131,6 @@ protected:
 	void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
 
 	UFUNCTION()
-	void OnRep_CurrentMagazine();
-
-	UFUNCTION()
 	void OnRep_IsHoldingChamberHandle();
 
 	UFUNCTION()
@@ -165,10 +141,10 @@ private:
 	void ServerFireShot(FShotData ShotData);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerInsertMagazine(class AFirearmClip* Clip);
+	void ServerLoadAmmo(UObject* LoadObject);
 
 	UFUNCTION(Server, WithValidation, Reliable)
-	void ServerEjectMagazine();
+	void ServerDiscardAmmo();
 
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerSetSlideLock(bool bIsActive);
@@ -176,14 +152,14 @@ private:
 	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerSetIsHoldingChamberingHandle(bool bIsHeld);
 
-	UFUNCTION()
-	void OnRep_DefaultMagazine();
-
 	/** AHeroEquippable Interface Begin */
 public:
-	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
+	virtual void OnEquipped() override;
+	virtual void OnUnequipped() override;
+
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
 	/** AHeroEquippable Interface End */
@@ -199,15 +175,9 @@ protected:
 	} RecoilVelocity;
 
 	int32 RemainingAmmo;
-
-	int32 RemainingMagazine;
-
-	/** The type of magazine this firearm uses. Magazines will be attached to the "MagazineAttach" socket.*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
-	TSubclassOf<class AFirearmClip> MagazineClass;
-
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_CurrentMagazine, BlueprintReadOnly, Category = Firearm)
-	AFirearmClip* CurrentMagazine;
+	
+	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	class UAmmoLoader* AmmoLoader;
 
 	/**
 	* Shots type for this firearm. Shots are fired from the socket name "Muzzle" on the mesh.
@@ -220,10 +190,7 @@ protected:
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
 	UEquippableState* ChargingState;
-
-	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
-	UEquippableState* ReloadingState;
-
+	
 	/** 
 	 * Particle system used to eject shells from the firearm. The emitter named "CartridgeFired" will be
 	 * used when ejecting a fired cartridge and "CartridgeUnfired" will be used when ejecting a unfired cartridge. 
@@ -281,10 +248,10 @@ protected:
 	USoundBase* DryFireSound = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
-	USoundBase* MagazineInsertSound = nullptr;
+	USoundBase* LoadAmmoSound = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Sound)
-	USoundBase* MagazineEjectSound = nullptr;
+	USoundBase* DiscardAmmoSound = nullptr;
 
 	/** Sound played when an ejected cartridge hits a surface. The Cartridge Eject Template must generate
 	 ** collision event for this sound to play.*/
@@ -304,15 +271,6 @@ protected:
 	UAnimMontage* TriggerPullMontage = nullptr;
 
 private:
-	/** Magazine that is added to the firearm when spawned for owning clients. Is also used to save
-	 ** a copy of the current magazine to have a reference to the old magazine once overwritten from replication. */
-	UPROPERTY(ReplicatedUsing = OnRep_DefaultMagazine)
-	AFirearmClip* RemoteConnectionMagazine = nullptr;
-
-	/** Trigger used to determine valid overlap for a magazine to be loaded.*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Firearm, meta = (AllowPrivateAccess = "true"))
-	UShapeComponent* MagazineReloadTrigger;
-
 	/** The origin hand location at the start of the current chambering index. This is relative to the actor. */
 	FVector ChamberingHandStartLocation = FVector::ZeroVector;
 
@@ -348,16 +306,6 @@ FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return Firi
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
 
-FORCEINLINE UEquippableState* AHeroFirearm::GetReloadingState() const { return ReloadingState; }
-
 FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
 
-FORCEINLINE int32 AHeroFirearm::GetRemainingMagazine() const { return RemainingMagazine; }
-
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
-
-FORCEINLINE class AFirearmClip* AHeroFirearm::GetMagazine() const { return CurrentMagazine; }
-
-FORCEINLINE TSubclassOf<AFirearmClip> AHeroFirearm::GetMagazineClass() const { return MagazineClass; }
-
-FORCEINLINE UShapeComponent* AHeroFirearm::GetMagazineReloadTrigger() const { return MagazineReloadTrigger; }
