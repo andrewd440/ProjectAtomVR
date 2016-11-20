@@ -14,6 +14,7 @@ class PROJECTATOMVR_API ULocomotionMovementType : public UHeroMovementType
 	GENERATED_BODY()
 	
 public:
+	ULocomotionMovementType();
 
 	/** UHeroMovementType Interface Begin */
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -24,4 +25,10 @@ protected:
 	/** Callbacks for player input */
 	virtual void OnMoveForward(float Value);
 	virtual void OnMoveRight(float Value);
+
+	void OnGripPressed();
+	void OnGripReleased();
+
+private:
+	uint32 bIsGripPressed : 1;
 };
