@@ -61,12 +61,13 @@ void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
 
 void UEquippableStateFiring::StartFireShotTimer()
 {
-	const FFirearmStats& FirearmStats = GetEquippable<AHeroFirearm>()->GetFirearmStats();
+	const AHeroFirearm* const HeroFirearm = GetEquippable<AHeroFirearm>();
+	const FFirearmStats& FirearmStats = HeroFirearm->GetFirearmStats();
 
 	const float ShotDelay = FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp);
-	if (ShotDelay > 0.f)
+	if (ShotDelay > 0.f || HeroFirearm->IsMuzzleInGeometry())
 	{
-		// Entered firing state faster than firing rate
+		// Entered firing state faster than firing rate or muzzle is blocked
 		OnFalseFire();
 	}
 	else

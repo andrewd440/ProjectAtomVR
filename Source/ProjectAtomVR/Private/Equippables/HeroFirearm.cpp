@@ -232,7 +232,22 @@ bool AHeroFirearm::IsHoldingChamberingHandle() const
 
 bool AHeroFirearm::CanFire() const
 {
-	return !IsChamberEmpty() && !bIsHoldingChamberHandle && !bIsSlideLockActive;
+	return !IsChamberEmpty() &&
+		!bIsHoldingChamberHandle &&
+		!bIsSlideLockActive	&&
+		!IsMuzzleInGeometry();
+}
+
+bool AHeroFirearm::IsMuzzleInGeometry() const
+{
+	const FCollisionObjectQueryParams ObjectParams{ FCollisionObjectQueryParams::AllStaticObjects };
+	const FCollisionQueryParams QueryParams{ NAME_None, false, this };
+
+	const FVector WorldLocation = GetTransform().TransformPosition(BlockFireVolume.RelativePosition);
+	const FQuat WorldRotation = GetTransform().GetRotation() * BlockFireVolume.RelativeRotation;
+
+	DrawDebugCapsule(GetWorld(), WorldLocation, BlockFireVolume.CapsuleHalfHeight, BlockFireVolume.CapsuleRadius, WorldRotation, FColor::Blue, false, 1.f, 0, .2f);
+	return GetWorld()->OverlapAnyTestByObjectType(WorldLocation, WorldRotation, ObjectParams, FCollisionShape::MakeCapsule(BlockFireVolume.CapsuleRadius, BlockFireVolume.CapsuleHalfHeight), QueryParams);
 }
 
 void AHeroFirearm::LoadAmmo(UObject* LoadObject)

@@ -48,6 +48,28 @@ struct FFirearmStats
 };
 
 /**
+* Structure used to represent the volume used to check if a firearm is
+* in a valid position to fire.
+*/
+USTRUCT()
+struct FFirearmBlockFireVolume
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	FVector RelativePosition = FVector::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly)
+	FQuat RelativeRotation = FQuat::Identity;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CapsuleRadius = 0.f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float CapsuleHalfHeight = 0.f;
+};
+
+/**
  * Shots are fired from the socket name "Muzzle" on the firearm mesh.
  */
 UCLASS(Abstract)
@@ -77,6 +99,8 @@ public:
 	bool IsSlideLockActive() const { return bIsSlideLockActive; }
 
 	bool CanFire() const;
+
+	bool IsMuzzleInGeometry() const;
 
 	void LoadAmmo(UObject* LoadObject);
 
@@ -160,6 +184,13 @@ protected:
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	FFirearmStats Stats;
+
+	/**
+	* Structure used to represent the volume used to check if a firearm is
+	* in a valid position to fire.
+	*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
+	FFirearmBlockFireVolume BlockFireVolume;
 
 	struct FRecoilVelocity
 	{
