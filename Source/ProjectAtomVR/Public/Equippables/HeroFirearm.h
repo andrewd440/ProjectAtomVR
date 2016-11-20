@@ -20,9 +20,6 @@ struct FFirearmStats
 	UPROPERTY(EditDefaultsOnly, Category = Stats)
 	float FireRate; // Seconds between shots
 
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
-	uint32 MaxAmmo;
-
 	// Determines how fast weapon recoil offsets are reset after firing the weapon.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
 	float Stability;
@@ -68,8 +65,6 @@ public:
 
 	/** Get the rotation of the firearm muzzle in world space. */
 	FQuat GetMuzzleRotation() const;
-
-	int32 GetRemainingAmmo() const;
 
 	bool IsChamberEmpty() const;
 
@@ -172,8 +167,6 @@ protected:
 		FVector Directional;
 	} RecoilVelocity;
 
-	int32 RemainingAmmo;
-	
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UAmmoLoader* AmmoLoader;
 
@@ -303,7 +296,5 @@ private:
 FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
 
 FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
-
-FORCEINLINE int32 AHeroFirearm::GetRemainingAmmo() const { return RemainingAmmo; }
 
 FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }

@@ -76,12 +76,10 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 {
 	for (FHeroLoadoutSlot& Slot : Loadout)
 	{
-		AHeroEquippable* TopItem = (Slot.ItemStack.Num() > 0) ? Slot.ItemStack.Top() : nullptr;
-
-		if (TopItem && TopItem->CanEquip(Hand) &&
+		if (Slot.Item && Slot.Item->CanEquip(Hand) &&
 			OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger))
 		{
-			HeroOwner->Equip(TopItem, Hand);
+			HeroOwner->Equip(Slot.Item, Hand);
 			return true;
 		}
 	}	
@@ -91,7 +89,7 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 
 bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item)
 {
-	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.ItemStack.Num() > 0 && Slot.ItemStack.Top() == Item; });
+	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
@@ -112,7 +110,7 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 	FHeroLoadoutSlot* const OverlappedSlot = Loadout.FindByPredicate([OverlappedComponent](const FHeroLoadoutSlot& Slot) { return Slot.StorageTrigger == OverlappedComponent; });
 
 	// Try to get the loadout item
-	AHeroEquippable* const OverlappedItem = (OverlappedSlot && OverlappedSlot->ItemStack.Num() > 0) ? OverlappedSlot->ItemStack.Top() : nullptr;
+	AHeroEquippable* const OverlappedItem = OverlappedSlot ? OverlappedSlot->Item : nullptr;
 
 	if (OverlappedItem)
 	{
@@ -158,26 +156,12 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 
 			if (TemplateSlot.ItemClass)
 			{
-				for (int32 j = 0; j < TemplateSlot.Count; ++j)
-				{
-					AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-					Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
-					Equippable->SetActorHiddenInGame(true); // Add items will be hidden except for the one on top of the stack
+				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+				Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				CurrentSlot.Item = Equippable;
+				CurrentSlot.Count = TemplateSlot.Count;
 
-					Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);
-
-					// Force net update to sync attachments the disable attachment replication. All attachments will be handled internally after the
-					// initial spawn.
-					/*Equippable->ForceNetUpdate();
-					Equippable->bReplicateAttachedMovement = false;*/
-
-					CurrentSlot.ItemStack.Push(Equippable);
-				}
-
-				if (CurrentSlot.ItemStack.Num() > 0)
-				{
-					CurrentSlot.ItemStack.Top()->SetActorHiddenInGame(false);
-				}
+				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);												
 			}
 			else
 			{
@@ -193,16 +177,31 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 	{
 		check(LoadoutIndex < Loadout.Num());
 
-		TArray<AHeroEquippable*>& ItemStack = Loadout[LoadoutIndex].ItemStack;
+		FHeroLoadoutSlot& Slot = Loadout[LoadoutIndex];
 
-		if (ItemStack.Num() > 0)
+		if (Slot.Item == Item) // Make sure this is the current item
 		{
-			ItemStack.Remove(Item);
-		}
+			const UHeroLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UHeroLoadoutTemplate>();
+			const FHeroLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateCDO->GetLoadoutSlots()[LoadoutIndex];
+			
+			if (Slot.Count > 0)
+			{
+				// We have more, spawn it!
+				--Slot.Count;
 
-		if (ItemStack.Num() > 0 && ItemStack.Top()->bHidden)
-		{
-			ItemStack.Top()->SetActorHiddenInGame(false);
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Instigator = HeroOwner;
+				SpawnParams.Owner = HeroOwner;
+
+				Slot.Item = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+				Slot.Item->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+
+				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
+			}
+			else
+			{
+				Slot.Item = nullptr;
+			}
 		}
 	}
 }

@@ -38,7 +38,6 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	Stats.Damage = 20;
 	Stats.FireRate = 0.1f;
-	Stats.MaxAmmo = 160;
 	Stats.RecoilDampening = .5f;
 	Stats.RecoilDirectionalPush = FVector2D{ -1.f, 0.f };
 	Stats.RecoilRotationalPush = FVector2D{ 0.f, -1.f };
@@ -56,8 +55,6 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
 	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
-
-	//AmmoLoader = CreateDefaultSubobject<UMagazineAmmoLoader>(TEXT("AmmoLoader"));
 
 	CartridgeMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CartridgeMesh"));
 	CartridgeMeshComponent->SetupAttachment(GetMesh(), CartridgeAttachSocket);
@@ -251,15 +248,10 @@ void AHeroFirearm::LoadAmmo(UObject* LoadObject)
 	{
 		UGameplayStatics::SpawnSoundAttached(LoadAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
 	}
-
-	RemainingAmmo -= AmmoLoader->GetAmmoCount();
 }
 
 void AHeroFirearm::DiscardAmmo()
 {
-	// Add back remain ammo supply before discard
-	RemainingAmmo += AmmoLoader->GetAmmoCount();
-
 	if (AmmoLoader->DiscardAmmo())
 	{
 		// Only replicate if successful
@@ -272,11 +264,6 @@ void AHeroFirearm::DiscardAmmo()
 		{
 			UGameplayStatics::SpawnSoundAttached(DiscardAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
 		}
-	}
-	else
-	{
-		// Didn't discard, restore ammo count
-		RemainingAmmo -= AmmoLoader->GetAmmoCount();
 	}
 }
 
@@ -685,8 +672,6 @@ void AHeroFirearm::StopFiringSequence()
 void AHeroFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
-	RemainingAmmo = Stats.MaxAmmo;
 
 	if (CartridgeEjectTemplate)
 	{

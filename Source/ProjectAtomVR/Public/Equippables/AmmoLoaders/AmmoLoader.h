@@ -2,8 +2,9 @@
 
 #pragma once
 
-#include "UObject/NoExportTypes.h"
+#include "Object.h"
 #include "AmmoLoader.generated.h"
+
 
 /**
  * 

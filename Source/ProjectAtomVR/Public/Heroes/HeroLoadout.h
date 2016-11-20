@@ -11,7 +11,11 @@ struct FHeroLoadoutSlot
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	TArray<class AHeroEquippable*> ItemStack;
+	class AHeroEquippable* Item;
+
+	// Remaining items for this slot
+	UPROPERTY()
+	uint32 Count;
 
 	// Socket the item is attached to when in storage
 	FName StorageSocket;
@@ -51,6 +55,11 @@ public:
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
 
 protected:
+
+	/**
+	* Only bound on the server. Called when a loadout item changes it's return to loadout
+	* property.
+	*/
 	void OnReturnToLoadoutChanged(class AHeroEquippable* Item, int32 LoadoutIndex);
 
 private:
