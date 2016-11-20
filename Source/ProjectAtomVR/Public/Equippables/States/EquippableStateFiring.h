@@ -51,5 +51,5 @@ protected:
 
 	// Used on server to notify clients of firing event
 	UPROPERTY(ReplicatedUsing = OnRep_TotalShotCounter)
-	uint8 TotalShotCounter = 0;
+	uint8 ServerShotCounter = 0;
 };

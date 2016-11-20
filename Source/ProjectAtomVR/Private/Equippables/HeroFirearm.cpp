@@ -291,6 +291,8 @@ void AHeroFirearm::FireShot()
 {
 	check(ShotType);
 
+	UE_LOG(LogFirearm, Log, TEXT("FireShot by %s"), HasAuthority() ? TEXT("Authority") : TEXT("Client"));
+
 	// Since the firing state will be call FireShot while active, it will be
 	// call by Autonomous, Authority, and Simulated connections. We will allow simulated
 	// proxies to simulate fire. Autonomous will simulate and call ServerFire. Authority
@@ -337,6 +339,7 @@ void AHeroFirearm::DryFire()
 
 void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 {
+	UE_LOG(LogFirearm, Log, TEXT("ServerFireShot"));
 	GenerateShotRecoil(ShotData.Seed);
 	ShotType->FireShot(ShotData);
 
@@ -528,7 +531,7 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		bIsChamberEmpty = false;
 	}	
 
-	UE_LOG(LogFirearm, Log, TEXT("Remaining Ammo Loader Count: %d IsChamberEmpty: %d"), AmmoLoader->GetAmmoCount(), bIsChamberEmpty);
+	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
 
 	// Then update visible chamber bullet and set slide lock if available
 	if (bIsChamberEmpty)
@@ -570,9 +573,13 @@ void AHeroFirearm::OnRep_IsSlideLockActive()
 	{
 		ReleaseSlideLock();
 	}
-	else
+	else if(!HasActorBegunPlay()) // Only activate on initial rep, otherwise will be automatically activated on remotes.
 	{
 		ActivateSlideLock();
+	}
+	else
+	{
+		bIsSlideLockActive = false; // During play, only allow rep to set this for releases
 	}
 }
 

@@ -31,7 +31,7 @@ void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimePr
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(UEquippableStateFiring, TotalShotCounter, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UEquippableStateFiring, ServerShotCounter, COND_SkipOwner);
 }
 
 void UEquippableStateFiring::OnTriggerReleased()
@@ -82,7 +82,12 @@ void UEquippableStateFiring::OnFireShot()
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 
 	// Used to update remotes with shot count. Should always increment.
-	++TotalShotCounter;
+	if (Firearm->HasAuthority())
+	{
+		++ServerShotCounter;
+	}
+	
+	UE_LOG(LogFirearm, Log, TEXT("OnFireShot by %s"), Firearm->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
 
 	if (!Firearm->CanFire())
 	{
@@ -111,6 +116,7 @@ void UEquippableStateFiring::OnFireShot()
 
 void UEquippableStateFiring::OnFalseFire()
 {
+	UE_LOG(LogFirearm, Log, TEXT("OnFalseFire by %s"), GetEquippable<AHeroFirearm>()->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 	Firearm->DryFire();
 	Firearm->PopState(this);
@@ -118,8 +124,10 @@ void UEquippableStateFiring::OnFalseFire()
 
 void UEquippableStateFiring::OnRep_TotalShotCounter()
 {
-	const int32 ShotDiff = FMath::Abs(TotalShotCounter - RemoteShotCounter); // Abs to allow wrapping
-	RemoteShotCounter = TotalShotCounter;
+	const int32 ShotDiff = FMath::Abs(ServerShotCounter - RemoteShotCounter); // Abs to allow wrapping
+	RemoteShotCounter = ServerShotCounter;
+
+	UE_LOG(LogFirearm, Log, TEXT("OnRep_TotalShotCounter with ShotDiff =  %d"), ShotDiff);
 
 	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
 
@@ -127,6 +135,8 @@ void UEquippableStateFiring::OnRep_TotalShotCounter()
 	{
 		if (ShotDiff > 0)
 		{
+			LastShotTimestamp = 0.f; // Zero shot stamp to force a shot since we know the server shot
+
 			// Push state for burst diff
 			BurstCount = ShotDiff;
 

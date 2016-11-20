@@ -7,9 +7,6 @@
 UCartridgeAmmoLoader::UCartridgeAmmoLoader(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
-	AmmoCount = Capacity;
-	ServerAmmoCount = AmmoCount;
-
 	LoadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("CartridgeReloadTrigger"));		
 	LoadTrigger->SetIsReplicated(false);
 	LoadTrigger->SetSphereRadius(2.f);
@@ -91,6 +88,9 @@ void UCartridgeAmmoLoader::InitializeLoader()
 	{
 		LoadTrigger->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform);
 	}
+
+	AmmoCount = Capacity;
+	ServerAmmoCount = AmmoCount;
 }
 
 void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

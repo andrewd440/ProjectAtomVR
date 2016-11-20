@@ -38,7 +38,7 @@ private:
 
 protected:
 	/** The type of cartridge this firearm uses.*/
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = MagazineAmmoLoader)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CartridgeAmmoLoader)
 	TSubclassOf<class AHeroEquippable> CartridgeType;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = CartridgeAmmoLoader)
@@ -46,7 +46,7 @@ protected:
 
 private:
 	/** Trigger used to determine valid overlap for a cartridge to be loaded.*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = MagazineAmmoLoader, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CartridgeAmmoLoader, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* LoadTrigger;
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerAmmoCount)

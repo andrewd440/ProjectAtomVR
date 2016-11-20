@@ -61,6 +61,7 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 		// the controller may not be replicated on autonomous proxies.
 		if (Owner->Role == ENetRole::ROLE_AutonomousProxy || (Owner->HasAuthority() && Owner->IsLocallyControlled()))
 		{
+			UE_LOG(LogHeroLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *Owner->GetController()->GetName(), *Owner->GetName());
 			CreateLoadoutTriggers(LoadoutTemplateSlots);
 		}
 
