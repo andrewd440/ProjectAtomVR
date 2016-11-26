@@ -316,6 +316,11 @@ void AHeroEquippable::OnUnequipped()
 	HeroOwner->OnUnequipped(this, EquipStatus.EquippedHand);
 }
 
+TSubclassOf<class AEquippableUIActor> AHeroEquippable::GetUIActor() const
+{
+	return nullptr;
+}
+
 void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	check(InInputComponent);

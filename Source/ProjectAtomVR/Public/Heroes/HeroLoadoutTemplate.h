@@ -24,6 +24,9 @@ struct FHeroLoadoutTemplateSlot
 	/** Radius of overlapping trigger used to equip this item. */
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
 	float StorageTriggerRadius;
+
+	/*UPROPERTY(EditDefaultsOnly, Category = Loadout)
+	TSubclassOf<class ALoadoutSlotUI> SlotUI;*/
 };
 
 /**

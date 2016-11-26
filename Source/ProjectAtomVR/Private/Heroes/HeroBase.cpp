@@ -102,7 +102,7 @@ void AHeroBase::BeginPlay()
 		GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
 	}		
 
-	Loadout->InitializeLoadout(this);
+	Loadout->SpawnLoadout();
 }
 
 void AHeroBase::Tick( float DeltaTime )
@@ -165,6 +165,8 @@ void AHeroBase::PostInitializeComponents()
 
 	DefaultRightHandTransform.Location = RightHandMesh->RelativeLocation;
 	DefaultRightHandTransform.Rotation = RightHandMesh->RelativeRotation;
+
+	Loadout->InitializeLoadout(this);
 }
 
 void AHeroBase::PostNetReceiveLocationAndRotation()
@@ -320,6 +322,11 @@ FVector AHeroBase::GetDefaultHandMeshLocation(const EHand Hand) const
 FRotator AHeroBase::GetDefaultHandMeshRotation(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Rotation : DefaultRightHandTransform.Rotation;
+}
+
+UHeroLoadout* AHeroBase::GetLoadout() const
+{
+	return Loadout;
 }
 
 template <EHand Hand>

@@ -40,9 +40,16 @@ public:
 	/** Called by Equippable when the unequipping process is complete. */
 	virtual void OnUnequipped(AHeroEquippable* Item, const EHand Hand);
 
+	/** Gets the default hand mesh location and rotation. */
 	void GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const;
+
+	/** Gets the default hand mesh location. */
 	FVector GetDefaultHandMeshLocation(const EHand Hand) const;
+
+	/** Gets the default hand mesh rotation. */
 	FRotator GetDefaultHandMeshRotation(const EHand Hand) const;
+
+	class UHeroLoadout* GetLoadout() const;
 
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -216,7 +216,7 @@ void UMagazineAmmoLoader::OnRep_DefaultMagazine()
 {
 	if (RemoteConnectionMagazine)
 	{
-		LoadAmmo(RemoteConnectionMagazine);
+		GetFirearm()->LoadAmmo(RemoteConnectionMagazine, true);
 	}
 }
 

@@ -13,6 +13,24 @@ DEFINE_LOG_CATEGORY_STATIC(LogHeroLoadout, Log, All);
 namespace
 {
 	static const FColor TriggerBaseColor{ 100, 255, 100, 255 };
+
+	struct FSavedLoadoutSlot
+	{
+		AHeroEquippable* Item;
+		uint32 Count;
+	};
+
+	bool operator==(const FSavedLoadoutSlot& SavedSlot, const FHeroLoadoutSlot& Slot)
+	{
+		return SavedSlot.Item == Slot.Item && SavedSlot.Count == Slot.Count;
+	}
+
+	bool operator!=(const FSavedLoadoutSlot& SavedSlot, const FHeroLoadoutSlot& Slot)
+	{
+		return !(SavedSlot == Slot);
+	}
+
+	static TArray<FSavedLoadoutSlot> SavedLoadout;
 }
 
 void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
@@ -28,7 +46,7 @@ void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>&
 		Trigger->SetCollisionProfileName(AtomCollisionProfiles::HandTrigger);		
 		Trigger->bGenerateOverlapEvents = true;
 		Trigger->ShapeColor = TriggerBaseColor;
-		Trigger->SetHiddenInGame(false);
+		//Trigger->SetHiddenInGame(false);
 
 		Trigger->OnComponentBeginOverlap.AddDynamic(this, &UHeroLoadout::OnLoadoutTriggerOverlap);		
 
@@ -56,17 +74,26 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 		{
 			Loadout[i].StorageSocket = LoadoutTemplateSlots[i].StorageSocket;
 		}
+	}
+}
 
-		// Create triggers on locally controlled. Autonomous or listen server controlling owner. Can't use IsLocallyControlled because
-		// the controller may not be replicated on autonomous proxies.
-		if (Owner->Role == ENetRole::ROLE_AutonomousProxy || (Owner->HasAuthority() && Owner->IsLocallyControlled()))
+void UHeroLoadout::SpawnLoadout()
+{
+	check(HeroOwner && "Loadout has not been initialized.");
+
+	if (LoadoutTemplate)
+	{
+		const UHeroLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UHeroLoadoutTemplate>();
+		const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+
+		if (HeroOwner->IsLocallyControlled())
 		{
-			UE_LOG(LogHeroLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *Owner->GetController()->GetName(), *Owner->GetName());
+			UE_LOG(LogHeroLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *HeroOwner->GetController()->GetName(), *HeroOwner->GetName());
 			CreateLoadoutTriggers(LoadoutTemplateSlots);
 		}
 
 		// Weapons will only be spawned by server
-		if (Owner->HasAuthority())
+		if (HeroOwner->HasAuthority())
 		{
 			CreateLoadoutEquippables(LoadoutTemplateSlots);
 		}
@@ -99,6 +126,34 @@ bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEq
 	}
 
 	return false;
+}
+
+const TArray<FHeroLoadoutSlot>& UHeroLoadout::GetLoadoutSlots() const
+{
+	return Loadout;
+}
+
+TArray<FHeroLoadoutSlot>& UHeroLoadout::GetLoadoutSlots()
+{
+	return Loadout;
+}
+
+const TSubclassOf<class UHeroLoadoutTemplate> UHeroLoadout::GetLoadoutTemplate() const
+{
+	return LoadoutTemplate;
+}
+
+void UHeroLoadout::PreNetReceive()
+{
+	Super::PreNetReceive();
+
+	SavedLoadout.SetNum(Loadout.Num(), false);
+
+	for (int i = 0; i < Loadout.Num(); ++i)
+	{
+		SavedLoadout[i].Item = Loadout[i].Item;
+		SavedLoadout[i].Count = Loadout[i].Count;
+	}
 }
 
 class UWorld* UHeroLoadout::GetWorld() const
@@ -162,7 +217,9 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 				CurrentSlot.Item = Equippable;
 				CurrentSlot.Count = TemplateSlot.Count;
 
-				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);												
+				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);				
+
+				CurrentSlot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item | ELoadoutSlotChangeType::Count);
 			}
 			else
 			{
@@ -198,11 +255,34 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 				Slot.Item->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
 
 				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
+
+				Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
 			}
 			else
 			{
 				Slot.Item = nullptr;
+
+				Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item);
 			}
+		}
+	}
+}
+
+void UHeroLoadout::OnRep_Loadout()
+{
+	for (int i = 0; i < Loadout.Num(); ++i)
+	{
+		ELoadoutSlotChangeType Change = ELoadoutSlotChangeType::None;
+
+		if ((SavedLoadout[i].Item != Loadout[i].Item))
+			Change |= ELoadoutSlotChangeType::Item;
+
+		if ((SavedLoadout[i].Count != Loadout[i].Count))
+			Change |= ELoadoutSlotChangeType::Count;
+
+		if (Change != ELoadoutSlotChangeType::None)
+		{
+			Loadout[i].OnSlotChanged.ExecuteIfBound(Change);
 		}
 	}
 }

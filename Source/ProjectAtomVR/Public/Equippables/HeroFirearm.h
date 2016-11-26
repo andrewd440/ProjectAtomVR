@@ -77,6 +77,10 @@ class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
 {
 	GENERATED_BODY()
 
+public:
+	DECLARE_DELEGATE(FAmmoCountChanged)
+	FAmmoCountChanged OnAmmoCountChanged;
+
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -88,6 +92,7 @@ public:
 	/** Get the rotation of the firearm muzzle in world space. */
 	FQuat GetMuzzleRotation() const;
 
+	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsChamberEmpty() const;
 
 	UFUNCTION(BlueprintCallable, Category = Firearm)
@@ -96,13 +101,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsHoldingChamberingHandle() const;
 
+	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsSlideLockActive() const { return bIsSlideLockActive; }
 
 	bool CanFire() const;
 
 	bool IsMuzzleInGeometry() const;
 
-	void LoadAmmo(UObject* LoadObject);
+	void LoadAmmo(UObject* LoadObject, bool bForceLocalOnly = false);
 
 	virtual void DiscardAmmo();
 
@@ -118,6 +124,8 @@ public:
 
 	UEquippableState* GetFiringState() const;
 	UEquippableState* GetChargingState() const;
+
+	UAmmoLoader* GetAmmoLoader() const;
 
 protected:
 	void UpdateChamberingHandle();
@@ -176,6 +184,7 @@ public:
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	virtual void OnEquipped() override;
 	virtual void OnUnequipped() override;
+	virtual TSubclassOf<class AEquippableUIActor> GetUIActor() const override;
 
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
@@ -200,6 +209,9 @@ protected:
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UAmmoLoader* AmmoLoader;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
+	TSubclassOf<class AFirearmUIActor> FirearmUI;
 
 	/**
 	* Shots type for this firearm. Shots are fired from the socket name "Muzzle" on the mesh.

@@ -5,23 +5,38 @@
 #include "Object.h"
 #include "HeroLoadout.generated.h"
 
+UENUM(BlueprintType, meta = (Bitflags))
+enum class ELoadoutSlotChangeType : uint8
+{
+	None =	0x00,
+	Item =	0x01,
+	Count = 0x02
+};
+
+ENUM_CLASS_FLAGS(ELoadoutSlotChangeType);
+
 USTRUCT()
 struct FHeroLoadoutSlot
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** Called when the loadout slot item or count is changed. Should only be bound by
+	 ** the slot UI actor. */
+	DECLARE_DELEGATE_OneParam(FItemChanged, ELoadoutSlotChangeType)
+	FItemChanged OnSlotChanged;
+
 	UPROPERTY()
-	class AHeroEquippable* Item;
+	class AHeroEquippable* Item = nullptr;
 
 	// Remaining items for this slot
 	UPROPERTY()
-	uint32 Count;
+	uint32 Count = 0;
 
 	// Socket the item is attached to when in storage
 	FName StorageSocket;
 
 	// The trigger volume for the item's storage location
-	class USphereComponent* StorageTrigger;
+	class USphereComponent* StorageTrigger = nullptr;
 };
 
 /**
@@ -34,9 +49,16 @@ class PROJECTATOMVR_API UHeroLoadout : public UObject
 	
 public:
 	/**
-	 * Initializes the loadout. Should be called by the owning hero on BeginPlay.
+	 * Initializes loadout slots. Does not spawn any loadout items.
+	 * Should be called by the owning hero on PostInitializeComponents.
 	 */
 	void InitializeLoadout(class AHeroBase* Owner);	
+
+	/** 
+	 * Spawns all loadout items. Should be called after the owning hero as been possessed by
+	 * a controller (i.e. BeginPlay). 
+	 */
+	void SpawnLoadout();
 
 	/**
 	* Requests an equip from the loadout. OverlapComponent will be used to check for
@@ -54,6 +76,19 @@ public:
 	 **/
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
 
+	/** Gets the loadout slots. */
+	const TArray<FHeroLoadoutSlot>& GetLoadoutSlots() const;
+
+	/** Gets the loadout slots. */
+	TArray<FHeroLoadoutSlot>& GetLoadoutSlots();
+
+	/** Gets the loadout template. Template items and loadout slots map one-to-one. */
+	const TSubclassOf<class UHeroLoadoutTemplate> GetLoadoutTemplate() const;
+
+	/** UObject Interface Begin */
+	virtual void PreNetReceive() override;
+	/** UObject Interface End */	
+
 protected:
 
 	/**
@@ -61,6 +96,9 @@ protected:
 	* property.
 	*/
 	void OnReturnToLoadoutChanged(class AHeroEquippable* Item, int32 LoadoutIndex);
+
+	UFUNCTION()
+	void OnRep_Loadout();
 
 private:
 	/** Creates all loadout weapons. Should only be called on server. */
@@ -91,7 +129,7 @@ protected:
 	class UHapticFeedbackEffect_Base* TriggerFeedback;
 
 private:
-	UPROPERTY(Replicated, VisibleAnywhere, Category = HeroLoadout)
+	UPROPERTY(ReplicatedUsing=OnRep_Loadout, VisibleAnywhere, Category = HeroLoadout)
 	TArray<FHeroLoadoutSlot> Loadout;
 
 	class AHeroBase* HeroOwner = nullptr;

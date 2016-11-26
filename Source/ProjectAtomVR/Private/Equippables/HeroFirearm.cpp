@@ -246,18 +246,19 @@ bool AHeroFirearm::IsMuzzleInGeometry() const
 	const FVector WorldLocation = GetTransform().TransformPosition(BlockFireVolume.RelativePosition);
 	const FQuat WorldRotation = GetTransform().GetRotation() * BlockFireVolume.RelativeRotation;
 
-	DrawDebugCapsule(GetWorld(), WorldLocation, BlockFireVolume.CapsuleHalfHeight, BlockFireVolume.CapsuleRadius, WorldRotation, FColor::Blue, false, 1.f, 0, .2f);
+	//DrawDebugCapsule(GetWorld(), WorldLocation, BlockFireVolume.CapsuleHalfHeight, BlockFireVolume.CapsuleRadius, WorldRotation, FColor::Blue, false, 1.f, 0, .2f);
 	return GetWorld()->OverlapAnyTestByObjectType(WorldLocation, WorldRotation, ObjectParams, FCollisionShape::MakeCapsule(BlockFireVolume.CapsuleRadius, BlockFireVolume.CapsuleHalfHeight), QueryParams);
 }
 
-void AHeroFirearm::LoadAmmo(UObject* LoadObject)
+void AHeroFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 {
-	if (!HasAuthority() && GetHeroOwner()->IsLocallyControlled())
+	if (!bForceLocalOnly && !HasAuthority() && GetHeroOwner()->IsLocallyControlled())
 	{
 		ServerLoadAmmo(LoadObject);
 	}
 
 	AmmoLoader->LoadAmmo(LoadObject);	
+	OnAmmoCountChanged.ExecuteIfBound();
 
 	if (LoadAmmoSound)
 	{
@@ -274,6 +275,8 @@ void AHeroFirearm::DiscardAmmo()
 		{
 			ServerDiscardAmmo();
 		}
+
+		OnAmmoCountChanged.ExecuteIfBound();
 
 		if (DiscardAmmoSound)
 		{
@@ -535,6 +538,8 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		CartridgeEjectComponent->SetEmitterEnable(CartridgeUnfiredEmitterName, !bIsFired);
 	}
 
+	const bool bWasChamberEmpty = bIsChamberEmpty;
+
 	// Now update the ammo loader and chamber
 	if (AmmoLoader->GetAmmoCount() <= 0)
 	{
@@ -563,6 +568,11 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		CartridgeMeshComponent->SetVisibility(true);
 		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
 	}
+
+	if (!bWasChamberEmpty)
+	{
+		OnAmmoCountChanged.ExecuteIfBound();
+	}	
 }
 
 void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
@@ -691,6 +701,11 @@ void AHeroFirearm::StopFiringSequence()
 	}
 }
 
+UAmmoLoader* AHeroFirearm::GetAmmoLoader() const
+{
+	return AmmoLoader;
+}
+
 void AHeroFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -736,4 +751,9 @@ void AHeroFirearm::OnUnequipped()
 	Super::OnUnequipped();
 
 	AmmoLoader->OnUnequipped();
+}
+
+TSubclassOf<class AEquippableUIActor> AHeroFirearm::GetUIActor() const
+{
+	return FirearmUI;
 }

@@ -104,6 +104,8 @@ public:
 
 	bool IsSecondaryHandAttached() const;
 
+	virtual TSubclassOf<class AEquippableUIActor> GetUIActor() const;
+
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 

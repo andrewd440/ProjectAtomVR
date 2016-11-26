@@ -13,7 +13,7 @@ UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced)
 class PROJECTATOMVR_API UAmmoLoader : public UObject
 {
 	GENERATED_BODY()
-	
+
 public:
 	UAmmoLoader(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -34,6 +34,7 @@ public:
 	*/
 	virtual void OnUnequipped();
 
+	UFUNCTION(BlueprintCallable, Category = AmmoLoader)
 	int32 GetAmmoCount() const;
 
 	virtual void ConsumeAmmo();
