@@ -258,7 +258,6 @@ void AHeroFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 	}
 
 	AmmoLoader->LoadAmmo(LoadObject);	
-	OnAmmoCountChanged.ExecuteIfBound();
 
 	if (LoadAmmoSound)
 	{
@@ -275,9 +274,7 @@ void AHeroFirearm::DiscardAmmo()
 		{
 			ServerDiscardAmmo();
 		}
-
-		OnAmmoCountChanged.ExecuteIfBound();
-
+		
 		if (DiscardAmmoSound)
 		{
 			UGameplayStatics::SpawnSoundAttached(DiscardAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
@@ -538,17 +535,16 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		CartridgeEjectComponent->SetEmitterEnable(CartridgeUnfiredEmitterName, !bIsFired);
 	}
 
-	const bool bWasChamberEmpty = bIsChamberEmpty;
-
 	// Now update the ammo loader and chamber
 	if (AmmoLoader->GetAmmoCount() <= 0)
 	{
 		bIsChamberEmpty = true;
+		AmmoLoader->OnAmmoCountChanged.ExecuteIfBound();	
 	}
 	else
 	{		
-		AmmoLoader->ConsumeAmmo();
 		bIsChamberEmpty = false;
+		AmmoLoader->ConsumeAmmo();		
 	}	
 
 	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
@@ -568,11 +564,6 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 		CartridgeMeshComponent->SetVisibility(true);
 		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
 	}
-
-	if (!bWasChamberEmpty)
-	{
-		OnAmmoCountChanged.ExecuteIfBound();
-	}	
 }
 
 void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)

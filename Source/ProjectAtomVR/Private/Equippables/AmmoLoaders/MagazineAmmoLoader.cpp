@@ -85,6 +85,8 @@ void UMagazineAmmoLoader::Tick(float DeltaTime)
 			MagazineMesh->SetRelativeLocationAndRotation(FVector::ZeroVector, FQuat::Identity);
 			bIsLoadingMagazine = false;
 			AmmoCount = Magazine->GetCapacity();
+
+			OnAmmoCountChanged.ExecuteIfBound();
 		}
 		else
 		{
@@ -140,6 +142,8 @@ bool UMagazineAmmoLoader::DiscardAmmo()
 
 	ReloadTrigger->bGenerateOverlapEvents = true;
 
+	OnAmmoCountChanged.ExecuteIfBound();
+
 	return true;
 }
 
@@ -177,6 +181,8 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, MagazineAttachSocket);
 		AmmoCount = Magazine->GetCapacity();
 		bHasInitialMagazine = true;
+
+		OnAmmoCountChanged.ExecuteIfBound();
 	}
 }
 

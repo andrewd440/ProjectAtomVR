@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "FirearmWidget.h"
-#include "UI/FirearmUIActor.h"
+#include "FirearmUIActor.h"
 
 AFirearmUIActor* UFirearmWidget::GetFirearmUI()
 {

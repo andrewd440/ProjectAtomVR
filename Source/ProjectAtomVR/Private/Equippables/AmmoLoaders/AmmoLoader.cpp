@@ -35,6 +35,8 @@ void UAmmoLoader::OnUnequipped()
 void UAmmoLoader::ConsumeAmmo()
 {
 	--AmmoCount;
+
+	OnAmmoCountChanged.ExecuteIfBound();
 }
 
 void UAmmoLoader::LoadAmmo(UObject* LoadObject)

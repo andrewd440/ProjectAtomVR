@@ -56,6 +56,9 @@ public:
 	DECLARE_EVENT(AHeroEquippable, FCanReturnToLoadoutChanged)
 	FCanReturnToLoadoutChanged OnCanReturnToLoadoutChanged;
 
+	DECLARE_DELEGATE(FEquippedStatusChangedUI)
+	FEquippedStatusChangedUI OnEquippedStatusChangedUI;
+
 public:
 	// Sets default values for this actor's properties
 	AHeroEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());

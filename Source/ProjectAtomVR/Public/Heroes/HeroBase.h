@@ -141,6 +141,7 @@ public:
 
 	class UHMDCameraComponent* GetCamera() const;
 	
+	/** Gets the body mesh for the hero. This is also the mesh that loadout items are attached to. */
 	UStaticMeshComponent* GetBodyMesh() const;
 
 	AHeroEquippable* GetEquippable(EHand Hand) const;

@@ -291,6 +291,8 @@ void AHeroEquippable::OnEquipped()
 	}	
 
 	HeroOwner->OnEquipped(this, EquipStatus.EquippedHand);
+
+	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
 
 void AHeroEquippable::OnUnequipped()
@@ -314,6 +316,8 @@ void AHeroEquippable::OnUnequipped()
 	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;
 
 	HeroOwner->OnUnequipped(this, EquipStatus.EquippedHand);
+
+	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
 
 TSubclassOf<class AEquippableUIActor> AHeroEquippable::GetUIActor() const

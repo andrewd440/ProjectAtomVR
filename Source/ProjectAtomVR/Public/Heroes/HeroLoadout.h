@@ -85,6 +85,10 @@ public:
 	/** Gets the loadout template. Template items and loadout slots map one-to-one. */
 	const TSubclassOf<class UHeroLoadoutTemplate> GetLoadoutTemplate() const;
 
+	const FHeroLoadoutSlot* GetItemSlot(const class AHeroEquippable* Item) const;
+
+	USceneComponent* GetAttachParent() const;
+
 	/** UObject Interface Begin */
 	virtual void PreNetReceive() override;
 	/** UObject Interface End */	

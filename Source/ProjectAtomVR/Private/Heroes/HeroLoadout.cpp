@@ -50,7 +50,7 @@ void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>&
 
 		Trigger->OnComponentBeginOverlap.AddDynamic(this, &UHeroLoadout::OnLoadoutTriggerOverlap);		
 
-		Trigger->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutTemplateSlots[i].StorageSocket);
+		Trigger->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutTemplateSlots[i].StorageSocket);
 
 		Loadout[i].StorageTrigger = Trigger;
 	}
@@ -143,6 +143,16 @@ const TSubclassOf<class UHeroLoadoutTemplate> UHeroLoadout::GetLoadoutTemplate()
 	return LoadoutTemplate;
 }
 
+const FHeroLoadoutSlot* UHeroLoadout::GetItemSlot(const class AHeroEquippable* Item) const
+{
+	return Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
+}
+
+USceneComponent* UHeroLoadout::GetAttachParent() const
+{
+	return HeroOwner->GetBodyMesh();
+}
+
 void UHeroLoadout::PreNetReceive()
 {
 	Super::PreNetReceive();
@@ -213,7 +223,7 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 			if (TemplateSlot.ItemClass)
 			{
 				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Equippable->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
 				CurrentSlot.Item = Equippable;
 				CurrentSlot.Count = TemplateSlot.Count;
 
@@ -252,7 +262,7 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 				SpawnParams.Owner = HeroOwner;
 
 				Slot.Item = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Slot.Item->AttachToComponent(HeroOwner->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
 
 				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
 

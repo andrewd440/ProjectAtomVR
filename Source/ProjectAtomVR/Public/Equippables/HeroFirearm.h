@@ -77,10 +77,6 @@ class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
 {
 	GENERATED_BODY()
 
-public:
-	DECLARE_DELEGATE(FAmmoCountChanged)
-	FAmmoCountChanged OnAmmoCountChanged;
-
 public:	
 	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	

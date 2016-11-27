@@ -15,6 +15,12 @@ class PROJECTATOMVR_API UAmmoLoader : public UObject
 	GENERATED_BODY()
 
 public:
+	/** Invoked when the ammo count changes for the firearm. Also invoked from the firearm when the chamber
+	 ** is emptied. */
+	DECLARE_DELEGATE(FAmmoCountChanged)
+	FAmmoCountChanged OnAmmoCountChanged;
+
+public:
 	UAmmoLoader(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/**

@@ -30,7 +30,7 @@ void AFirearmUIActor::BeginPlay()
 	Super::BeginPlay();
 
 	AHeroFirearm* Firearm = GetFirearm();
-	Firearm->OnAmmoCountChanged.BindUObject(this, &AFirearmUIActor::OnAmmoCountChanged);
+	Firearm->GetAmmoLoader()->OnAmmoCountChanged.BindUObject(this, &AFirearmUIActor::OnAmmoCountChanged);
 }
 
 AHeroFirearm* AFirearmUIActor::GetFirearm() const

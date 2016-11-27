@@ -5,6 +5,13 @@
 #include "Components/WidgetComponent.h"
 #include "EquippableWidgetComponent.generated.h"
 
+UENUM()
+enum class EEquippableWidgetType : uint8
+{
+	Item, // The widget is attached to the equippable item
+	Loadout, // The widget is attached to the loadout slot for the item
+};
+
 /**
  * 
  */
@@ -14,9 +21,14 @@ class PROJECTATOMVR_API UEquippableWidgetComponent : public UWidgetComponent
 	GENERATED_BODY()
 
 public:
-	FName GetEquippableAttachSocket() const { return EquippableAttachSocket; }
+	FName GetEquippableAttachSocket() const { return WidgetAttachSocket; }
+
+	EEquippableWidgetType GetWidgetType() const { return Type; }
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = EquippableWidget)
-	FName EquippableAttachSocket = NAME_None;
+	EEquippableWidgetType Type = EEquippableWidgetType::Item;
+
+	UPROPERTY(EditDefaultsOnly, Category = EquippableWidget)
+	FName WidgetAttachSocket = NAME_None;
 };

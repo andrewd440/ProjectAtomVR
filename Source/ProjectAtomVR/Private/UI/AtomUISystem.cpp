@@ -85,10 +85,11 @@ void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 	UHeroLoadout* Loadout = GetHero()->GetLoadout();
 	const auto& LoadoutSlots = Loadout->GetLoadoutSlots();
 
+	AEquippableUIActor*& UIActor = HeroUI.Equippables[LoadoutIndex];
+
 	if ((Change & ELoadoutSlotChangeType::Item) == ELoadoutSlotChangeType::Item)
 	{
 		AHeroEquippable* NewItem = LoadoutSlots[LoadoutIndex].Item;
-		AEquippableUIActor*& UIActor = HeroUI.Equippables[LoadoutIndex];
 
 		if (NewItem != nullptr)
 		{
@@ -115,6 +116,12 @@ void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 			UIActor->Destroy();
 			UIActor = nullptr;
 		}
+	}
 
+	Change &= ~ELoadoutSlotChangeType::Item; // Item flag is processed, remove it a move on.
+
+	if (Change != ELoadoutSlotChangeType::None && UIActor != nullptr)
+	{
+		UIActor->OnLoadoutChanged(Change);
 	}
 }

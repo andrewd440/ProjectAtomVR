@@ -44,6 +44,8 @@ void UCartridgeAmmoLoader::LoadAmmo(UObject* LoadObject)
 	{
 		LoadTrigger->bGenerateOverlapEvents = false;
 	}
+
+	OnAmmoCountChanged.ExecuteIfBound();
 }
 
 void UCartridgeAmmoLoader::OnEquipped()
@@ -91,6 +93,8 @@ void UCartridgeAmmoLoader::InitializeLoader()
 
 	AmmoCount = Capacity;
 	ServerAmmoCount = AmmoCount;
+
+	OnAmmoCountChanged.ExecuteIfBound();
 }
 
 void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
