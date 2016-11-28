@@ -735,6 +735,7 @@ void AHeroFirearm::OnEquipped()
 	Super::OnEquipped();
 
 	AmmoLoader->OnEquipped();
+	bIsRecoilActive = false;
 }
 
 void AHeroFirearm::OnUnequipped()
@@ -742,9 +743,5 @@ void AHeroFirearm::OnUnequipped()
 	Super::OnUnequipped();
 
 	AmmoLoader->OnUnequipped();
-}
-
-TSubclassOf<class AEquippableUIActor> AHeroFirearm::GetUIActor() const
-{
-	return FirearmUI;
+	bIsRecoilActive = false;
 }

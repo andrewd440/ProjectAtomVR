@@ -25,15 +25,18 @@ struct FHeroLoadoutSlot
 	DECLARE_DELEGATE_OneParam(FItemChanged, ELoadoutSlotChangeType)
 	FItemChanged OnSlotChanged;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	class AHeroEquippable* Item = nullptr;
 
 	// Remaining items for this slot
-	UPROPERTY()
-	uint32 Count = 0;
+	UPROPERTY(BlueprintReadOnly)
+	int32 Count = 0;
 
 	// Socket the item is attached to when in storage
 	FName StorageSocket;
+
+	// Socket the item UI is attached to
+	FName UISocket;
 
 	// The trigger volume for the item's storage location
 	class USphereComponent* StorageTrigger = nullptr;
@@ -47,6 +50,9 @@ class PROJECTATOMVR_API UHeroLoadout : public UObject
 {
 	GENERATED_BODY()
 	
+public:
+	static const FHeroLoadoutSlot NullLoadoutSlot;
+
 public:
 	/**
 	 * Initializes loadout slots. Does not spawn any loadout items.
@@ -85,7 +91,8 @@ public:
 	/** Gets the loadout template. Template items and loadout slots map one-to-one. */
 	const TSubclassOf<class UHeroLoadoutTemplate> GetLoadoutTemplate() const;
 
-	const FHeroLoadoutSlot* GetItemSlot(const class AHeroEquippable* Item) const;
+	UFUNCTION(BlueprintCallable, Category = Loadout)
+	const FHeroLoadoutSlot& GetItemSlot(const class AHeroEquippable* Item) const;
 
 	USceneComponent* GetAttachParent() const;
 

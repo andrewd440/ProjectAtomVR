@@ -17,7 +17,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
 namespace
 {
-	static constexpr float HeadOrientationFactor = 0.5f; // Influence that the head orientation has on the body mesh
+	static constexpr float HeadOrientationFactor = 0.35f; // Influence that the head orientation has on the body mesh
 	static constexpr float HandsOrientationFactor = 1.f - HeadOrientationFactor; // Influence that the direction of hands has on the body mesh.
 }
 
@@ -288,9 +288,9 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 		{
 			LeftHandMesh->PlayAnimation(AnimDefaultHand.Left, true);
 		}
-
+		
+		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
 		LeftHandMesh->SetRelativeLocationAndRotation(DefaultLeftHandTransform.Location, DefaultLeftHandTransform.Rotation);
-		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::KeepRelativeTransform);		
 	}
 	else
 	{
@@ -300,9 +300,9 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 		{
 			RightHandMesh->PlayAnimation(AnimDefaultHand.Right, true);
 		}
-
+		
+		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
 		RightHandMesh->SetRelativeLocationAndRotation(DefaultRightHandTransform.Location, DefaultRightHandTransform.Rotation);
-		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 }
 

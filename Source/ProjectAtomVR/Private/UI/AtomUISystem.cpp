@@ -122,6 +122,6 @@ void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 
 	if (Change != ELoadoutSlotChangeType::None && UIActor != nullptr)
 	{
-		UIActor->OnLoadoutChanged(Change);
+		UIActor->OnLoadoutChanged(Change, LoadoutSlots[LoadoutIndex]);
 	}
 }

@@ -10,7 +10,7 @@ namespace
 	static const FName MagazineAttachSocket{ TEXT("MagazineAttach") };
 
 	static constexpr float SmoothLoadSpeed = 30.f;
-	static constexpr float ClipAttachRotationErrorDegrees = 15.f;
+	static constexpr float ClipAttachRotationErrorDegrees = 20.f;
 	static constexpr float ClipAttachRotationErrorRadians = ClipAttachRotationErrorDegrees * (PI / 180.f);
 }
 
@@ -24,7 +24,6 @@ UMagazineAmmoLoader::UMagazineAmmoLoader(const FObjectInitializer& ObjectInitial
 	ReloadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MagazineReloadTrigger"));	
 	ReloadTrigger->SetIsReplicated(false);
 	ReloadTrigger->SetSphereRadius(2.f);
-	ReloadTrigger->SetHiddenInGame(false);
 	ReloadTrigger->bGenerateOverlapEvents = false;
 	ReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
 	ReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -159,6 +158,8 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	ensureMsgf(Magazine->IsA(MagazineTemplate),
 		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineTemplate is %s"), Magazine->StaticClass()->GetName(), MagazineTemplate->StaticClass()->GetName());
 
+	ReloadTrigger->bGenerateOverlapEvents = false; // Disable immediately to prevent newly spawned loadout items from trying to load ammo.
+
 	Magazine->SetCanReturnToLoadout(false);
 
 	if (Magazine->IsEquipped())
@@ -167,9 +168,7 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	}
 
 	Magazine->SetActorEnableCollision(false);
-	Magazine->GetMesh()->SetSimulatePhysics(false);
-
-	ReloadTrigger->bGenerateOverlapEvents = false;
+	Magazine->GetMesh()->SetSimulatePhysics(false);	
 
 	if (bHasInitialMagazine)
 	{

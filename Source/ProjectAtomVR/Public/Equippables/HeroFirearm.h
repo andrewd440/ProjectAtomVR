@@ -180,7 +180,6 @@ public:
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	virtual void OnEquipped() override;
 	virtual void OnUnequipped() override;
-	virtual TSubclassOf<class AEquippableUIActor> GetUIActor() const override;
 
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
@@ -205,9 +204,6 @@ protected:
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
 	class UAmmoLoader* AmmoLoader;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	TSubclassOf<class AFirearmUIActor> FirearmUI;
 
 	/**
 	* Shots type for this firearm. Shots are fired from the socket name "Muzzle" on the mesh.

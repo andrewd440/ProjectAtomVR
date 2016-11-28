@@ -33,6 +33,8 @@ namespace
 	static TArray<FSavedLoadoutSlot> SavedLoadout;
 }
 
+const FHeroLoadoutSlot UHeroLoadout::NullLoadoutSlot;
+
 void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
 {
 	for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
@@ -73,6 +75,7 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 		for (int32 i = 0; i < LoadoutSlotCount; ++i)
 		{
 			Loadout[i].StorageSocket = LoadoutTemplateSlots[i].StorageSocket;
+			Loadout[i].UISocket = LoadoutTemplateSlots[i].UISocket;
 		}
 	}
 }
@@ -143,9 +146,16 @@ const TSubclassOf<class UHeroLoadoutTemplate> UHeroLoadout::GetLoadoutTemplate()
 	return LoadoutTemplate;
 }
 
-const FHeroLoadoutSlot* UHeroLoadout::GetItemSlot(const class AHeroEquippable* Item) const
+const FHeroLoadoutSlot& UHeroLoadout::GetItemSlot(const class AHeroEquippable* Item) const
 {
-	return Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
+	if (const FHeroLoadoutSlot* FoundSlot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; }))
+	{
+		return *FoundSlot;
+	}
+	else
+	{
+		return NullLoadoutSlot;
+	}
 }
 
 USceneComponent* UHeroLoadout::GetAttachParent() const

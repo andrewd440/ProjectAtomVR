@@ -25,10 +25,10 @@ struct FEquipStatus
 	UPROPERTY()
 	EEquipType EquipType;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	EHand EquippedHand;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	uint32 bIsEquipped : 1;
 
 	void ForceReplication()
@@ -176,6 +176,9 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_EquipStatus, BlueprintReadOnly, Category = Equippable)
 	FEquipStatus EquipStatus;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
+	TSubclassOf<class AEquippableUIActor> EquippableUI;
 
 	/** Seconds before this item can be equipped again after unequipping. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Equippable)

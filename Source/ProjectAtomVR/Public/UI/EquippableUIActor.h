@@ -25,11 +25,15 @@ public:
 	* Called when the loadout slot for the owning equippable has changed. Type 
 	* will never be Item as that is handled externally.
 	*/
-	void OnLoadoutChanged(ELoadoutSlotChangeType Type);
+	void OnLoadoutChanged(ELoadoutSlotChangeType Type, const struct FHeroLoadoutSlot& LoadoutSlot);
+
+	UFUNCTION(BlueprintCallable, Category = EquippableUI)
+	class AHeroEquippable* GetEquippable() const;
 
 	/** AActor Interface Begin */
 	virtual void PostInitializeComponents() override;
 	virtual void SetOwner(AActor* NewOwner) override;
+	virtual void Destroyed() override;
 	/** AActor Interface End */
 
 protected:

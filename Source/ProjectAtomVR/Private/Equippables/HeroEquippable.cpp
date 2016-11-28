@@ -322,7 +322,7 @@ void AHeroEquippable::OnUnequipped()
 
 TSubclassOf<class AEquippableUIActor> AHeroEquippable::GetUIActor() const
 {
-	return nullptr;
+	return EquippableUI;
 }
 
 void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)

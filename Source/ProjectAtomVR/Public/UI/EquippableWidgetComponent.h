@@ -29,6 +29,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = EquippableWidget)
 	EEquippableWidgetType Type = EEquippableWidgetType::Item;
 
+	/** Socket to attach to in the Type is EEquippableWidgetType::Item */
 	UPROPERTY(EditDefaultsOnly, Category = EquippableWidget)
 	FName WidgetAttachSocket = NAME_None;
 };

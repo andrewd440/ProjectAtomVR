@@ -5,6 +5,7 @@
 
 #include "UI/EquippableWidget.h"
 #include "UI/EquippableWidgetComponent.h"
+#include "HeroLoadout.h"
 
 
 AEquippableUIActor::AEquippableUIActor()
@@ -12,12 +13,19 @@ AEquippableUIActor::AEquippableUIActor()
 
 }
 
-void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type)
+void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FHeroLoadoutSlot& LoadoutSlot)
 {
 	for (UEquippableWidget* Widget : EquippableWidgets)
 	{
-		Widget->OnLoadoutChanged(Type);
+		Widget->OnLoadoutChanged(Type, LoadoutSlot);
 	}
+}
+
+class AHeroEquippable* AEquippableUIActor::GetEquippable() const
+{
+	check(GetOwner() == nullptr || Cast<AHeroEquippable>(GetOwner()));
+
+	return static_cast<AHeroEquippable*>(GetOwner());
 }
 
 void AEquippableUIActor::PostInitializeComponents()
@@ -52,14 +60,11 @@ void AEquippableUIActor::PostInitializeComponents()
 				else
 				{
 					// Attach to item loadout slot
-					UHeroLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
-					const FHeroLoadoutSlot* LoadoutSlot = Loadout->GetItemSlot(Equippable);
-
-					if (LoadoutSlot)
-					{
-						AttachParent = Loadout->GetAttachParent();
-						AttachSocket = LoadoutSlot->StorageSocket;
-					}					
+					const UHeroLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
+					const FHeroLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable);
+					
+					AttachParent = Loadout->GetAttachParent();
+					AttachSocket = LoadoutSlot.UISocket;				
 				}
 
 				if (AttachParent)
@@ -81,6 +86,19 @@ void AEquippableUIActor::SetOwner(AActor* NewOwner)
 	{
 		Widget->OnNewEquippable();
 	}
+}
+
+void AEquippableUIActor::Destroyed()
+{
+	for (UEquippableWidget* Widget : EquippableWidgets)
+	{
+		if(Widget->IsValidLowLevel() && !Widget->IsPendingKill())
+			Widget->ConditionalBeginDestroy();
+	}
+
+	EquippableWidgets.Empty();
+
+	Super::Destroyed();
 }
 
 void AEquippableUIActor::OnEquippedStatusChanged()

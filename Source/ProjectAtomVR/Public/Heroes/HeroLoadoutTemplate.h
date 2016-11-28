@@ -21,12 +21,12 @@ struct FHeroLoadoutTemplateSlot
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
 	FName StorageSocket;
 
+	UPROPERTY(EditDefaultsOnly, Category = Loadout)
+	FName UISocket;
+
 	/** Radius of overlapping trigger used to equip this item. */
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
 	float StorageTriggerRadius;
-
-	/*UPROPERTY(EditDefaultsOnly, Category = Loadout)
-	TSubclassOf<class ALoadoutSlotUI> SlotUI;*/
 };
 
 /**
