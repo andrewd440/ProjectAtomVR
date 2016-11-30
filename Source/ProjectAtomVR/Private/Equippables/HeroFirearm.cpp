@@ -539,31 +539,26 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 	if (AmmoLoader->GetAmmoCount() <= 0)
 	{
 		bIsChamberEmpty = true;
-		AmmoLoader->OnAmmoCountChanged.ExecuteIfBound();	
-	}
-	else
-	{		
-		bIsChamberEmpty = false;
-		AmmoLoader->ConsumeAmmo();		
-	}	
 
-	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
-
-	// Then update visible chamber bullet and set slide lock if available
-	if (bIsChamberEmpty)
-	{
 		CartridgeMeshComponent->SetVisibility(false);
 
 		if (Stats.bHasSlideLock)
 		{
-			ActivateSlideLock();			
+			ActivateSlideLock();
 		}
+
+		AmmoLoader->OnAmmoCountChanged.ExecuteIfBound(); // Ammo count changed, but not from AmmoLoader
 	}
 	else
-	{
+	{		
+		bIsChamberEmpty = false;
+		AmmoLoader->ConsumeAmmo();
+
 		CartridgeMeshComponent->SetVisibility(true);
 		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
-	}
+	}	
+
+	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
 }
 
 void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)

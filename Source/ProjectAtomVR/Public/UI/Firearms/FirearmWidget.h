@@ -21,4 +21,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = FirearmWidget)
 	class AFirearmUIActor* GetFirearmUI();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = FirearmWidget)
+	class AHeroFirearm* GetFirearm();
 };
