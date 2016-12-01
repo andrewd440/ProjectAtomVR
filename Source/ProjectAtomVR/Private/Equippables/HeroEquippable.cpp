@@ -25,6 +25,7 @@ const FName AHeroEquippable::ActiveStateName = TEXT("ActiveState");
 AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
 	bReplicates = true;
+	bReplicatesAttachmentMovement = true;
 
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
@@ -85,7 +86,7 @@ void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 	EquipStatus.bIsEquipped = true;
 	EquipStatus.ForceReplication(); // Make sure the equip update is sent to clients
 
-	bReplicateAttachedMovement = false; // #AtomTodo Find better placement for this. Preferably after initial replication.
+	bReplicatesAttachmentMovement = false; // #AtomTodo Find better placement for this. Preferably after initial replication.
 
 	if (HeroOwner->IsLocallyControlled())
 	{
@@ -325,6 +326,11 @@ TSubclassOf<class AEquippableUIActor> AHeroEquippable::GetUIActor() const
 	return EquippableUI;
 }
 
+void AHeroEquippable::SetReplicatesAttachmentMovement(bool bShouldReplicate)
+{
+	bReplicatesAttachmentMovement = bShouldReplicate;
+}
+
 void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	check(InInputComponent);
@@ -431,11 +437,11 @@ void AHeroEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropert
 {
 	Super::PreReplication(ChangedPropertyTracker);
 
-	// Override AttachmentReplication replication to false
+	// Override AttachmentReplication replication to flag
 	static UProperty* spAttachmentReplication = GetReplicatedProperty(StaticClass(), AActor::StaticClass(), TEXT("AttachmentReplication"));
 	for ( int32 i = 0; i < spAttachmentReplication->ArrayDim; i++ )
 	{																						
-		ChangedPropertyTracker.SetCustomIsActiveOverride(spAttachmentReplication->RepIndex + i, false );
+		ChangedPropertyTracker.SetCustomIsActiveOverride(spAttachmentReplication->RepIndex + i, bReplicatesAttachmentMovement );
 	}
 }
 

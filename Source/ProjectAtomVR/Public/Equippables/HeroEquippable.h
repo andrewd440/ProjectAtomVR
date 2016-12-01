@@ -109,6 +109,8 @@ public:
 
 	virtual TSubclassOf<class AEquippableUIActor> GetUIActor() const;
 
+	void SetReplicatesAttachment(bool bShouldReplicate);
+
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
@@ -217,6 +219,8 @@ private:
 	 ** SecondaryHandAttachLeft or SecondaryHandAttachRight sockets, depending on the hand.*/
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	uint32 bIsSecondaryHandAttachmentAllowed : 1;
+
+	uint32 bReplicatesAttachment : 1;
 
 public:
 	AHeroBase* GetHeroOwner() const;
