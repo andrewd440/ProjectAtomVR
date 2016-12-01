@@ -6,6 +6,8 @@
 #include "UI/EquippableWidget.h"
 #include "UI/EquippableWidgetComponent.h"
 #include "HeroLoadout.h"
+#include "UserWidget.h"
+#include "WidgetTree.h"
 
 
 AEquippableUIActor::AEquippableUIActor()
@@ -38,11 +40,21 @@ void AEquippableUIActor::PostInitializeComponents()
 	for (UWidgetComponent* WidgetComponent : WidgetComponents)
 	{
 		// Set owner for all equippable user widgets
-		if (auto EquippableWidget = Cast<UEquippableWidget>(WidgetComponent->GetUserWidgetObject()))
+		UUserWidget* Widget = WidgetComponent->GetUserWidgetObject();
+
+		// Add all EquippableWidgets to internal list
+		if (auto EquippableWidget = Cast<UEquippableWidget>(Widget))
 		{
 			EquippableWidgets.Add(EquippableWidget);
-			EquippableWidget->SetOwner(this);
 		}
+		
+		Widget->WidgetTree->ForEachWidget([this](UWidget* TreeWidget) 
+		{ 
+			if (auto EquippableWidget = Cast<UEquippableWidget>(TreeWidget))
+			{
+				EquippableWidgets.Add(EquippableWidget);
+			}
+		});
 
 		if (auto Equippable = Cast<AHeroEquippable>(GetOwner()))
 		{
@@ -75,6 +87,12 @@ void AEquippableUIActor::PostInitializeComponents()
 
 			Equippable->OnEquippedStatusChangedUI.BindUObject(this, &AEquippableUIActor::OnEquippedStatusChanged);
 		}		
+	}
+
+	// Setup owner for all equippable widgets.
+	for (auto EquippableWidget : EquippableWidgets)
+	{
+		EquippableWidget->SetOwner(this);
 	}
 }
 

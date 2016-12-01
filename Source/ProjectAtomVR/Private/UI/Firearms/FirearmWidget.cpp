@@ -6,7 +6,7 @@
 
 AFirearmUIActor* UFirearmWidget::GetFirearmUI()
 {
-	check(Cast<AFirearmUIActor>(GetOwner()) && "FirearmWidgets must only be used with FirearmUIActors");
+	check(!GetOwner() || Cast<AFirearmUIActor>(GetOwner()) && "FirearmWidgets must only be used with FirearmUIActors"); // Might be null in editor
 	return static_cast<AFirearmUIActor*>(GetOwner());
 }
 

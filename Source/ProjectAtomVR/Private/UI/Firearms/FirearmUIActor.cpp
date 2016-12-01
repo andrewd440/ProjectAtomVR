@@ -35,7 +35,7 @@ void AFirearmUIActor::BeginPlay()
 
 AHeroFirearm* AFirearmUIActor::GetFirearm() const
 {
-	check(Cast<AHeroFirearm>(GetOwner()));
+	check(!GetOwner() || Cast<AHeroFirearm>(GetOwner())); // Might be null in editor
 
 	return static_cast<AHeroFirearm*>(GetOwner());
 }

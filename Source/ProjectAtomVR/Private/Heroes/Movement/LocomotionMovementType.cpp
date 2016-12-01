@@ -40,7 +40,7 @@ void ULocomotionMovementType::OnMoveForward(float Value)
 	if (!bIsGripPressed)
 	{
 		AHeroBase* const MyHero = GetHero();
-		const FVector Direction = MyHero->GetCamera()->GetForwardVector();
+		const FVector Direction = MyHero->GetBodyMesh()->GetForwardVector();
 		MyHero->AddMovementInput(Direction.GetSafeNormal2D(), Value);
 	}
 }
@@ -50,7 +50,7 @@ void ULocomotionMovementType::OnMoveRight(float Value)
 	if (!bIsGripPressed)
 	{
 		AHeroBase* const MyHero = GetHero();
-		const FVector Direction = MyHero->GetCamera()->GetRightVector();
+		const FVector Direction = MyHero->GetBodyMesh()->GetRightVector();
 		MyHero->AddMovementInput(Direction.GetSafeNormal2D(), Value);
 	}
 }
