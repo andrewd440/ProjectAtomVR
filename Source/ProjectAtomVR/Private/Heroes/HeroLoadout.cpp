@@ -160,7 +160,7 @@ const FHeroLoadoutSlot& UHeroLoadout::GetItemSlot(const class AHeroEquippable* I
 
 USceneComponent* UHeroLoadout::GetAttachParent() const
 {
-	return HeroOwner->GetBodyMesh();
+	return HeroOwner->GetBodyAttachmentComponent();
 }
 
 void UHeroLoadout::PreNetReceive()
@@ -264,7 +264,7 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 			
 			if (Slot.Count > 0)
 			{
-				// We have more, spawn it!
+				// We have more, spawn one
 				--Slot.Count;
 
 				FActorSpawnParameters SpawnParams;
@@ -294,10 +294,15 @@ void UHeroLoadout::OnRep_Loadout()
 	{
 		ELoadoutSlotChangeType Change = ELoadoutSlotChangeType::None;
 
-		if ((SavedLoadout[i].Item != Loadout[i].Item))
+		if (SavedLoadout[i].Item != Loadout[i].Item)
+		{
 			Change |= ELoadoutSlotChangeType::Item;
 
-		if ((SavedLoadout[i].Count != Loadout[i].Count))
+			// Update local attachment
+			Loadout[i].Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, Loadout[i].StorageSocket);
+		}			
+
+		if (SavedLoadout[i].Count != Loadout[i].Count)
 			Change |= ELoadoutSlotChangeType::Count;
 
 		if (Change != ELoadoutSlotChangeType::None)

@@ -23,7 +23,7 @@ namespace
 
 // Sets default values
 AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UHeroMovementComponent>(ACharacter::CharacterMovementComponentName).DoNotCreateDefaultSubobject(ACharacter::MeshComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UHeroMovementComponent>(ACharacter::CharacterMovementComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -32,18 +32,16 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	bReplicates = true;
 	bReplicateMovement = true;
 
+	GetMesh()->SetOwnerNoSee(true);
+
 	// Setup camera
 	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(RootComponent);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
 
-	// Setup head mesh
-	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
-	HeadMesh->SetupAttachment(Camera);
-	HeadMesh->bOwnerNoSee = true;
-
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
+	BodyMesh->SetOnlyOwnerSee(true);
 	BodyMesh->bAbsoluteLocation = true;
 	BodyMesh->bAbsoluteRotation = true;
 
@@ -55,16 +53,18 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 
 	LeftHandTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("LeftHandTrigger"));		
 	LeftHandTrigger->SetupAttachment(LeftHandController);
+	LeftHandTrigger->SetRelativeLocation(FVector{ -10.8, 1, -6.9 });
 	LeftHandTrigger->SetIsReplicated(false);
 	LeftHandTrigger->SetSphereRadius(4.f);
 	LeftHandTrigger->bGenerateOverlapEvents = true;
 	LeftHandTrigger->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
+	LeftHandMesh->SetOnlyOwnerSee(true);
 	LeftHandMesh->SetupAttachment(LeftHandController);
+	LeftHandMesh->SetRelativeLocationAndRotation(FVector{ -20.2, -1.7, 3.3 }, FRotator{ -40, 0, -90 });
 	LeftHandMesh->SetIsReplicated(false);
 	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	LeftHandMesh->SetAnimation(AnimDefaultHand.Left);		
 	LeftHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	// Setup right hand
@@ -75,16 +75,18 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	
 	RightHandTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("RightHandTrigger"));
 	RightHandTrigger->SetupAttachment(RightHandController);
+	RightHandTrigger->SetRelativeLocation(FVector{ -10.8, 1, -6.9 });
 	RightHandTrigger->SetIsReplicated(false);
 	RightHandTrigger->SetSphereRadius(4.f);
 	RightHandTrigger->bGenerateOverlapEvents = true;
 	RightHandTrigger->SetCollisionProfileName(AtomCollisionProfiles::HeroHand);
 
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
+	RightHandMesh->SetOnlyOwnerSee(true);
 	RightHandMesh->SetupAttachment(RightHandController);
+	RightHandMesh->SetRelativeLocationAndRotation(FVector{ -20.2, 1.7, 3.3 }, FRotator{ -40, 0, 90 });
 	RightHandMesh->SetIsReplicated(false);
 	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-	RightHandMesh->SetAnimation(AnimDefaultHand.Right);
 	RightHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	// Setup loadout
@@ -109,10 +111,10 @@ void AHeroBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
-	UpdateBodyMeshLocation();
+	UpdateMeshLocation(DeltaTime);
 }
 
-void AHeroBase::UpdateBodyMeshLocation()
+void AHeroBase::UpdateMeshLocation(float DeltaTime)
 {
 	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
 	const FVector CameraForward2D = Camera->GetForwardVector().GetSafeNormal2D();
@@ -132,8 +134,18 @@ void AHeroBase::UpdateBodyMeshLocation()
 
 	const FVector BodyForward2D = CameraForward2D * HeadOrientationFactor + ControllerForward2D * HandsOrientationFactor;
 
-	const FVector BodyLocation = NeckBaseLocation - NeckBaseSocketLocation;
-	BodyMesh->SetWorldLocationAndRotation(BodyLocation, BodyForward2D.ToOrientationQuat());
+	FVector BodyLocation = NeckBaseLocation - NeckBaseSocketLocation;
+	FQuat BodyRotation = BodyForward2D.ToOrientationQuat();
+
+	// Calc movement velocity
+	RoomScaleVelocity = (BodyLocation - BodyMesh->GetComponentLocation()) / DeltaTime;
+
+	BodyMesh->SetWorldLocationAndRotation(BodyLocation, BodyRotation);
+
+	// Update full body location using only xy for location and yaw rotation
+	USkeletalMeshComponent* FullBodyMesh = GetMesh();
+	BodyLocation.Z = FullBodyMesh->GetComponentLocation().Z;
+	FullBodyMesh->SetWorldLocationAndRotation(BodyLocation, FRotator{0, BodyRotation.Rotator().Yaw, 0});
 }
 
 void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
@@ -237,6 +249,11 @@ UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
 	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
 }
 
+USceneComponent* AHeroBase::GetHandMeshTarget(const EHand Hand) const
+{
+	return (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
+}
+
 void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 { 
 	// Unequip first if hand is in use
@@ -284,22 +301,12 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 	{
 		LeftHandEquippable = nullptr;
 
-		if (AnimDefaultHand.Left)
-		{
-			LeftHandMesh->PlayAnimation(AnimDefaultHand.Left, true);
-		}
-		
 		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
 		LeftHandMesh->SetRelativeLocationAndRotation(DefaultLeftHandTransform.Location, DefaultLeftHandTransform.Rotation);
 	}
 	else
 	{
 		RightHandEquippable = nullptr;
-
-		if (AnimDefaultHand.Right)
-		{
-			RightHandMesh->PlayAnimation(AnimDefaultHand.Right, true);
-		}
 		
 		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
 		RightHandMesh->SetRelativeLocationAndRotation(DefaultRightHandTransform.Location, DefaultRightHandTransform.Rotation);
@@ -322,6 +329,73 @@ FVector AHeroBase::GetDefaultHandMeshLocation(const EHand Hand) const
 FRotator AHeroBase::GetDefaultHandMeshRotation(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Rotation : DefaultRightHandTransform.Rotation;
+}
+
+UMeshComponent* AHeroBase::GetBodyAttachmentComponent() const
+{
+	if (IsLocallyControlled())
+	{
+		return BodyMesh;
+	}
+	else
+	{
+		return GetMesh();
+	}
+}
+
+USkeletalMeshComponent* AHeroBase::GetHandAttachmentComponent(const EHand Hand) const
+{
+	return !IsLocallyControlled() ? GetMesh() : (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
+}
+
+void AHeroBase::PlayHandAnimation(const EHand Hand, const FHandAnim& Anim)
+{
+	if (IsLocallyControlled())
+	{
+		if (Hand == EHand::Left)
+		{
+			if (Anim.DetachedLeft != nullptr)
+			{
+				LeftHandMesh->PlayAnimation(Anim.DetachedLeft, true);
+			}
+		}
+		else
+		{
+			if (Anim.DetachedRight != nullptr)
+			{
+				RightHandMesh->PlayAnimation(Anim.DetachedRight, true);
+			}
+		}
+	}
+	else
+	{
+		UAnimMontage* Montage = (Hand == EHand::Left) ? Anim.FullBodyLeft : Anim.FullBodyRight;
+		PlayAnimMontage(Montage);
+	}
+}
+
+void AHeroBase::StopHandAnimation(const EHand Hand, const FHandAnim& Anim)
+{
+	if (IsLocallyControlled())
+	{
+		if (Hand == EHand::Left)
+		{
+			LeftHandMesh->SetAnimation(nullptr);
+		}
+		else
+		{
+			RightHandMesh->SetAnimation(nullptr);
+		}
+	}
+	else
+	{
+		UAnimMontage* Montage = (Hand == EHand::Left) ? Anim.FullBodyLeft : Anim.FullBodyRight;
+
+		if (Montage != nullptr)
+		{
+			StopAnimMontage(Montage);
+		}
+	}
 }
 
 UHeroLoadout* AHeroBase::GetLoadout() const

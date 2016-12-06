@@ -105,7 +105,6 @@ void UMagazineAmmoLoader::InitializeLoader()
 		
 		const FTransform Transform = GetFirearm()->GetMesh()->GetSocketTransform(MagazineAttachSocket); // Spawn at attach location
 		RemoteConnectionMagazine = GetWorld()->SpawnActor<AFirearmMagazine>(MagazineTemplate, Transform, SpawnParams);
-		RemoteConnectionMagazine->SetReplicatesAttachment(false);
 		LoadAmmo(RemoteConnectionMagazine);
 	}
 

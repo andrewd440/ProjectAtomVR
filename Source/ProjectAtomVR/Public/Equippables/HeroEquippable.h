@@ -114,7 +114,9 @@ public:
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
-	void GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
+	USceneComponent* GetOffsetTarget() const;
+
+	void GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
 
 	UFUNCTION()
 	virtual void OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
@@ -154,7 +156,8 @@ protected:
 	/** AActor Interface End */
 
 protected:
-	/** Attach socket on the Equipped hand mesh to attach this mesh to. */
+	/** Socket to attach to when equipped. Depending on the hand equipped, this socket name will be post-fixed
+	 ** with _Left or _Right.*/
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FName PrimaryHandAttachSocket = NAME_None;
 

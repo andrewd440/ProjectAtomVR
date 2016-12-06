@@ -155,36 +155,33 @@ void AHeroFirearm::UpdateChamberingHandle()
 void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 {
 	USceneComponent* MyMesh = GetMesh();
-	USceneComponent* Parent = MyMesh->GetAttachParent();
+	USceneComponent* OffsetTarget = GetOffsetTarget();
 
-	const FTransform ToParentTransform = MyMesh->ComponentToWorld.GetRelativeTransform(Parent->ComponentToWorld);
+	const FTransform ToOffsetTargetTransform = MyMesh->ComponentToWorld.GetRelativeTransform(OffsetTarget->ComponentToWorld);
 
 	// Get the move and rotation delta in local space
 	const FVector AngularVelocityLocal = RecoilVelocity.Angular * DeltaSeconds;
 
-	const FQuat RotationDeltaLocal{ ToParentTransform.TransformVector(AngularVelocityLocal.GetSafeNormal()), AngularVelocityLocal.Size() };
-	const FVector DirectionalDeltaLocal = ToParentTransform.TransformVector(RecoilVelocity.Directional);
+	const FQuat RotationDeltaLocal{ ToOffsetTargetTransform.TransformVector(AngularVelocityLocal.GetSafeNormal()), AngularVelocityLocal.Size() };
+	const FVector DirectionalDeltaLocal = ToOffsetTargetTransform.TransformVector(RecoilVelocity.Directional);
 
-	Parent->AddLocalTransform(FTransform{ RotationDeltaLocal, DirectionalDeltaLocal });
+	OffsetTarget->AddLocalTransform(FTransform{ RotationDeltaLocal, DirectionalDeltaLocal });
 
-	//----------------------------------------------------------------------------------------------
 	// Apply force to return to original location/rotation
-	//----------------------------------------------------------------------------------------------
 	FVector OriginalRelativeLocation;
 	FRotator OriginalRelativeRotation;
-	GetOriginalParentLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
+	GetOriginalOffsetTargetLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 
-	bool bIsFinished = true;
-	const FTransform ParentRelativeTransform = Parent->GetRelativeTransform();
+	const FTransform OffsetTargetRelativeTransform = OffsetTarget->GetRelativeTransform();
 	
 	// Rotation delta needed to get to original rotation
-	FQuat ToOriginalRotation = OriginalRelativeRotation.Quaternion() * ParentRelativeTransform.GetRotation().Inverse();
+	FQuat ToOriginalRotation = OriginalRelativeRotation.Quaternion() * OffsetTargetRelativeTransform.GetRotation().Inverse();
 
 	FVector ToOriginalAxis; float ToOriginalAngle;
 	ToOriginalRotation.ToAxisAndAngle(ToOriginalAxis, ToOriginalAngle);
 
-	FQuat ParentRelativeToMeshRotation = (ParentRelativeTransform.GetRotation() * ToParentTransform.GetRotation()).Inverse();
-	ToOriginalAxis = ParentRelativeToMeshRotation.RotateVector(ToOriginalAxis);
+	FQuat OffsetTargetRelativeToMeshRotation = (OffsetTargetRelativeTransform.GetRotation() * ToOffsetTargetTransform.GetRotation()).Inverse();
+	ToOriginalAxis = OffsetTargetRelativeToMeshRotation.RotateVector(ToOriginalAxis);
 
 	// Apply to angular velocity
 	RecoilVelocity.Angular *= Stats.RecoilDampening;
@@ -192,7 +189,7 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 
 	// Move to original location
 	RecoilVelocity.Directional *= Stats.RecoilDampening;
-	FVector ToOriginalLocation = ParentRelativeToMeshRotation.RotateVector(OriginalRelativeLocation - ParentRelativeTransform.GetTranslation());
+	FVector ToOriginalLocation = OffsetTargetRelativeToMeshRotation.RotateVector(OriginalRelativeLocation - OffsetTargetRelativeTransform.GetTranslation());
 
 	const float DistanceToOriginalLocation = ToOriginalLocation.Size();
 
@@ -200,7 +197,7 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 
 	if (ToOriginalAngle <= FLOAT_NORMAL_THRESH && DistanceToOriginalLocation < 0.1f)
 	{
-		Parent->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
+		OffsetTarget->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 		bIsRecoilActive = false;
 	}
 }

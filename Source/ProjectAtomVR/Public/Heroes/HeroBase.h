@@ -40,14 +40,46 @@ public:
 	/** Called by Equippable when the unequipping process is complete. */
 	virtual void OnUnequipped(AHeroEquippable* Item, const EHand Hand);
 
-	/** Gets the default hand mesh location and rotation. */
+	/**
+	* Gets the component that controls the target location and rotation for the hand mesh.
+	* This is always the detached hand mesh for the respective hands, which is only rendered
+	* for local players and is used as the target for the full body meshes hands.
+	*
+	* When offsetting the hands from the motion controllers for any reason, this should be
+	* the component that the offset is applied to.
+	*/
+	USceneComponent* GetHandMeshTarget(const EHand Hand) const;
+
+	/** 
+	 * Gets the default hand mesh location and rotation. 
+	 * This is also the default position for the hand mesh target.
+	 */
 	void GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const;
 
-	/** Gets the default hand mesh location. */
+	/** 
+	 * Gets the default hand mesh location. 
+	 * This is also the default position for the hand mesh target.
+	 */
 	FVector GetDefaultHandMeshLocation(const EHand Hand) const;
 
-	/** Gets the default hand mesh rotation. */
+	/** 
+	 * Gets the default hand mesh rotation. 
+	 * This is also the default position for the hand mesh target.
+	 */
 	FRotator GetDefaultHandMeshRotation(const EHand Hand) const;
+
+	UMeshComponent* GetBodyAttachmentComponent() const;
+
+	USkeletalMeshComponent* GetHandAttachmentComponent(const EHand Hand) const;
+
+	/** 
+	 * Plays an animation on a specified hand. The animation and mesh that it will be played on
+	 * is based on if the character is locally controlled or not. Animation sequences will be
+	 * played looping.
+	 */
+	void PlayHandAnimation(const EHand Hand, const FHandAnim& Anim);
+
+	void StopHandAnimation(const EHand Hand, const FHandAnim& Anim);
 
 	class UHeroLoadout* GetLoadout() const;
 
@@ -73,25 +105,22 @@ protected:
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
 private:
-	void UpdateBodyMeshLocation();
+	void UpdateMeshLocation(float DeltaTime);
 
 protected:
-	/** Default animation used for hand meshes. When nothing is equipped. */
-	UPROPERTY(EditDefaultsOnly, Category = Hero)
-	FHandAnim AnimDefaultHand;
-
 	/** Socket on the body mesh that has the offset for the intended head mesh location. */
 	UPROPERTY(EditDefaultsOnly, Category = Hero)
 	FName NeckBaseSocket = NAME_None;	
+
+	/** Room scale movement velocity of the player. */
+	UPROPERTY(Transient, BlueprintReadOnly, Category = Hero)
+	FVector RoomScaleVelocity = FVector::ZeroVector;
 
 private:
 	FVector NeckBaseSocketLocation = FVector::ZeroVector;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	UStaticMeshComponent* HeadMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* BodyMesh;

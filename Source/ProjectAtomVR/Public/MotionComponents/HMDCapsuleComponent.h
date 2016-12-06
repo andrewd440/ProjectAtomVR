@@ -33,9 +33,7 @@ protected:
 public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-
 	virtual FMatrix GetRenderMatrix() const override;
-
 	/** UActorComponent Interface End */
 
 private:

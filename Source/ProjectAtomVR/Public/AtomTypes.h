@@ -33,10 +33,16 @@ struct PROJECTATOMVR_API FHandAnim
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Anim)
-	class UAnimSequence* Right = nullptr;
+	class UAnimSequence* DetachedLeft = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = Anim)
-	class UAnimSequence* Left = nullptr;
+	class UAnimSequence* DetachedRight = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = Anim)
+	class UAnimMontage* FullBodyLeft = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = Anim)
+	class UAnimMontage* FullBodyRight = nullptr;
 };
 
 //-----------------------------------------------------------------

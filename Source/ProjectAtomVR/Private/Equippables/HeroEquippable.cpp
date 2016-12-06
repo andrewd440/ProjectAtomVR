@@ -25,7 +25,7 @@ const FName AHeroEquippable::ActiveStateName = TEXT("ActiveState");
 AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
 	bReplicates = true;
-	bReplicatesAttachment = true;
+	bReplicatesAttachment = false;
 
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
@@ -85,9 +85,7 @@ void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 	EquipStatus.EquipType = EquipType;
 	EquipStatus.bIsEquipped = true;
 	EquipStatus.ForceReplication(); // Make sure the equip update is sent to clients
-
-	bReplicatesAttachment = false; // #AtomTodo Find better placement for this. Preferably after initial replication.
-
+	
 	if (HeroOwner->IsLocallyControlled())
 	{
 		// Enable input if locally controlled.
@@ -268,18 +266,18 @@ void AHeroEquippable::OnRep_Owner()
 }
 
 void AHeroEquippable::OnEquipped()
-{
-	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandMesh(EquipStatus.EquippedHand);
-	
+{		
 	// Set return storage before attaching to hero
 	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
-	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, PrimaryHandAttachSocket); 
+	
+	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.EquippedHand);
 
-	UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimHandEquip.Right : AnimHandEquip.Left;
-	if (HandAnim)
-	{
-		AttachHand->PlayAnimation(HandAnim, true);
-	}
+	FString AttachSocket;
+	PrimaryHandAttachSocket.ToString(AttachSocket);
+	AttachSocket += (EquipStatus.EquippedHand == EHand::Left) ? TEXT("_Left") : TEXT("_Right");
+	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName{ *AttachSocket });
+
+	HeroOwner->PlayHandAnimation(EquipStatus.EquippedHand, AnimHandEquip);
 
 	if (EquipSound)
 	{
@@ -312,10 +310,11 @@ void AHeroEquippable::OnUnequipped()
 	if (EquipSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
-	}
+	}	
 
 	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;
 
+	HeroOwner->StopHandAnimation(EquipStatus.EquippedHand, AnimHandEquip);
 	HeroOwner->OnUnequipped(this, EquipStatus.EquippedHand);
 
 	OnEquippedStatusChangedUI.ExecuteIfBound();
@@ -336,7 +335,12 @@ void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 	check(InInputComponent);
 }
 
-void AHeroEquippable::GetOriginalParentLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
+USceneComponent* AHeroEquippable::GetOffsetTarget() const
+{
+	return HeroOwner->GetHandMeshTarget(EquipStatus.EquippedHand);
+}
+
+void AHeroEquippable::GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
 {
 	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.EquippedHand, LocationOut, RotationOut);
 }
@@ -349,17 +353,12 @@ void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 		HeroOwner->GetHandTrigger(SecondaryHand) == OtherComp && // Is it the other hand and is it empty	
 		HeroOwner->GetEquippable(SecondaryHand) == nullptr)
 	{
-		USkeletalMeshComponent* const HandMesh = HeroOwner->GetHandMesh(SecondaryHand);
-
-		HandMesh->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, (SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
-
-		UAnimSequence* const HandAnim = (EquipStatus.EquippedHand == EHand::Right) ? AnimSecondaryHandEquip.Left : AnimSecondaryHandEquip.Right;
-		if (HandAnim)
-		{
-			HandMesh->PlayAnimation(HandAnim, true);
-		}
+		USceneComponent* const HandTarget = HeroOwner->GetHandMeshTarget(SecondaryHand);
+		HandTarget->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, (SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
 
 		bIsSecondaryHandAttached = true;
+
+		HeroOwner->PlayHandAnimation(!EquipStatus.EquippedHand, AnimSecondaryHandEquip);
 		HeroOwner->OnEquipped(this, SecondaryHand);
 	}
 }
@@ -375,6 +374,7 @@ void AHeroEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* Over
 		HeroOwner->GetEquippable(SecondaryHand) == this)
 	{
 		bIsSecondaryHandAttached = false;
+		HeroOwner->StopHandAnimation(!EquipStatus.EquippedHand, AnimSecondaryHandEquip);
 		HeroOwner->OnUnequipped(this, !EquipStatus.EquippedHand);
 	}
 }
