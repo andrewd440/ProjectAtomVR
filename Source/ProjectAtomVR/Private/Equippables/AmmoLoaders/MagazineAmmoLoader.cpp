@@ -65,6 +65,11 @@ bool UMagazineAmmoLoader::IsTickable() const
 			bIsLoadingMagazine;
 }
 
+void UMagazineAmmoLoader::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 TStatId UMagazineAmmoLoader::GetStatId() const
 {
 	RETURN_QUICK_DECLARE_CYCLE_STAT(UMagazineAmmoLoader, STATGROUP_Tickables);
@@ -220,7 +225,7 @@ void UMagazineAmmoLoader::OnRep_DefaultMagazine()
 {
 	if (RemoteConnectionMagazine)
 	{
-		GetFirearm()->LoadAmmo(RemoteConnectionMagazine, true);
+		LoadAmmo(RemoteConnectionMagazine);
 	}
 }
 

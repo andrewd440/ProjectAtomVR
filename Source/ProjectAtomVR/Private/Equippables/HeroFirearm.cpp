@@ -154,6 +154,8 @@ void AHeroFirearm::UpdateChamberingHandle()
 
 void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 {
+	UE_LOG(LogFirearm, Log, TEXT("Updating recoil offset for firearm."));
+
 	USceneComponent* MyMesh = GetMesh();
 	USceneComponent* OffsetTarget = GetOffsetTarget();
 
@@ -181,24 +183,28 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	ToOriginalRotation.ToAxisAndAngle(ToOriginalAxis, ToOriginalAngle);
 
 	FQuat OffsetTargetRelativeToMeshRotation = (OffsetTargetRelativeTransform.GetRotation() * ToOffsetTargetTransform.GetRotation()).Inverse();
-	ToOriginalAxis = OffsetTargetRelativeToMeshRotation.RotateVector(ToOriginalAxis);
 
-	// Apply to angular velocity
-	RecoilVelocity.Angular *= Stats.RecoilDampening;
-	RecoilVelocity.Angular += ToOriginalAxis * FMath::Min(ToOriginalAngle, Stats.Stability * DeltaSeconds);
-
-	// Move to original location
-	RecoilVelocity.Directional *= Stats.RecoilDampening;
+	// Get movement needed to get to original location	
 	FVector ToOriginalLocation = OffsetTargetRelativeToMeshRotation.RotateVector(OriginalRelativeLocation - OffsetTargetRelativeTransform.GetTranslation());
-
 	const float DistanceToOriginalLocation = ToOriginalLocation.Size();
 
-	RecoilVelocity.Directional += ToOriginalLocation.GetSafeNormal() * FMath::Min(DistanceToOriginalLocation, Stats.Stability * DeltaSeconds);
-
-	if (ToOriginalAngle <= FLOAT_NORMAL_THRESH && DistanceToOriginalLocation < 0.1f)
+	if (ToOriginalAngle < 0.01f && DistanceToOriginalLocation < 0.1f)
 	{
+		// If close enough to original, set it back
 		OffsetTarget->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
 		bIsRecoilActive = false;
+	}
+	else
+	{
+		// Apply to angular velocity		
+		ToOriginalAxis = OffsetTargetRelativeToMeshRotation.RotateVector(ToOriginalAxis);
+
+		RecoilVelocity.Angular *= Stats.RecoilDampening;
+		RecoilVelocity.Angular += ToOriginalAxis * FMath::Min(ToOriginalAngle, Stats.Stability * DeltaSeconds);
+
+		// Apply directional velocity to move to original location
+		RecoilVelocity.Directional *= Stats.RecoilDampening;
+		RecoilVelocity.Directional += ToOriginalLocation.GetSafeNormal() * FMath::Min(DistanceToOriginalLocation, Stats.Stability * DeltaSeconds);
 	}
 }
 
@@ -249,7 +255,10 @@ bool AHeroFirearm::IsMuzzleInGeometry() const
 
 void AHeroFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 {
-	if (!bForceLocalOnly && !HasAuthority() && GetHeroOwner()->IsLocallyControlled())
+	if (!bForceLocalOnly && 
+		!HasAuthority() && 
+		GetHeroOwner() && // Player will not be able to reload quicker than owner is replicated, so guard here.
+		GetHeroOwner()->IsLocallyControlled())
 	{
 		ServerLoadAmmo(LoadObject);
 	}
@@ -267,7 +276,7 @@ void AHeroFirearm::DiscardAmmo()
 	if (AmmoLoader->DiscardAmmo())
 	{
 		// Only replicate if successful
-		if (GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
+		if (GetHeroOwner() && GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
 		{
 			ServerDiscardAmmo();
 		}
@@ -693,7 +702,7 @@ void AHeroFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (CartridgeEjectTemplate)
+	if (CartridgeEjectTemplate && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
 		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeAttachSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
 		CartridgeEjectComponent->bAutoActivate = false;
@@ -736,4 +745,11 @@ void AHeroFirearm::OnUnequipped()
 
 	AmmoLoader->OnUnequipped();
 	bIsRecoilActive = false;
+}
+
+void AHeroFirearm::BeginPlay()
+{
+	Super::BeginPlay();
+
+	AmmoLoader->BeginPlay();
 }

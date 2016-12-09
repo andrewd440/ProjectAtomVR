@@ -33,17 +33,21 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	bReplicateMovement = true;
 
 	GetMesh()->SetOwnerNoSee(true);
+	GetMesh()->bReceivesDecals = false;
 
 	// Setup camera
 	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(RootComponent);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
+	Camera->OnPostNetTransformUpdate.BindUObject(this, &AHeroBase::UpdateMeshLocation);
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	BodyMesh->SetOnlyOwnerSee(true);
+	BodyMesh->SetCastShadow(false);
 	BodyMesh->bAbsoluteLocation = true;
 	BodyMesh->bAbsoluteRotation = true;
+	BodyMesh->bReceivesDecals = false;
 
 	// Setup left hand
 	LeftHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("LeftHandController"));
@@ -61,6 +65,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 
 	LeftHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("LeftHandMesh"));
 	LeftHandMesh->SetOnlyOwnerSee(true);
+	LeftHandMesh->SetCastShadow(false);
 	LeftHandMesh->SetupAttachment(LeftHandController);
 	LeftHandMesh->SetRelativeLocationAndRotation(FVector{ -20.2, -1.7, 3.3 }, FRotator{ -40, 0, -90 });
 	LeftHandMesh->SetIsReplicated(false);
@@ -83,6 +88,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 
 	RightHandMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RightHandMesh"));
 	RightHandMesh->SetOnlyOwnerSee(true);
+	RightHandMesh->SetCastShadow(false);
 	RightHandMesh->SetupAttachment(RightHandController);
 	RightHandMesh->SetRelativeLocationAndRotation(FVector{ -20.2, 1.7, 3.3 }, FRotator{ -40, 0, 90 });
 	RightHandMesh->SetIsReplicated(false);
@@ -111,11 +117,19 @@ void AHeroBase::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
-	UpdateMeshLocation(DeltaTime);
+	// Only update locally controlled mesh locations. For remotes and the server, this is updated when the camera
+	// receives a transform update through replication, with the adjusted delta time.
+	if (IsLocallyControlled())
+	{
+		UpdateMeshLocation(DeltaTime);
+	}	
 }
 
 void AHeroBase::UpdateMeshLocation(float DeltaTime)
 {
+	if (HasAuthority() && !IsLocallyControlled())
+		UE_LOG(AtomLog, Log, TEXT("Full Body: %s"), *GetMesh()->RelativeLocation.ToString());
+
 	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
 	const FVector CameraForward2D = Camera->GetForwardVector().GetSafeNormal2D();
 
@@ -144,8 +158,16 @@ void AHeroBase::UpdateMeshLocation(float DeltaTime)
 
 	// Update full body location using only xy for location and yaw rotation
 	USkeletalMeshComponent* FullBodyMesh = GetMesh();
-	BodyLocation.Z = FullBodyMesh->GetComponentLocation().Z;
+	BodyLocation.Z = GetActorLocation().Z;
 	FullBodyMesh->SetWorldLocationAndRotation(BodyLocation, FRotator{0, BodyRotation.Rotator().Yaw, 0});
+
+	// Save new offset for movement component smooth corrections
+	const FTransform& FullBodyRelativeTransform = FullBodyMesh->GetRelativeTransform();
+	BaseTranslationOffset = FullBodyRelativeTransform.GetLocation();
+	BaseRotationOffset = FullBodyRelativeTransform.GetRotation();
+
+	if (HasAuthority() && !IsLocallyControlled())
+		UE_LOG(AtomLog, Log, TEXT("Full Body: %s"), *GetMesh()->RelativeLocation.ToString());
 }
 
 void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
@@ -346,6 +368,11 @@ UMeshComponent* AHeroBase::GetBodyAttachmentComponent() const
 USkeletalMeshComponent* AHeroBase::GetHandAttachmentComponent(const EHand Hand) const
 {
 	return !IsLocallyControlled() ? GetMesh() : (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
+}
+
+FVector AHeroBase::GetRoomScaleVelocity() const
+{
+	return RoomScaleVelocity;
 }
 
 void AHeroBase::PlayHandAnimation(const EHand Hand, const FHandAnim& Anim)

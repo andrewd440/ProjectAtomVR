@@ -32,10 +32,6 @@ protected:
 	UFUNCTION()
 	void OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-private:
-	UFUNCTION()
-	void OnRep_ServerAmmoCount();
-
 protected:
 	/** The type of cartridge this firearm uses.*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CartridgeAmmoLoader)
@@ -48,7 +44,4 @@ private:
 	/** Trigger used to determine valid overlap for a cartridge to be loaded.*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CartridgeAmmoLoader, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* LoadTrigger;
-
-	UPROPERTY(ReplicatedUsing = OnRep_ServerAmmoCount)
-	int16 ServerAmmoCount;
 };

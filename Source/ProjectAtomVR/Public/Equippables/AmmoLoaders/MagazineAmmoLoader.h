@@ -17,6 +17,7 @@ public:
 	UMagazineAmmoLoader(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** UAmmoLoader Interface Begin */
+	virtual void BeginPlay() override;
 	virtual void OnEquipped() override;
 	virtual void OnUnequipped() override;
 	virtual void SetupInputComponent(class UInputComponent* InputComponent) override;
@@ -33,7 +34,7 @@ public:
 	virtual UWorld* GetTickableGameObjectWorld() const override;
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	virtual bool IsTickable() const override;
+	virtual bool IsTickable() const override;	
 	/** FTickableGameObject Interface End */
 
 protected:

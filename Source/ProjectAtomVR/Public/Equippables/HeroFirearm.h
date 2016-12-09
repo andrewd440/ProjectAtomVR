@@ -180,6 +180,7 @@ public:
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	virtual void OnEquipped() override;
 	virtual void OnUnequipped() override;
+	virtual void BeginPlay() override;
 
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;

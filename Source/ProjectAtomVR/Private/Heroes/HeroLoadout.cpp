@@ -298,8 +298,15 @@ void UHeroLoadout::OnRep_Loadout()
 		{
 			Change |= ELoadoutSlotChangeType::Item;
 
-			// Update local attachment
-			Loadout[i].Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, Loadout[i].StorageSocket);
+			AHeroEquippable* Item = Loadout[i].Item;
+
+			// Update local attachment only if not equipped. It may be equipped for late joining remotes.
+			if (!Item->IsEquipped())
+			{
+				Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, Loadout[i].StorageSocket);
+			}
+			
+			Item->SetLoadoutAttachment(GetAttachParent() ,Loadout[i].StorageSocket);
 		}			
 
 		if (SavedLoadout[i].Count != Loadout[i].Count)

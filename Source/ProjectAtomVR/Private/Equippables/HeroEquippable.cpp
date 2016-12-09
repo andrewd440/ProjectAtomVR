@@ -267,9 +267,6 @@ void AHeroEquippable::OnRep_Owner()
 
 void AHeroEquippable::OnEquipped()
 {		
-	// Set return storage before attaching to hero
-	SetLoadoutAttachment(Mesh->GetAttachParent(), Mesh->GetAttachSocketName());
-	
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.EquippedHand);
 
 	FString AttachSocket;

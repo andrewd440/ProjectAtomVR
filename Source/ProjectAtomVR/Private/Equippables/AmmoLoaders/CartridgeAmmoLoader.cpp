@@ -79,7 +79,7 @@ void UCartridgeAmmoLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(UCartridgeAmmoLoader, ServerAmmoCount, COND_SkipOwner);
+	ReplicateAmmoCount(OutLifetimeProps);
 }
 
 void UCartridgeAmmoLoader::InitializeLoader()
@@ -92,7 +92,6 @@ void UCartridgeAmmoLoader::InitializeLoader()
 	}
 
 	AmmoCount = Capacity;
-	ServerAmmoCount = AmmoCount;
 
 	OnAmmoCountChanged.ExecuteIfBound();
 }
@@ -113,13 +112,5 @@ void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* Overl
 		{				
 			MyFirearm->LoadAmmo(OtherEquippable);
 		}
-	}
-}
-
-void UCartridgeAmmoLoader::OnRep_ServerAmmoCount()
-{
-	if (AmmoCount < ServerAmmoCount)
-	{
-		GetFirearm()->LoadAmmo(nullptr);
 	}
 }

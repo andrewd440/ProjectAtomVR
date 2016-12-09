@@ -3,6 +3,11 @@
 #include "ProjectAtomVR.h"
 #include "NetCameraComponent.h"
 
+namespace
+{
+	static FVector SavedLocation = FVector::ZeroVector;
+	static FRotator SavedRotation = FRotator::ZeroRotator;
+}
 
 UNetCameraComponent::UNetCameraComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -15,6 +20,16 @@ UNetCameraComponent::UNetCameraComponent(const FObjectInitializer& ObjectInitial
 void UNetCameraComponent::ServerSendTransform_Implementation(const FVector_NetQuantize10 Location, const FRotator Rotation)
 {
 	SetRelativeLocationAndRotation(Location, Rotation);
+
+	const float CurrentTime = GetWorld()->GetRealTimeSeconds();
+	const float DeltaTime = CurrentTime - LastNetUpdate;
+
+	// Prevent doubling transform updates. If delta time is zero, wait for next one to invoke call.
+	if (DeltaTime > 0.f)
+	{
+		OnPostNetTransformUpdate.ExecuteIfBound(CurrentTime - LastNetUpdate);
+		LastNetUpdate = CurrentTime;
+	}
 }
 
 bool UNetCameraComponent::ServerSendTransform_Validate(const FVector_NetQuantize10 Location, const FRotator Rotation)
@@ -26,24 +41,44 @@ void UNetCameraComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	bool bHasAuthority = false;
+	bool bIsControlled = false;
 
 	if (IsInGameThread())
 	{
 		const APawn* MyPawn = Cast<APawn>(GetOwner());
-		bHasAuthority = MyPawn ? MyPawn->IsLocallyControlled() : false;
+		bIsControlled = MyPawn ? MyPawn->IsLocallyControlled() : false;
 	}
 
-	if (bHasAuthority && GetIsReplicated())
+	if (bIsControlled && GetIsReplicated() && !GetOwner()->HasAuthority())
 	{
-		LastNetUpdate += DeltaTime;
-
-		if (LastNetUpdate > 1.f / NetUpdateFrequency)
-		{
-			LastNetUpdate = 0.f;
+		const float CurrentTime = GetWorld()->GetRealTimeSeconds();
+		if (CurrentTime - LastNetUpdate > 1.f / NetUpdateFrequency)
+		{			
 			ServerSendTransform(RelativeLocation, RelativeRotation);
+			LastNetUpdate = CurrentTime;
 		}
 	}
+}
+
+void UNetCameraComponent::PostNetReceive()
+{
+	Super::PostNetReceive();
+
+	// Check if transform was updated
+	if (SavedLocation != RelativeLocation || SavedRotation != RelativeRotation)
+	{
+		const float CurrentTime = GetWorld()->GetRealTimeSeconds();
+		OnPostNetTransformUpdate.ExecuteIfBound(CurrentTime - LastNetUpdate);
+		LastNetUpdate = CurrentTime;
+	}
+}
+
+void UNetCameraComponent::PreNetReceive()
+{
+	Super::PreNetReceive();
+
+	SavedLocation = RelativeLocation;
+	SavedRotation = RelativeRotation;
 }
 
 void UNetCameraComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

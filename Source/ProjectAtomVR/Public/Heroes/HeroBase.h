@@ -72,6 +72,8 @@ public:
 
 	USkeletalMeshComponent* GetHandAttachmentComponent(const EHand Hand) const;
 
+	FVector GetRoomScaleVelocity() const;
+
 	/** 
 	 * Plays an animation on a specified hand. The animation and mesh that it will be played on
 	 * is based on if the character is locally controlled or not. Animation sequences will be

@@ -28,6 +28,11 @@ public:
 	*/
 	virtual void InitializeLoader();
 
+	/**
+	 * Called by owning HeroEquippable on BeginPlay
+	 */
+	virtual void BeginPlay();
+
 	virtual void SetupInputComponent(class UInputComponent* InputComponent);
 
 	/**
@@ -59,11 +64,13 @@ public:
 
 	/** UObject Interface Begin */
 	virtual bool IsSupportedForNetworking() const override;
-	virtual class UWorld* GetWorld() const override final;
+	virtual class UWorld* GetWorld() const override final;	
 	/** UObject Interface End */
 
 protected:
 	class AHeroFirearm* GetFirearm() const;
+
+	void ReplicateAmmoCount(TArray<class FLifetimeProperty> & OutLifetimeProps) const;
 
 protected:
 	int32 AmmoCount = 0;
