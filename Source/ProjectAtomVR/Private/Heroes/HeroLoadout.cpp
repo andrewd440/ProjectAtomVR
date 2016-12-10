@@ -234,6 +234,8 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 			{
 				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
 				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				Equippable->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
+
 				CurrentSlot.Item = Equippable;
 				CurrentSlot.Count = TemplateSlot.Count;
 
