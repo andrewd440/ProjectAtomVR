@@ -119,7 +119,7 @@ protected:
 	FVector RoomScaleVelocity = FVector::ZeroVector;
 
 private:
-	FVector NeckBaseSocketLocation = FVector::ZeroVector;
+	FVector NeckBaseSocketOffset = FVector::ZeroVector;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;

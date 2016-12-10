@@ -127,17 +127,36 @@ void AHeroBase::Tick( float DeltaTime )
 
 void AHeroBase::UpdateMeshLocation(float DeltaTime)
 {
-	if (HasAuthority() && !IsLocallyControlled())
-		UE_LOG(AtomLog, Log, TEXT("Full Body: %s"), *GetMesh()->RelativeLocation.ToString());
-
 	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
-	const FVector CameraForward2D = Camera->GetForwardVector().GetSafeNormal2D();
+	FVector CameraForward2D = Camera->GetForwardVector();	
+
+	FRotator BodyRotation{ EForceInit::ForceInitToZero };
+
+	// If camera forward is pointing close to +- Z, use existing body forward to prevent popping in random directions with
+	// small XY normals.
+	if (FMath::Abs(CameraForward2D.Z) > 0.95f)
+	{
+		Camera->CalculateTorsoPitchAndRoll(BodyRotation);
+		CameraForward2D = BodyMesh->GetForwardVector().GetSafeNormal2D();
+	}
+	else
+	{
+		// Get torso pitch and roll and invert forward if needed.
+		if (Camera->CalculateTorsoPitchAndRoll(BodyRotation))
+		{
+			CameraForward2D = -CameraForward2D.GetSafeNormal2D();
+		}
+		else
+		{
+			CameraForward2D = CameraForward2D.GetSafeNormal2D();
+		}
+	}
 
 	// Get the averaged controller direction from the two hand controllers
 	const FVector RightControllerDirection2D = (RightHandController->GetComponentLocation() - NeckBaseLocation).GetSafeNormal2D();
 	const FVector LeftControllerDirection2D = (LeftHandController->GetComponentLocation() - NeckBaseLocation).GetSafeNormal2D();
 
-	FVector ControllerForward2D = (RightControllerDirection2D + LeftControllerDirection2D) / 2.f;
+	FVector ControllerForward2D = ((RightControllerDirection2D + LeftControllerDirection2D) / 2.f).GetSafeNormal2D();
 
 	// If the controller forward is not on the front side of the camera forward, reflect it so that it is.
 	const float CameraDotController = FVector::DotProduct(CameraForward2D, ControllerForward2D);
@@ -148,8 +167,17 @@ void AHeroBase::UpdateMeshLocation(float DeltaTime)
 
 	const FVector BodyForward2D = CameraForward2D * HeadOrientationFactor + ControllerForward2D * HandsOrientationFactor;
 
-	FVector BodyLocation = NeckBaseLocation - NeckBaseSocketLocation;
-	FQuat BodyRotation = BodyForward2D.ToOrientationQuat();
+	// Calculate yaw with body forward
+	BodyRotation.Yaw = FMath::Acos(BodyForward2D.X) * (180.f / PI);
+
+	if (BodyForward2D.Y < 0.0f)
+	{
+		BodyRotation.Yaw *= -1.0f;
+	}
+
+	// Use rotation to get body location by pivoting on neck socket location
+	const FVector WorldNeckOffset = BodyRotation.RotateVector(NeckBaseSocketOffset);
+	FVector BodyLocation = NeckBaseLocation - WorldNeckOffset;
 
 	// Calc movement velocity
 	RoomScaleVelocity = (BodyLocation - BodyMesh->GetComponentLocation()) / DeltaTime;
@@ -159,15 +187,12 @@ void AHeroBase::UpdateMeshLocation(float DeltaTime)
 	// Update full body location using only xy for location and yaw rotation
 	USkeletalMeshComponent* FullBodyMesh = GetMesh();
 	BodyLocation.Z = GetActorLocation().Z;
-	FullBodyMesh->SetWorldLocationAndRotation(BodyLocation, FRotator{0, BodyRotation.Rotator().Yaw, 0});
+	FullBodyMesh->SetWorldLocationAndRotation(BodyLocation, FRotator{0, BodyRotation.Yaw, 0});
 
 	// Save new offset for movement component smooth corrections
 	const FTransform& FullBodyRelativeTransform = FullBodyMesh->GetRelativeTransform();
 	BaseTranslationOffset = FullBodyRelativeTransform.GetLocation();
 	BaseRotationOffset = FullBodyRelativeTransform.GetRotation();
-
-	if (HasAuthority() && !IsLocallyControlled())
-		UE_LOG(AtomLog, Log, TEXT("Full Body: %s"), *GetMesh()->RelativeLocation.ToString());
 }
 
 void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
@@ -192,7 +217,7 @@ void AHeroBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();		
 
-	NeckBaseSocketLocation = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation();
+	NeckBaseSocketOffset = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation();
 
 	DefaultLeftHandTransform.Location = LeftHandMesh->RelativeLocation;
 	DefaultLeftHandTransform.Rotation = LeftHandMesh->RelativeRotation;

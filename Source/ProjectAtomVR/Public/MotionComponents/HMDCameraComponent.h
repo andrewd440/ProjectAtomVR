@@ -41,4 +41,12 @@ public:
 	* This location is calculated by offsetting the head center location by the HMD down direction.
 	*/
 	FVector GetWorldNeckBaseLocation() const;
+
+	/**
+	* Calculates the pitch and roll of a torso attached to this camera.
+	* 
+	* @returns True if the forward direction is inverted. This is determined based on the up and right
+	*	       directions of the camera.		
+	*/
+	bool CalculateTorsoPitchAndRoll(FRotator& TorsoPitchRollOut) const;
 };
