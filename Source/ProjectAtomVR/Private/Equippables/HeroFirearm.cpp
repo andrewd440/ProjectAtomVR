@@ -167,7 +167,7 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	const FQuat RotationDeltaLocal{ ToOffsetTargetTransform.TransformVector(AngularVelocityLocal.GetSafeNormal()), AngularVelocityLocal.Size() };
 	const FVector DirectionalDeltaLocal = ToOffsetTargetTransform.TransformVector(RecoilVelocity.Directional);
 
-	OffsetTarget->AddLocalTransform(FTransform{ RotationDeltaLocal, DirectionalDeltaLocal });
+	OffsetTarget->AddLocalTransform(FTransform{ RotationDeltaLocal, DirectionalDeltaLocal, OffsetTarget->RelativeScale3D });
 
 	// Apply force to return to original location/rotation
 	FVector OriginalRelativeLocation;

@@ -233,7 +233,7 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 			if (TemplateSlot.ItemClass)
 			{
 				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
 				Equippable->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
 
 				CurrentSlot.Item = Equippable;
@@ -274,7 +274,7 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 				SpawnParams.Owner = HeroOwner;
 
 				Slot.Item = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, TemplateSlot.StorageSocket);
+				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
 
 				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
 
@@ -305,7 +305,7 @@ void UHeroLoadout::OnRep_Loadout()
 			// Update local attachment only if not equipped. It may be equipped for late joining remotes.
 			if (!Item->IsEquipped())
 			{
-				Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetIncludingScale, Loadout[i].StorageSocket);
+				Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Loadout[i].StorageSocket);
 			}
 			
 			Item->SetLoadoutAttachment(GetAttachParent() ,Loadout[i].StorageSocket);

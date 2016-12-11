@@ -348,14 +348,14 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 	{
 		LeftHandEquippable = nullptr;
 
-		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
+		LeftHandMesh->AttachToComponent(LeftHandController, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		LeftHandMesh->SetRelativeLocationAndRotation(DefaultLeftHandTransform.Location, DefaultLeftHandTransform.Rotation);
 	}
 	else
 	{
 		RightHandEquippable = nullptr;
 		
-		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::SnapToTargetIncludingScale);
+		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		RightHandMesh->SetRelativeLocationAndRotation(DefaultRightHandTransform.Location, DefaultRightHandTransform.Rotation);
 	}
 }

@@ -181,7 +181,7 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	}
 	else
 	{
-		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, MagazineAttachSocket);
+		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, MagazineAttachSocket);
 		AmmoCount = Magazine->GetCapacity();
 		bHasInitialMagazine = true;
 
