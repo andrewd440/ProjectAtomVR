@@ -15,6 +15,9 @@
 /** Gameplay Includes */
 #include "AtomTypes.h"
 #include "HeroBase.h"
+#include "AtomPlayerController.h"
+#include "AtomGameMode.h"
+#include "AtomGameState.h"
 
 /** Logging */
 DECLARE_LOG_CATEGORY_EXTERN(AtomLog, Log, All); // A general log for your general needs
