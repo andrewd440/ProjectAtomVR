@@ -20,7 +20,10 @@ public:
 	void ScoreKill(APlayerController* Killer, APlayerController* Victim);
 
 protected:
+
+	/** AGameMode Interface Begin */
 	virtual bool ReadyToEndMatch_Implementation() override;
+	/** AGameMode Interface End */	
 
 protected:
 	/** Game time limit in seconds. */

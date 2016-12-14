@@ -16,5 +16,11 @@ class PROJECTATOMVR_API AAtomGameState : public AGameState
 public:
 	AAtomGameState();
 	
-	
+	/** AGameStateBase Interface Begin */
+	virtual void AddPlayerState(APlayerState* PlayerState) override;
+	virtual void RemovePlayerState(APlayerState* PlayerState) override;
+	/** AGameStateBase Interface End */	
+
+public:
+	TArray<class AAtomPlayerState*> Teams[2];
 };

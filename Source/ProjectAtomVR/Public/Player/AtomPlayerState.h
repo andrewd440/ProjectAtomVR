@@ -23,6 +23,7 @@ public:
 	/** APlayerState Interface End */	
 
 protected:
+	UFUNCTION()
 	virtual void OnRep_TeamId();
 
 protected:
