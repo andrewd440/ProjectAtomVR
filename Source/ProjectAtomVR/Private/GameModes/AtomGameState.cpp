@@ -11,6 +11,13 @@ AAtomGameState::AAtomGameState()
 
 }
 
+void AAtomGameState::AddTeamScore(int TeamId, int Score)
+{
+	check(TeamId < 2 && TeamId >= 0);
+
+	Teams[TeamId].Score += Score;
+}
+
 void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
 {
 	Super::AddPlayerState(PlayerState);

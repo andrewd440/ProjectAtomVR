@@ -17,7 +17,14 @@ void AAtomGameMode::ScoreKill_Implementation(APlayerController* Killer, APlayerC
 
 bool AAtomGameMode::ReadyToEndMatch_Implementation()
 {
-	check(GetGameState<AGameState>());
+	ensure(GetGameState<AGameState>());
 
-	return Super::ReadyToEndMatch_Implementation() || static_cast<AGameState*>(GameState)->ElapsedTime > TimeLimit;
+	if (Super::ReadyToEndMatch_Implementation())
+	{
+		return true;
+	}
+	else if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
+	{
+		return AtomGameState->ElapsedTime >= TimeLimit;
+	}
 }

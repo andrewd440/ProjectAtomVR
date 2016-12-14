@@ -30,6 +30,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;
 
+	/** The score limit that ends the game. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
+	int ScoreLimit;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	int32 MinPlayers;
 
