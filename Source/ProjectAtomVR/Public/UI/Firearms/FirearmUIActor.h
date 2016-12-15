@@ -17,7 +17,7 @@ public:
 	AFirearmUIActor();
 
 	UFUNCTION(BlueprintCallable, Category = FirearmUIActor)
-	class AHeroFirearm* GetFirearm() const;
+	class AAtomFirearm* GetFirearm() const;
 
 	/** AEquippableUIActor Interface Begin */
 	virtual void PostInitializeComponents() override;	

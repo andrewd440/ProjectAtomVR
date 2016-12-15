@@ -45,7 +45,7 @@ public:
 	*/
 	virtual void BeginPlay();
 
-	template <typename EquippableType = AHeroEquippable>
+	template <typename EquippableType = AAtomEquippable>
 	EquippableType* GetEquippable() const
 	{
 		check(EquippableType::StaticClass()->IsChildOf(Equippable->StaticClass()) && "Owner Equippable is not of the requested type.");
@@ -66,5 +66,5 @@ protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent);
 
 private:
-	class AHeroEquippable* Equippable = nullptr;
+	class AAtomEquippable* Equippable = nullptr;
 };

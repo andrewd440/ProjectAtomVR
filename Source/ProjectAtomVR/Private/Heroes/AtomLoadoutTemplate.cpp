@@ -1,21 +1,21 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroLoadoutTemplate.h"
+#include "AtomLoadoutTemplate.h"
 
 
-UHeroLoadoutTemplate::UHeroLoadoutTemplate(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+UAtomLoadoutTemplate::UAtomLoadoutTemplate(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
 
 }
 
-const TArray<FHeroLoadoutTemplateSlot>& UHeroLoadoutTemplate::GetLoadoutSlots() const
+const TArray<FAtomLoadoutTemplateSlot>& UAtomLoadoutTemplate::GetLoadoutSlots() const
 {
 	return LoadoutSlots;
 }
 
-void UHeroLoadoutTemplate::PostLoad()
+void UAtomLoadoutTemplate::PostLoad()
 {
 	Super::PostLoad();
 

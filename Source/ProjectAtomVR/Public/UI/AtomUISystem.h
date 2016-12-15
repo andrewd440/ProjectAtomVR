@@ -21,7 +21,7 @@ public:
 
 	void SetOwner(AAtomPlayerController* Owner);
 	AAtomPlayerController* GetOwner() const;
-	AHeroBase* GetHero() const;
+	AAtomCharacter* GetHero() const;
 
 	void SpawnHeroUI();
 	void DestroyHeroUI();

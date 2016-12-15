@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "Heroes/Movement/HeroMovementType.h"
+#include "Heroes/Movement/AtomCharacterMovementType.h"
 #include "LocomotionMovementType.generated.h"
 
 /**
  * 
  */
 UCLASS(ClassGroup = (Hero), meta = (BlueprintSpawnableComponent))
-class PROJECTATOMVR_API ULocomotionMovementType : public UHeroMovementType
+class PROJECTATOMVR_API ULocomotionMovementType : public UAtomCharacterMovementType
 {
 	GENERATED_BODY()
 	

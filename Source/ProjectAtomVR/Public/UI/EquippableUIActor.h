@@ -5,7 +5,7 @@
 #include "UI/AtomUIActor.h"
 #include "EquippableUIActor.generated.h"
 
-class AHeroEquippable;
+class AAtomEquippable;
 class UEquippableWidget;
 enum class ELoadoutSlotChangeType : uint8;
 
@@ -25,10 +25,10 @@ public:
 	* Called when the loadout slot for the owning equippable has changed. Type 
 	* will never be Item as that is handled externally.
 	*/
-	void OnLoadoutChanged(ELoadoutSlotChangeType Type, const struct FHeroLoadoutSlot& LoadoutSlot);
+	void OnLoadoutChanged(ELoadoutSlotChangeType Type, const struct FAtomLoadoutSlot& LoadoutSlot);
 
 	UFUNCTION(BlueprintCallable, Category = EquippableUI)
-	class AHeroEquippable* GetEquippable() const;
+	class AAtomEquippable* GetEquippable() const;
 
 	/** AActor Interface Begin */
 	virtual void PostInitializeComponents() override;

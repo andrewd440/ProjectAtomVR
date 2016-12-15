@@ -3,13 +3,13 @@
 #include "ProjectAtomVR.h"
 #include "EquippableState.h"
 
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 #include "Components/InputComponent.h"
 
 UEquippableState::UEquippableState(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
-	Equippable = Cast<AHeroEquippable>(GetOuter());
+	Equippable = Cast<AAtomEquippable>(GetOuter());
 	ensure(Equippable || (GetFlags() & RF_ArchetypeObject) == RF_ArchetypeObject);
 }
 

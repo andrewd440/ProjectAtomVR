@@ -14,7 +14,7 @@
 
 /** Gameplay Includes */
 #include "AtomTypes.h"
-#include "HeroBase.h"
+#include "AtomCharacter.h"
 #include "AtomPlayerController.h"
 #include "AtomGameMode.h"
 #include "AtomGameState.h"

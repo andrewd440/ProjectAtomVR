@@ -35,7 +35,7 @@ protected:
 protected:
 	/** The type of cartridge this firearm uses.*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CartridgeAmmoLoader)
-	TSubclassOf<class AHeroEquippable> CartridgeType;
+	TSubclassOf<class AAtomEquippable> CartridgeType;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = CartridgeAmmoLoader)
 	int32 Capacity = 10;

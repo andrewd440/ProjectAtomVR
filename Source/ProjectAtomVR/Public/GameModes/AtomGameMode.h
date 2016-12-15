@@ -19,11 +19,20 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	void ScoreKill(APlayerController* Killer, APlayerController* Victim);
 
+	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
+
 protected:
+	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
+	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
 
 	/** AGameMode Interface Begin */
 	virtual bool ReadyToEndMatch_Implementation() override;
 	/** AGameMode Interface End */	
+
+	/** AGameModeBase Interface Begin */
+public:
+	UClass* GetDefaultPawnClassForController_Implementation(AController* InController);
+	/** AGameModeBase Interface End */
 
 protected:
 	/** Game time limit in seconds. */

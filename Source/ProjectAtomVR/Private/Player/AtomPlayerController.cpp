@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "AtomPlayerController.h"
-#include "HeroBase.h"
+#include "AtomCharacter.h"
 #include "UI/AtomUISystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
@@ -21,7 +21,7 @@ void AAtomPlayerController::PostInitializeComponents()
 
 void AAtomPlayerController::SetPawn(APawn* aPawn)
 {
-	AHeroBase* NewHero = Cast<AHeroBase>(aPawn);
+	AAtomCharacter* NewHero = Cast<AAtomCharacter>(aPawn);
 	if (UISystem && Hero && Hero != NewHero)
 	{
 		UISystem->DestroyHeroUI();
@@ -40,6 +40,13 @@ void AAtomPlayerController::SetPawn(APawn* aPawn)
 	}
 }
 
+void AAtomPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AAtomPlayerController, RequestedCharacter, COND_OwnerOnly);
+}
+
 void AAtomPlayerController::CreateUISystem()
 {
 	if (IsLocalController())
@@ -50,8 +57,41 @@ void AAtomPlayerController::CreateUISystem()
 	}
 }
 
-AHeroBase* AAtomPlayerController::GetHero() const
+void AAtomPlayerController::execRequestCharacterChange(FString Name)
+{
+	UClass* Class = FindObjectFast<UClass>(nullptr, *Name, false, true);
+
+	if (Class && Class->IsChildOf(AAtomCharacter::StaticClass()))
+	{
+		ServerRequestCharacterChange(Class);
+	}
+}
+
+void AAtomPlayerController::ServerRequestCharacterChange_Implementation(TSubclassOf<AAtomCharacter> CharacterClass)
+{
+	if (AAtomGameMode* AtomGameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>())
+	{
+		AtomGameMode->RequestCharacterChange(this, CharacterClass);
+	}
+}
+
+bool AAtomPlayerController::ServerRequestCharacterChange_Validate(TSubclassOf<AAtomCharacter> CharacterClass)
+{
+	return true;
+}
+
+AAtomCharacter* AAtomPlayerController::GetHero() const
 {
 	return Hero;
+}
+
+void AAtomPlayerController::SetRequestedCharacter(TSubclassOf<AAtomCharacter> CharacterClass)
+{
+	RequestedCharacter = CharacterClass;
+}
+
+TSubclassOf<AAtomCharacter> AAtomPlayerController::GetRequestedCharacter() const
+{
+	return RequestedCharacter;
 }
 

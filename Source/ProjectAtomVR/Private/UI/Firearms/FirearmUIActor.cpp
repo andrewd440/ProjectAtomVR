@@ -3,7 +3,7 @@
 #include "ProjectAtomVR.h"
 #include "FirearmUIActor.h"
 #include "../UMG/Public/Components/WidgetComponent.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 #include "Firearms/FirearmWidget.h"
 
 AFirearmUIActor::AFirearmUIActor()
@@ -29,15 +29,15 @@ void AFirearmUIActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AHeroFirearm* Firearm = GetFirearm();
+	AAtomFirearm* Firearm = GetFirearm();
 	Firearm->GetAmmoLoader()->OnAmmoCountChanged.BindUObject(this, &AFirearmUIActor::OnAmmoCountChanged);
 }
 
-AHeroFirearm* AFirearmUIActor::GetFirearm() const
+AAtomFirearm* AFirearmUIActor::GetFirearm() const
 {
-	check(!GetOwner() || Cast<AHeroFirearm>(GetOwner())); // Might be null in editor
+	check(!GetOwner() || Cast<AAtomFirearm>(GetOwner())); // Might be null in editor
 
-	return static_cast<AHeroFirearm*>(GetOwner());
+	return static_cast<AAtomFirearm*>(GetOwner());
 }
 
 void AFirearmUIActor::OnAmmoCountChanged()

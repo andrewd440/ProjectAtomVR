@@ -3,18 +3,18 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "HeroMovementType.generated.h"
+#include "AtomCharacterMovementType.generated.h"
 
 /**
  * 
  */
 UCLASS(Abstract, Blueprintable)
-class PROJECTATOMVR_API UHeroMovementType : public UActorComponent
+class PROJECTATOMVR_API UAtomCharacterMovementType : public UActorComponent
 {
 	GENERATED_BODY()
 	
 public:
-	UHeroMovementType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UAtomCharacterMovementType(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	/** Allows a hero movement type to set up custom input bindings for the owning hero. */
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent);
@@ -24,8 +24,8 @@ public:
 	/** UActorComponent Interface End */
 
 private:
-	class AHeroBase* Hero; // The owning hero
+	class AAtomCharacter* Hero; // The owning hero
 
 public:
-	class AHeroBase* GetHero() const { return Hero; }
+	class AAtomCharacter* GetHero() const { return Hero; }
 };

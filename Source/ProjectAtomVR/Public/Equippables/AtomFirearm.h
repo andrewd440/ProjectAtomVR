@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 #include "ShotTypes/ShotType.h"
-#include "HeroFirearm.generated.h"
+#include "AtomFirearm.generated.h"
 
 class UEquippableState;
 enum class EFirearmNotify : uint8;
@@ -73,12 +73,12 @@ struct FFirearmBlockFireVolume
  * Shots are fired from the socket name "Muzzle" on the firearm mesh.
  */
 UCLASS(Abstract)
-class PROJECTATOMVR_API AHeroFirearm : public AHeroEquippable
+class PROJECTATOMVR_API AAtomFirearm : public AAtomEquippable
 {
 	GENERATED_BODY()
 
 public:	
-	AHeroFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AAtomFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual void Tick( float DeltaSeconds ) override;	
 
@@ -329,8 +329,8 @@ private:
 	uint32 bIsRecoilActive : 1;
 };
 
-FORCEINLINE UEquippableState* AHeroFirearm::GetFiringState() const { return FiringState; }
+FORCEINLINE UEquippableState* AAtomFirearm::GetFiringState() const { return FiringState; }
 
-FORCEINLINE UEquippableState* AHeroFirearm::GetChargingState() const { return ChargingState; }
+FORCEINLINE UEquippableState* AAtomFirearm::GetChargingState() const { return ChargingState; }
 
-FORCEINLINE const FFirearmStats& AHeroFirearm::GetFirearmStats() const { return Stats; }
+FORCEINLINE const FFirearmStats& AAtomFirearm::GetFirearmStats() const { return Stats; }

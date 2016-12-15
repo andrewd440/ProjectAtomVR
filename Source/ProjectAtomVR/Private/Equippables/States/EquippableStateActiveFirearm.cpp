@@ -3,13 +3,13 @@
 #include "ProjectAtomVR.h"
 #include "EquippableStateActiveFirearm.h"
 
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 #include "Components/InputComponent.h"
 
 
 void UEquippableStateActiveFirearm::OnTriggerPressed()
 {
-	AHeroFirearm* Firearm = GetEquippable<AHeroFirearm>();
+	AAtomFirearm* Firearm = GetEquippable<AAtomFirearm>();
 	Firearm->PushState(Firearm->GetFiringState());	
 }
 

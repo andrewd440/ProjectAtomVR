@@ -3,21 +3,21 @@
 #include "ProjectAtomVR.h"
 #include "EquippableStateFiring.h"
 
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 #include "Components/InputComponent.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 void UEquippableStateFiring::OnEnteredState()
 {
 	Super::OnEnteredState();
 
 	StartFireShotTimer();
-	GetEquippable<AHeroFirearm>()->StartFiringSequence();
+	GetEquippable<AAtomFirearm>()->StartFiringSequence();
 }
 
 void UEquippableStateFiring::OnExitedState()
 {	
-	GetEquippable<AHeroFirearm>()->StopFiringSequence();
+	GetEquippable<AAtomFirearm>()->StopFiringSequence();
 
 	if (FireTimer.IsValid())
 	{
@@ -61,7 +61,7 @@ void UEquippableStateFiring::BindStateInputs(UInputComponent* InputComponent)
 
 void UEquippableStateFiring::StartFireShotTimer()
 {
-	const AHeroFirearm* const HeroFirearm = GetEquippable<AHeroFirearm>();
+	const AAtomFirearm* const HeroFirearm = GetEquippable<AAtomFirearm>();
 	const FFirearmStats& FirearmStats = HeroFirearm->GetFirearmStats();
 
 	const float ShotDelay = FirearmStats.FireRate - (GetWorld()->GetTimeSeconds() - LastShotTimestamp);
@@ -80,7 +80,7 @@ void UEquippableStateFiring::StartFireShotTimer()
 
 void UEquippableStateFiring::OnFireShot()
 {
-	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
 
 	// Used to update remotes with shot count. Should always increment.
 	if (Firearm->HasAuthority())
@@ -117,8 +117,8 @@ void UEquippableStateFiring::OnFireShot()
 
 void UEquippableStateFiring::OnFalseFire()
 {
-	UE_LOG(LogFirearm, Log, TEXT("OnFalseFire by %s"), GetEquippable<AHeroFirearm>()->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
-	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	UE_LOG(LogFirearm, Log, TEXT("OnFalseFire by %s"), GetEquippable<AAtomFirearm>()->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
+	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
 	Firearm->DryFire();
 	Firearm->PopState(this);
 }
@@ -130,7 +130,7 @@ void UEquippableStateFiring::OnRep_TotalShotCounter()
 
 	UE_LOG(LogFirearm, Log, TEXT("OnRep_TotalShotCounter with ShotDiff =  %d"), ShotDiff);
 
-	AHeroFirearm* const Firearm = GetEquippable<AHeroFirearm>();
+	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
 
 	if (Firearm->HasActorBegunPlay())
 	{

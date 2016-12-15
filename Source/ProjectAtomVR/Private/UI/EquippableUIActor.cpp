@@ -5,7 +5,7 @@
 
 #include "UI/EquippableWidget.h"
 #include "UI/EquippableWidgetComponent.h"
-#include "HeroLoadout.h"
+#include "AtomLoadout.h"
 #include "UserWidget.h"
 #include "WidgetTree.h"
 
@@ -15,7 +15,7 @@ AEquippableUIActor::AEquippableUIActor()
 
 }
 
-void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FHeroLoadoutSlot& LoadoutSlot)
+void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FAtomLoadoutSlot& LoadoutSlot)
 {
 	for (UEquippableWidget* Widget : EquippableWidgets)
 	{
@@ -23,11 +23,11 @@ void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FHe
 	}
 }
 
-class AHeroEquippable* AEquippableUIActor::GetEquippable() const
+class AAtomEquippable* AEquippableUIActor::GetEquippable() const
 {
-	check(GetOwner() == nullptr || Cast<AHeroEquippable>(GetOwner()));
+	check(GetOwner() == nullptr || Cast<AAtomEquippable>(GetOwner()));
 
-	return static_cast<AHeroEquippable*>(GetOwner());
+	return static_cast<AAtomEquippable*>(GetOwner());
 }
 
 void AEquippableUIActor::PostInitializeComponents()
@@ -56,7 +56,7 @@ void AEquippableUIActor::PostInitializeComponents()
 			}
 		});
 
-		if (auto Equippable = Cast<AHeroEquippable>(GetOwner()))
+		if (auto Equippable = Cast<AAtomEquippable>(GetOwner()))
 		{
 			if (auto EquippableWidgetComponent = Cast<UEquippableWidgetComponent>(WidgetComponent))
 			{
@@ -72,8 +72,8 @@ void AEquippableUIActor::PostInitializeComponents()
 				else
 				{
 					// Attach to item loadout slot
-					const UHeroLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
-					const FHeroLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable);
+					const UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
+					const FAtomLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable);
 					
 					AttachParent = Loadout->GetAttachParent();
 					AttachSocket = LoadoutSlot.UISocket;				
@@ -121,9 +121,9 @@ void AEquippableUIActor::Destroyed()
 
 void AEquippableUIActor::OnEquippedStatusChanged()
 {
-	check(Cast<AHeroEquippable>(GetOwner()));
+	check(Cast<AAtomEquippable>(GetOwner()));
 
-	AHeroEquippable* Equippable = static_cast<AHeroEquippable*>(GetOwner());
+	AAtomEquippable* Equippable = static_cast<AAtomEquippable*>(GetOwner());
 
 	if (Equippable->IsEquipped())
 	{

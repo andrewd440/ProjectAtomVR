@@ -3,7 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "HeroEquippable.generated.h"
+#include "AtomEquippable.generated.h"
 
 class UEquippableState;
 
@@ -42,7 +42,7 @@ private:
 };
 
 UCLASS()
-class PROJECTATOMVR_API AHeroEquippable : public AActor
+class PROJECTATOMVR_API AAtomEquippable : public AActor
 {
 	GENERATED_BODY()
 
@@ -53,7 +53,7 @@ protected:
 
 public:
 	/** Broadcasted when the return to loadout flag is changed for this Equippable. */
-	DECLARE_EVENT(AHeroEquippable, FCanReturnToLoadoutChanged)
+	DECLARE_EVENT(AAtomEquippable, FCanReturnToLoadoutChanged)
 	FCanReturnToLoadoutChanged OnCanReturnToLoadoutChanged;
 
 	DECLARE_DELEGATE(FEquippedStatusChangedUI)
@@ -61,7 +61,7 @@ public:
 
 public:
 	// Sets default values for this actor's properties
-	AHeroEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AAtomEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void Equip(const EHand Hand, const EEquipType EquipType = EEquipType::Normal);
 
@@ -201,7 +201,7 @@ private:
 	class UMeshComponent* Mesh;
 
 	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
-	class AHeroBase* HeroOwner = nullptr;
+	class AAtomCharacter* HeroOwner = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* SecondaryHandGripTrigger;
@@ -226,7 +226,7 @@ private:
 	uint32 bReplicatesAttachment : 1;
 
 public:
-	AHeroBase* GetHeroOwner() const;
+	AAtomCharacter* GetHeroOwner() const;
 
 	template <typename MeshType = UMeshComponent>
 	MeshType* GetMesh() const
@@ -240,9 +240,9 @@ protected:
 	UEquippableState* GetActiveState() const;
 };
 
-FORCEINLINE AHeroBase* AHeroEquippable::GetHeroOwner() const { return HeroOwner; }
-FORCEINLINE UEquippableState* AHeroEquippable::GetInactiveState() const { return InactiveState; }
-FORCEINLINE UEquippableState* AHeroEquippable::GetActiveState() const { return ActiveState; }
-FORCEINLINE EHand AHeroEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
-FORCEINLINE bool AHeroEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }
-FORCEINLINE bool AHeroEquippable::IsSecondaryHandAttached() const { return bIsSecondaryHandAttached; }
+FORCEINLINE AAtomCharacter* AAtomEquippable::GetHeroOwner() const { return HeroOwner; }
+FORCEINLINE UEquippableState* AAtomEquippable::GetInactiveState() const { return InactiveState; }
+FORCEINLINE UEquippableState* AAtomEquippable::GetActiveState() const { return ActiveState; }
+FORCEINLINE EHand AAtomEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
+FORCEINLINE bool AAtomEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }
+FORCEINLINE bool AAtomEquippable::IsSecondaryHandAttached() const { return bIsSecondaryHandAttached; }

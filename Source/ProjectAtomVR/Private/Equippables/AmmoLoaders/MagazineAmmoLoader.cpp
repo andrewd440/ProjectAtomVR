@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "MagazineAmmoLoader.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 #include "FirearmMagazine.h"
 
 namespace
@@ -203,7 +203,7 @@ void UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger(UPrimitiveComponent* Ov
 	check(GetFirearm()->IsEquipped() && "Overlap events should be unbound when not the HeroFirearm is not equipped.");
 
 	AFirearmMagazine* OverlapMagazine = static_cast<AFirearmMagazine*>(OtherActor);
-	AHeroFirearm* MyFirearm = GetFirearm();
+	AAtomFirearm* MyFirearm = GetFirearm();
 
 	if (OverlapMagazine->GetHeroOwner() == MyFirearm->GetHeroOwner() &&
 		(!bRequiresEquippedClip || OverlapMagazine->IsEquipped()) &&

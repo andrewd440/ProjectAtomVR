@@ -3,12 +3,12 @@
 #include "ProjectAtomVR.h"
 #include "AmmoLoader.h"
 
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 UAmmoLoader::UAmmoLoader(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
-	Firearm = Cast<AHeroFirearm>(GetOuter());
+	Firearm = Cast<AAtomFirearm>(GetOuter());
 	ensure(Firearm || (GetFlags() & RF_ArchetypeObject) == RF_ArchetypeObject);
 }
 

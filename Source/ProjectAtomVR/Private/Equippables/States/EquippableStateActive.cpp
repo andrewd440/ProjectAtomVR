@@ -3,7 +3,7 @@
 #include "ProjectAtomVR.h"
 #include "EquippableStateActive.h"
 
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 
 
 void UEquippableStateActive::OnStatePushed()

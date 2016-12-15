@@ -3,4 +3,4 @@
 #include "ProjectAtomVR.h"
 #include "EquippableStateInactive.h"
 
-#include "Equippables/HeroEquippable.h"
+#include "Equippables/AtomEquippable.h"

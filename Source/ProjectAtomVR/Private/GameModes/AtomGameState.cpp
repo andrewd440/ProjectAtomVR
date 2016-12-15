@@ -27,10 +27,10 @@ void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
 	{
 		if (AtomPlayerState->GetAssignedTeam() < 0)
 		{
-			AtomPlayerState->AssignTeam(Teams[0].Num() < Teams[1].Num() ? 0 : 1);
+			AtomPlayerState->AssignTeam(Teams[0].Players.Num() < Teams[1].Players.Num() ? 0 : 1);
 		}
 
-		Teams[AtomPlayerState->GetAssignedTeam()].AddUnique(AtomPlayerState);
+		Teams[AtomPlayerState->GetAssignedTeam()].Players.AddUnique(AtomPlayerState);
 	}
 }
 
@@ -45,7 +45,7 @@ void AAtomGameState::RemovePlayerState(APlayerState* PlayerState)
 
 		if (AssignedTeam >= 0)
 		{
-			Teams[AtomPlayerState->GetAssignedTeam()].Remove(AtomPlayerState);
+			Teams[AtomPlayerState->GetAssignedTeam()].Players.Remove(AtomPlayerState);
 			// Keep assigned team in player state while it persists in InactivePlayerArray in GameMode			
 		}
 	}

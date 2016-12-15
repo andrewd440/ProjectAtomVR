@@ -3,20 +3,20 @@
 #pragma once
 
 #include "GameFramework/Character.h"
-#include "HeroMovementComponent.h"
+#include "AtomCharacterMovementComponent.h"
 
-#include "HeroBase.generated.h"
+#include "AtomCharacter.generated.h"
 
-class AHeroEquippable;
+class AAtomEquippable;
 class UNetMotionControllerComponent;
 
 UCLASS(Abstract, Config=Game)
-class PROJECTATOMVR_API AHeroBase : public ACharacter
+class PROJECTATOMVR_API AAtomCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
-	AHeroBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	AAtomCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
 	virtual void BeginPlay() override;
 	
@@ -30,15 +30,15 @@ public:
 
 	bool IsRightHanded() const { return bIsRightHanded; }
 
-	virtual void Equip(AHeroEquippable* Item, const EHand Hand);
+	virtual void Equip(AAtomEquippable* Item, const EHand Hand);
 
 	/** Called by Equippable when the equipping process is complete. */
-	virtual void OnEquipped(AHeroEquippable* Item, const EHand Hand);
+	virtual void OnEquipped(AAtomEquippable* Item, const EHand Hand);
 
-	virtual void Unequip(AHeroEquippable* Item, const EHand Hand);
+	virtual void Unequip(AAtomEquippable* Item, const EHand Hand);
 
 	/** Called by Equippable when the unequipping process is complete. */
-	virtual void OnUnequipped(AHeroEquippable* Item, const EHand Hand);
+	virtual void OnUnequipped(AAtomEquippable* Item, const EHand Hand);
 
 	/**
 	* Gets the component that controls the target location and rotation for the hand mesh.
@@ -83,7 +83,7 @@ public:
 
 	void StopHandAnimation(const EHand Hand, const FHandAnim& Anim);
 
-	class UHeroLoadout* GetLoadout() const;
+	class UAtomLoadout* GetLoadout() const;
 
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -128,10 +128,10 @@ private:
 	UStaticMeshComponent* BodyMesh;
 
 	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UHeroLoadout* Loadout;
+	class UAtomLoadout* Loadout;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	AHeroEquippable* LeftHandEquippable;
+	AAtomEquippable* LeftHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	UNetMotionControllerComponent* LeftHandController;
@@ -143,7 +143,7 @@ private:
 	USphereComponent* LeftHandTrigger;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	AHeroEquippable* RightHandEquippable;
+	AAtomEquippable* RightHandEquippable;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	UNetMotionControllerComponent* RightHandController;
@@ -168,17 +168,17 @@ private:
 	uint32 bIsRightHanded : 1;
 
 public:
-	class UHeroMovementComponent* GetHeroMovementComponent() const;
+	class UAtomCharacterMovementComponent* GetHeroMovementComponent() const;
 
 	class UHMDCameraComponent* GetCamera() const;
 	
 	/** Gets the body mesh for the hero. This is also the mesh that loadout items are attached to. */
 	UStaticMeshComponent* GetBodyMesh() const;
 
-	AHeroEquippable* GetEquippable(EHand Hand) const;
+	AAtomEquippable* GetEquippable(EHand Hand) const;
 
 	template <EHand Hand>
-	AHeroEquippable* GetEquippable() const;
+	AAtomEquippable* GetEquippable() const;
 
 	USkeletalMeshComponent* GetHandMesh(EHand Hand) const;
 
@@ -203,72 +203,72 @@ public:
 };
 
 template <EHand Hand>
-FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh() const
+FORCEINLINE USkeletalMeshComponent* AAtomCharacter::GetHandMesh() const
 {
 	return (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
 }
 
 template <EHandType Hand>
-FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh() const
+FORCEINLINE USkeletalMeshComponent* AAtomCharacter::GetHandMesh() const
 {
 	return (Hand == EHandType::Dominate && bIsRightHanded) ? RightHandMesh : LeftHandMesh;
 }
 
 template <EHand Hand>
-FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController() const
+FORCEINLINE UNetMotionControllerComponent* AAtomCharacter::GetHandController() const
 {
 	return (Hand == EHand::Left) ? LeftHandController : RightHandController;
 }
 
 template <EHandType Hand>
-FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController() const
+FORCEINLINE UNetMotionControllerComponent* AAtomCharacter::GetHandController() const
 {
 	return (Hand == EHandType::Dominate && bIsRightHanded) ? RightHandController : LeftHandController;
 }
 
-FORCEINLINE UHMDCameraComponent* AHeroBase::GetCamera() const
+FORCEINLINE UHMDCameraComponent* AAtomCharacter::GetCamera() const
 {
 	return Camera;
 }
 
-FORCEINLINE UStaticMeshComponent* AHeroBase::GetBodyMesh() const
+FORCEINLINE UStaticMeshComponent* AAtomCharacter::GetBodyMesh() const
 {
 	return BodyMesh;
 }
 
-FORCEINLINE USkeletalMeshComponent* AHeroBase::GetHandMesh(EHand Hand) const
+FORCEINLINE USkeletalMeshComponent* AAtomCharacter::GetHandMesh(EHand Hand) const
 {
 	return Hand == EHand::Right ? RightHandMesh : LeftHandMesh;
 }
 
-FORCEINLINE UNetMotionControllerComponent* AHeroBase::GetHandController(EHand Hand) const
+FORCEINLINE UNetMotionControllerComponent* AAtomCharacter::GetHandController(EHand Hand) const
 {
 	return Hand == EHand::Right ? RightHandController : LeftHandController;
 }
 
-FORCEINLINE AHeroEquippable* AHeroBase::GetEquippable(EHand Hand) const
+FORCEINLINE AAtomEquippable* AAtomCharacter::GetEquippable(EHand Hand) const
 {
 	return (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
 }
 
 template <EHand Hand>
-AHeroEquippable* AHeroBase::GetEquippable() const
+AAtomEquippable* AAtomCharacter::GetEquippable() const
 {
 	return (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
 }
 
-FORCEINLINE UHeroMovementComponent* AHeroBase::GetHeroMovementComponent() const
+FORCEINLINE UAtomCharacterMovementComponent* AAtomCharacter::GetHeroMovementComponent() const
 {
-	return static_cast<UHeroMovementComponent*>(GetMovementComponent());
+	return static_cast<UAtomCharacterMovementComponent*>(GetMovementComponent());
 }
 
-FORCEINLINE USphereComponent* AHeroBase::GetHandTrigger(EHand Hand) const
+FORCEINLINE USphereComponent* AAtomCharacter::GetHandTrigger(EHand Hand) const
 {
 	return (Hand == EHand::Left) ? LeftHandTrigger : RightHandTrigger;
 }
 
 template <EHand Hand>
-USphereComponent* AHeroBase::GetHandTrigger() const
+USphereComponent* AAtomCharacter::GetHandTrigger() const
 {
 	return (Hand == EHand::Left) ? LeftHandTrigger : RightHandTrigger;
 }

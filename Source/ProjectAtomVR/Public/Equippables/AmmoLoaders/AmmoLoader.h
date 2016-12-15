@@ -68,7 +68,7 @@ public:
 	/** UObject Interface End */
 
 protected:
-	class AHeroFirearm* GetFirearm() const;
+	class AAtomFirearm* GetFirearm() const;
 
 	void ReplicateAmmoCount(TArray<class FLifetimeProperty> & OutLifetimeProps) const;
 
@@ -76,8 +76,8 @@ protected:
 	int32 AmmoCount = 0;
 
 private:
-	class AHeroFirearm* Firearm;
+	class AAtomFirearm* Firearm;
 };
 
 FORCEINLINE int32 UAmmoLoader::GetAmmoCount() const { return AmmoCount; }
-FORCEINLINE class AHeroFirearm* UAmmoLoader::GetFirearm() const { return Firearm; }
+FORCEINLINE class AAtomFirearm* UAmmoLoader::GetFirearm() const { return Firearm; }

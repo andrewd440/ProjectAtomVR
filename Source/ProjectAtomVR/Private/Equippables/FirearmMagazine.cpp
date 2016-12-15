@@ -3,11 +3,11 @@
 #include "ProjectAtomVR.h"
 #include "FirearmMagazine.h"
 #include "Components/MeshComponent.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 
 AFirearmMagazine::AFirearmMagazine(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AHeroEquippable::MeshComponentName))
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AAtomEquippable::MeshComponentName))
 {	
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;

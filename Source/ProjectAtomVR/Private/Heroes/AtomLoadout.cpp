@@ -1,11 +1,10 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroLoadout.h"
+#include "AtomLoadout.h"
 
-#include "HeroLoadoutTemplate.h"
-#include "HeroBase.h"
-#include "Equippables/HeroEquippable.h"
+#include "AtomLoadoutTemplate.h"
+#include "Equippables/AtomEquippable.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHeroLoadout, Log, All);
@@ -16,16 +15,16 @@ namespace
 
 	struct FSavedLoadoutSlot
 	{
-		AHeroEquippable* Item;
+		AAtomEquippable* Item;
 		uint32 Count;
 	};
 
-	bool operator==(const FSavedLoadoutSlot& SavedSlot, const FHeroLoadoutSlot& Slot)
+	bool operator==(const FSavedLoadoutSlot& SavedSlot, const FAtomLoadoutSlot& Slot)
 	{
 		return SavedSlot.Item == Slot.Item && SavedSlot.Count == Slot.Count;
 	}
 
-	bool operator!=(const FSavedLoadoutSlot& SavedSlot, const FHeroLoadoutSlot& Slot)
+	bool operator!=(const FSavedLoadoutSlot& SavedSlot, const FAtomLoadoutSlot& Slot)
 	{
 		return !(SavedSlot == Slot);
 	}
@@ -33,9 +32,9 @@ namespace
 	static TArray<FSavedLoadoutSlot> SavedLoadout;
 }
 
-const FHeroLoadoutSlot UHeroLoadout::NullLoadoutSlot;
+const FAtomLoadoutSlot UAtomLoadout::NullLoadoutSlot;
 
-void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
+void UAtomLoadout::CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots)
 {
 	for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 	{
@@ -50,7 +49,7 @@ void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>&
 		Trigger->ShapeColor = TriggerBaseColor;
 		//Trigger->SetHiddenInGame(false);
 
-		Trigger->OnComponentBeginOverlap.AddDynamic(this, &UHeroLoadout::OnLoadoutTriggerOverlap);		
+		Trigger->OnComponentBeginOverlap.AddDynamic(this, &UAtomLoadout::OnLoadoutTriggerOverlap);		
 
 		Trigger->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutTemplateSlots[i].StorageSocket);
 
@@ -58,14 +57,14 @@ void UHeroLoadout::CreateLoadoutTriggers(const TArray<FHeroLoadoutTemplateSlot>&
 	}
 }
 
-void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
+void UAtomLoadout::InitializeLoadout(class AAtomCharacter* Owner)
 {
 	HeroOwner = Owner;
 
 	if (LoadoutTemplate)
 	{
-		const UHeroLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UHeroLoadoutTemplate>();
-		const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+		const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
 
 		const int32 LoadoutSlotCount = LoadoutTemplateSlots.Num();
 
@@ -80,14 +79,14 @@ void UHeroLoadout::InitializeLoadout(class AHeroBase* Owner)
 	}
 }
 
-void UHeroLoadout::SpawnLoadout()
+void UAtomLoadout::SpawnLoadout()
 {
 	check(HeroOwner && "Loadout has not been initialized.");
 
 	if (LoadoutTemplate)
 	{
-		const UHeroLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UHeroLoadoutTemplate>();
-		const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+		const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
 
 		if (HeroOwner->IsLocallyControlled())
 		{
@@ -103,9 +102,9 @@ void UHeroLoadout::SpawnLoadout()
 	}
 }
 
-bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
+bool UAtomLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
 {
-	for (FHeroLoadoutSlot& Slot : Loadout)
+	for (FAtomLoadoutSlot& Slot : Loadout)
 	{
 		if (Slot.Item && Slot.Item->CanEquip(Hand) &&
 			OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger))
@@ -118,9 +117,9 @@ bool UHeroLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 	return false;
 }
 
-bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item)
+bool UAtomLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEquippable* Item)
 {
-	const FHeroLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; });
+	const FAtomLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FAtomLoadoutSlot& Slot) { return Slot.Item == Item; });
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
@@ -131,24 +130,24 @@ bool UHeroLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEq
 	return false;
 }
 
-const TArray<FHeroLoadoutSlot>& UHeroLoadout::GetLoadoutSlots() const
+const TArray<FAtomLoadoutSlot>& UAtomLoadout::GetLoadoutSlots() const
 {
 	return Loadout;
 }
 
-TArray<FHeroLoadoutSlot>& UHeroLoadout::GetLoadoutSlots()
+TArray<FAtomLoadoutSlot>& UAtomLoadout::GetLoadoutSlots()
 {
 	return Loadout;
 }
 
-const TSubclassOf<class UHeroLoadoutTemplate> UHeroLoadout::GetLoadoutTemplate() const
+const TSubclassOf<class UAtomLoadoutTemplate> UAtomLoadout::GetLoadoutTemplate() const
 {
 	return LoadoutTemplate;
 }
 
-const FHeroLoadoutSlot& UHeroLoadout::GetItemSlot(const class AHeroEquippable* Item) const
+const FAtomLoadoutSlot& UAtomLoadout::GetItemSlot(const class AAtomEquippable* Item) const
 {
-	if (const FHeroLoadoutSlot* FoundSlot = Loadout.FindByPredicate([Item](const FHeroLoadoutSlot& Slot) { return Slot.Item == Item; }))
+	if (const FAtomLoadoutSlot* FoundSlot = Loadout.FindByPredicate([Item](const FAtomLoadoutSlot& Slot) { return Slot.Item == Item; }))
 	{
 		return *FoundSlot;
 	}
@@ -158,12 +157,12 @@ const FHeroLoadoutSlot& UHeroLoadout::GetItemSlot(const class AHeroEquippable* I
 	}
 }
 
-USceneComponent* UHeroLoadout::GetAttachParent() const
+USceneComponent* UAtomLoadout::GetAttachParent() const
 {
 	return HeroOwner->GetBodyAttachmentComponent();
 }
 
-void UHeroLoadout::PreNetReceive()
+void UAtomLoadout::PreNetReceive()
 {
 	Super::PreNetReceive();
 
@@ -176,17 +175,17 @@ void UHeroLoadout::PreNetReceive()
 	}
 }
 
-class UWorld* UHeroLoadout::GetWorld() const
+class UWorld* UAtomLoadout::GetWorld() const
 {
 	return HeroOwner ? HeroOwner->GetWorld() : nullptr;
 }
 
-void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void UAtomLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	FHeroLoadoutSlot* const OverlappedSlot = Loadout.FindByPredicate([OverlappedComponent](const FHeroLoadoutSlot& Slot) { return Slot.StorageTrigger == OverlappedComponent; });
+	FAtomLoadoutSlot* const OverlappedSlot = Loadout.FindByPredicate([OverlappedComponent](const FAtomLoadoutSlot& Slot) { return Slot.StorageTrigger == OverlappedComponent; });
 
 	// Try to get the loadout item
-	AHeroEquippable* const OverlappedItem = OverlappedSlot ? OverlappedSlot->Item : nullptr;
+	AAtomEquippable* const OverlappedItem = OverlappedSlot ? OverlappedSlot->Item : nullptr;
 
 	if (OverlappedItem)
 	{
@@ -201,7 +200,7 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 		}
 
 		// Check if the item can be equipped. If it is already equipped, check if the overlapped hand has the item equipped.
-		const AHeroEquippable* CurrentlyEquipped = HeroOwner->GetEquippable(Hand);
+		const AAtomEquippable* CurrentlyEquipped = HeroOwner->GetEquippable(Hand);
 
 		if ((CurrentlyEquipped == nullptr && OverlappedItem->CanEquip(Hand)) ||
 			(OverlappedItem->IsEquipped() && CurrentlyEquipped == OverlappedItem))
@@ -217,7 +216,7 @@ void UHeroLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 	}
 }
 
-void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots)
+void UAtomLoadout::CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots)
 {
 	if (UWorld* const World = GetWorld())
 	{
@@ -227,19 +226,19 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 
 		for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 		{
-			const FHeroLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateSlots[i];
-			FHeroLoadoutSlot& CurrentSlot = Loadout[i];
+			const FAtomLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateSlots[i];
+			FAtomLoadoutSlot& CurrentSlot = Loadout[i];
 
 			if (TemplateSlot.ItemClass)
 			{
-				AHeroEquippable* const Equippable = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+				AAtomEquippable* const Equippable = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
 				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
 				Equippable->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
 
 				CurrentSlot.Item = Equippable;
 				CurrentSlot.Count = TemplateSlot.Count;
 
-				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Equippable, i);				
+				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UAtomLoadout::OnReturnToLoadoutChanged, Equippable, i);				
 
 				CurrentSlot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item | ELoadoutSlotChangeType::Count);
 			}
@@ -251,18 +250,18 @@ void UHeroLoadout::CreateLoadoutEquippables(const TArray<FHeroLoadoutTemplateSlo
 	}
 }
 
-void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 LoadoutIndex)
+void UAtomLoadout::OnReturnToLoadoutChanged(AAtomEquippable* Item, int32 LoadoutIndex)
 {
 	if (!Item->CanReturnToLoadout())
 	{
 		check(LoadoutIndex < Loadout.Num());
 
-		FHeroLoadoutSlot& Slot = Loadout[LoadoutIndex];
+		FAtomLoadoutSlot& Slot = Loadout[LoadoutIndex];
 
 		if (Slot.Item == Item) // Make sure this is the current item
 		{
-			const UHeroLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UHeroLoadoutTemplate>();
-			const FHeroLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateCDO->GetLoadoutSlots()[LoadoutIndex];
+			const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+			const FAtomLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateCDO->GetLoadoutSlots()[LoadoutIndex];
 			
 			if (Slot.Count > 0)
 			{
@@ -273,10 +272,10 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 				SpawnParams.Instigator = HeroOwner;
 				SpawnParams.Owner = HeroOwner;
 
-				Slot.Item = GetWorld()->SpawnActor<AHeroEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+				Slot.Item = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
 				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
 
-				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UHeroLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
+				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UAtomLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
 
 				Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
 			}
@@ -290,7 +289,7 @@ void UHeroLoadout::OnReturnToLoadoutChanged(AHeroEquippable* Item, int32 Loadout
 	}
 }
 
-void UHeroLoadout::OnRep_Loadout()
+void UAtomLoadout::OnRep_Loadout()
 {
 	for (int i = 0; i < Loadout.Num(); ++i)
 	{
@@ -300,7 +299,7 @@ void UHeroLoadout::OnRep_Loadout()
 		{
 			Change |= ELoadoutSlotChangeType::Item;
 
-			AHeroEquippable* Item = Loadout[i].Item;
+			AAtomEquippable* Item = Loadout[i].Item;
 
 			// Update local attachment only if not equipped. It may be equipped for late joining remotes.
 			if (!Item->IsEquipped())
@@ -321,14 +320,14 @@ void UHeroLoadout::OnRep_Loadout()
 	}
 }
 
-void UHeroLoadout::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
+void UAtomLoadout::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UHeroLoadout, Loadout);
+	DOREPLIFETIME(UAtomLoadout, Loadout);
 }
 
-bool UHeroLoadout::IsSupportedForNetworking() const
+bool UAtomLoadout::IsSupportedForNetworking() const
 {
 	return true;
 }

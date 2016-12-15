@@ -3,15 +3,15 @@
 #pragma once
 
 #include "Object.h"
-#include "HeroLoadoutTemplate.generated.h"
+#include "AtomLoadoutTemplate.generated.h"
 
 USTRUCT(Blueprintable)
-struct FHeroLoadoutTemplateSlot
+struct FAtomLoadoutTemplateSlot
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
-	TSubclassOf<class AHeroEquippable> ItemClass;
+	TSubclassOf<class AAtomEquippable> ItemClass;
 
 	/** How many items will be placed in the loadout. */
 	UPROPERTY(EditDefaultsOnly, Category = Loadout)
@@ -33,15 +33,15 @@ struct FHeroLoadoutTemplateSlot
  * 
  */
 UCLASS(Abstract, Blueprintable, BlueprintType)
-class PROJECTATOMVR_API UHeroLoadoutTemplate : public UObject
+class PROJECTATOMVR_API UAtomLoadoutTemplate : public UObject
 {
 	GENERATED_BODY()
 	
 public:
-	UHeroLoadoutTemplate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UAtomLoadoutTemplate(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, Category = HeroLoadoutTemplate)
-	const TArray<FHeroLoadoutTemplateSlot>& GetLoadoutSlots() const;
+	const TArray<FAtomLoadoutTemplateSlot>& GetLoadoutSlots() const;
 
 	/** UObject Interface Begin */
 	virtual void PostLoad() override;
@@ -49,5 +49,5 @@ public:
 
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = HeroLoadoutTemplate, meta = (AllowPrivateAccess = "true"))
-	TArray<FHeroLoadoutTemplateSlot> LoadoutSlots;
+	TArray<FAtomLoadoutTemplateSlot> LoadoutSlots;
 };

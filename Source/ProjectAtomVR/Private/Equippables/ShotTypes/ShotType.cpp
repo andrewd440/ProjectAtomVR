@@ -3,7 +3,7 @@
 #include "ProjectAtomVR.h"
 #include "ShotType.h"
 
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 void UShotType::SimulateShot(const FShotData& ShotData)
 {
@@ -15,7 +15,7 @@ class UWorld* UShotType::GetWorld() const
 	return GetFirearm()->GetWorld();
 }
 
-class AHeroFirearm* UShotType::GetFirearm() const
+class AAtomFirearm* UShotType::GetFirearm() const
 {
-	return static_cast<AHeroFirearm*>(GetOuter());
+	return static_cast<AAtomFirearm*>(GetOuter());
 }

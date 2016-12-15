@@ -5,6 +5,8 @@
 #include "GameFramework/PlayerController.h"
 #include "AtomPlayerController.generated.h"
 
+class AAtomCharacter;
+
 /**
  * 
  */
@@ -16,18 +18,39 @@ class PROJECTATOMVR_API AAtomPlayerController : public APlayerController
 public:
 	AAtomPlayerController();
 
-	AHeroBase* GetHero() const;
+	AAtomCharacter* GetHero() const;
+
+	/**
+	* Sets the requested character for this controller. Should only be set by the active game mode.
+	*/
+	void SetRequestedCharacter(TSubclassOf<AAtomCharacter> CharacterClass);
+
+	/**
+	* Gets the requested character for this controller.
+	*/
+	TSubclassOf<AAtomCharacter> GetRequestedCharacter() const;
 
 	/** APlayerController Interface Begin */
 	virtual void PostInitializeComponents() override;
 	virtual void SetPawn(APawn* aPawn) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	/** APlayerController Interface End */
 	
 protected:
 	void CreateUISystem();
 
+	UFUNCTION(Exec)
+	void execRequestCharacterChange(FString Name);
+
+private:
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
+
 private:
 	UPROPERTY()
 	class UAtomUISystem* UISystem = nullptr;
-	class AHeroBase* Hero = nullptr;
+	AAtomCharacter* Hero = nullptr;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, meta = ( AllowPrivateAccess = "True" ))
+	TSubclassOf<AAtomCharacter> RequestedCharacter = nullptr;
 };

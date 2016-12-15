@@ -1,7 +1,7 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroMovementComponent.h"
+#include "AtomCharacterMovementComponent.h"
 
 #include "AI/Navigation/AvoidanceManager.h"
 #include "HMDCapsuleComponent.h"
@@ -9,7 +9,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogHeroMovement, Log, All);
 
-UHeroMovementComponent::UHeroMovementComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+UAtomCharacterMovementComponent::UAtomCharacterMovementComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
 	MaxAcceleration = 256.f;
@@ -20,18 +20,18 @@ UHeroMovementComponent::UHeroMovementComponent(const FObjectInitializer& ObjectI
 	NavAgentProps.bCanSwim = false;
 }
 
-void UHeroMovementComponent::TeleportMove(const FVector& Destination)
+void UAtomCharacterMovementComponent::TeleportMove(const FVector& Destination)
 {
 	bWantsToTeleport = true;
 	PendingTeleportDestination = Destination;
 }
 
-void UHeroMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UAtomCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-class FNetworkPredictionData_Client* UHeroMovementComponent::GetPredictionData_Client() const
+class FNetworkPredictionData_Client* UAtomCharacterMovementComponent::GetPredictionData_Client() const
 {
 	// Should only be called on client or listen server (for remote clients) in network games
 	check(CharacterOwner != NULL);
@@ -40,14 +40,14 @@ class FNetworkPredictionData_Client* UHeroMovementComponent::GetPredictionData_C
 
 	if (!ClientPredictionData)
 	{
-		UHeroMovementComponent* MutableThis = const_cast<UHeroMovementComponent*>(this);
-		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_Hero(*this);
+		UAtomCharacterMovementComponent* MutableThis = const_cast<UAtomCharacterMovementComponent*>(this);
+		MutableThis->ClientPredictionData = new FNetworkPredictionData_Client_AtomCharacter(*this);
 	}
 
 	return ClientPredictionData;
 }
 
-class FNetworkPredictionData_Server* UHeroMovementComponent::GetPredictionData_Server() const
+class FNetworkPredictionData_Server* UAtomCharacterMovementComponent::GetPredictionData_Server() const
 {
 	// Should only be called on server in network games
 	check(CharacterOwner != NULL);
@@ -56,16 +56,16 @@ class FNetworkPredictionData_Server* UHeroMovementComponent::GetPredictionData_S
 
 	if (!ServerPredictionData)
 	{
-		UHeroMovementComponent* MutableThis = const_cast<UHeroMovementComponent*>(this);
-		MutableThis->ServerPredictionData = new FNetworkPredictionData_Server_Hero(*this);
+		UAtomCharacterMovementComponent* MutableThis = const_cast<UAtomCharacterMovementComponent*>(this);
+		MutableThis->ServerPredictionData = new FNetworkPredictionData_Server_AtomCharacter(*this);
 	}
 
 	return ServerPredictionData;
 }
 
-void UHeroMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+void UAtomCharacterMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
-	FNetworkPredictionData_Server_Hero* ServerData = GetPredictionData_Server_Hero();
+	FNetworkPredictionData_Server_AtomCharacter* ServerData = GetPredictionData_Server_Hero();
 	check(ServerData);
 
 	ServerData->ClientLocation = ClientLoc;
@@ -73,12 +73,12 @@ void UHeroMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_
 	Super::ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, CompressedMoveFlags, ClientRoll, View, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
 }
 
-void UHeroMovementComponent::SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation)
+void UAtomCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation, const FVector& NewLocation, const FQuat& NewRotation)
 {
 	Super::SmoothCorrection(OldLocation, OldRotation, NewLocation, NewRotation);
 }
 
-void UHeroMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
+void UAtomCharacterMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	// check that UpdatedComponent is a HMDCapsuleComponent
 	if (Cast<UHMDCapsuleComponent>(NewUpdatedComponent) == NULL)
@@ -90,30 +90,30 @@ void UHeroMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComp
 	Super::SetUpdatedComponent(NewUpdatedComponent);
 }
 
-class FNetworkPredictionData_Server_Hero* UHeroMovementComponent::GetPredictionData_Server_Hero() const
+class FNetworkPredictionData_Server_AtomCharacter* UAtomCharacterMovementComponent::GetPredictionData_Server_Hero() const
 {
-	return static_cast<FNetworkPredictionData_Server_Hero*>(GetPredictionData_Server());
+	return static_cast<FNetworkPredictionData_Server_AtomCharacter*>(GetPredictionData_Server());
 }
 
-void UHeroMovementComponent::PerformMovement(float DeltaTime)
+void UAtomCharacterMovementComponent::PerformMovement(float DeltaTime)
 {
 	Super::PerformMovement(DeltaTime);
 }
 
-void UHeroMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
+void UAtomCharacterMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
 {
 	Super::UpdateFromCompressedFlags(Flags);
 
-	bWantsToTeleport = (Flags & FSavedMove_Hero::FLAG_WantsToTeleport) != 0;
+	bWantsToTeleport = (Flags & FSavedMove_AtomCharacter::FLAG_WantsToTeleport) != 0;
 	if (bWantsToTeleport)
 	{
-		FNetworkPredictionData_Server_Hero* ServerData = GetPredictionData_Server_Hero();
+		FNetworkPredictionData_Server_AtomCharacter* ServerData = GetPredictionData_Server_Hero();
 		check(ServerData);
 		PendingTeleportDestination = ServerData->ClientLocation;
 	}
 }
 
-void UHeroMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
+void UAtomCharacterMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector& OldLocation, const FVector& OldVelocity)
 {
 	Super::OnMovementUpdated(DeltaSeconds, OldLocation, OldVelocity);
 
@@ -126,12 +126,12 @@ void UHeroMovementComponent::OnMovementUpdated(float DeltaSeconds, const FVector
 	}
 }
 
-bool UHeroMovementComponent::CanDelaySendingMove(const FSavedMovePtr& NewMove)
+bool UAtomCharacterMovementComponent::CanDelaySendingMove(const FSavedMovePtr& NewMove)
 {
-	return (NewMove->GetCompressedFlags() & FSavedMove_Hero::HeroCompressedFlags::FLAG_WantsToTeleport) == 0;
+	return (NewMove->GetCompressedFlags() & FSavedMove_AtomCharacter::HeroCompressedFlags::FLAG_WantsToTeleport) == 0;
 }
 
-void UHeroMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult /*= NULL*/) const
+void UAtomCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FFindFloorResult& OutFloorResult, bool bZeroDelta, const FHitResult* DownwardSweepResult /*= NULL*/) const
 {
 	// Offset location by HMD Capsule collision offset.
 	FVector CollisionOffset = FVector::ZeroVector;
@@ -144,24 +144,24 @@ void UHeroMovementComponent::FindFloor(const FVector& CapsuleLocation, struct FF
 	Super::FindFloor(CapsuleLocation + CollisionOffset, OutFloorResult, bZeroDelta, DownwardSweepResult);
 }
 
-void UHeroMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void UAtomCharacterMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(UHeroMovementComponent, PendingTeleportDestination, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(UAtomCharacterMovementComponent, PendingTeleportDestination, COND_SimulatedOnly);
 }
 
-void UHeroMovementComponent::OnRep_PendingTeleportDestination()
+void UAtomCharacterMovementComponent::OnRep_PendingTeleportDestination()
 {
 	bWantsToTeleport = true;
 }
 
-UHMDCapsuleComponent* UHeroMovementComponent::GetHMDCapsule() const
+UHMDCapsuleComponent* UAtomCharacterMovementComponent::GetHMDCapsule() const
 {
 	return static_cast<UHMDCapsuleComponent*>(UpdatedComponent);
 }
 
-void FSavedMove_Hero::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
+void FSavedMove_AtomCharacter::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 {
 	Super::PostUpdate(C, PostUpdateMode);
 
@@ -171,7 +171,7 @@ void FSavedMove_Hero::PostUpdate(ACharacter* C, EPostUpdateMode PostUpdateMode)
 	SavedRotation = UpdatedComponent->GetComponentRotation();
 }
 
-void FSavedMove_Hero::SetInitialPosition(ACharacter* C)
+void FSavedMove_AtomCharacter::SetInitialPosition(ACharacter* C)
 {
 	Super::SetInitialPosition(C);
 
@@ -184,20 +184,20 @@ void FSavedMove_Hero::SetInitialPosition(ACharacter* C)
 //----------------------------------------------------------------------------------------------
 // FSavedMove_Hero
 //----------------------------------------------------------------------------------------------
-FSavedMove_Hero::FSavedMove_Hero()
+FSavedMove_AtomCharacter::FSavedMove_AtomCharacter()
 	: bWantsToTeleport(false)
 {
 
 }
 
-bool FSavedMove_Hero::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InPawn, float MaxDelta) const
+bool FSavedMove_AtomCharacter::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InPawn, float MaxDelta) const
 {
 	if (Super::CanCombineWith(NewMove, InPawn, MaxDelta))
 	{
 		return true;
 	}
 
-	FSavedMove_Hero* const NewHeroMove = static_cast<FSavedMove_Hero*>(NewMove.Get());
+	FSavedMove_AtomCharacter* const NewHeroMove = static_cast<FSavedMove_AtomCharacter*>(NewMove.Get());
 	if (NewHeroMove->bWantsToTeleport)
 	{
 		// Let a teleport combine with anything. End position will always be teleport destination.
@@ -207,13 +207,13 @@ bool FSavedMove_Hero::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* I
 	return false;
 }
 
-void FSavedMove_Hero::Clear()
+void FSavedMove_AtomCharacter::Clear()
 {
 	Super::Clear();
 	bWantsToTeleport = false;
 }
 
-uint8 FSavedMove_Hero::GetCompressedFlags() const
+uint8 FSavedMove_AtomCharacter::GetCompressedFlags() const
 {
 	uint8 Flags = Super::GetCompressedFlags();
 
@@ -225,7 +225,7 @@ uint8 FSavedMove_Hero::GetCompressedFlags() const
 	return Flags;
 }
 
-bool FSavedMove_Hero::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
+bool FSavedMove_AtomCharacter::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
 {
 	if (Super::IsImportantMove(LastAckedMove))
 	{
@@ -240,22 +240,22 @@ bool FSavedMove_Hero::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
 	return false;
 }
 
-void FSavedMove_Hero::PrepMoveFor(ACharacter* C)
+void FSavedMove_AtomCharacter::PrepMoveFor(ACharacter* C)
 {
 	Super::PrepMoveFor(C);
 
-	check(Cast<UHeroMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
-	UHeroMovementComponent* const MoveComponent = static_cast<UHeroMovementComponent*>(C->GetMovementComponent());
+	check(Cast<UAtomCharacterMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
+	UAtomCharacterMovementComponent* const MoveComponent = static_cast<UAtomCharacterMovementComponent*>(C->GetMovementComponent());
 	MoveComponent->bWantsToTeleport = bWantsToTeleport;
 	MoveComponent->PendingTeleportDestination = TeleportLocation;
 }
 
-void FSavedMove_Hero::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData)
+void FSavedMove_AtomCharacter::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData)
 {
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
-	check(Cast<UHeroMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
-	UHeroMovementComponent* const MoveComponent = static_cast<UHeroMovementComponent*>(C->GetMovementComponent());
+	check(Cast<UAtomCharacterMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
+	UAtomCharacterMovementComponent* const MoveComponent = static_cast<UAtomCharacterMovementComponent*>(C->GetMovementComponent());
 	bWantsToTeleport = MoveComponent->bWantsToTeleport;
 	TeleportLocation = MoveComponent->PendingTeleportDestination;
 }
@@ -263,32 +263,32 @@ void FSavedMove_Hero::SetMoveFor(ACharacter* C, float InDeltaTime, FVector const
 //----------------------------------------------------------------------------------------------
 // FNetworkPredictionData_Client_Hero
 //----------------------------------------------------------------------------------------------
-FNetworkPredictionData_Client_Hero::FNetworkPredictionData_Client_Hero(const UHeroMovementComponent& ClientMovement)
+FNetworkPredictionData_Client_AtomCharacter::FNetworkPredictionData_Client_AtomCharacter(const UAtomCharacterMovementComponent& ClientMovement)
 	: Super(ClientMovement)
 {
 
 }
 
-FNetworkPredictionData_Client_Hero::~FNetworkPredictionData_Client_Hero()
+FNetworkPredictionData_Client_AtomCharacter::~FNetworkPredictionData_Client_AtomCharacter()
 {
 
 }
 
-FSavedMovePtr FNetworkPredictionData_Client_Hero::AllocateNewMove()
+FSavedMovePtr FNetworkPredictionData_Client_AtomCharacter::AllocateNewMove()
 {
-	return FSavedMovePtr(new FSavedMove_Hero());
+	return FSavedMovePtr(new FSavedMove_AtomCharacter());
 }
 
 //----------------------------------------------------------------------------------------------
 // FNetworkPredictionData_Server_Hero
 //----------------------------------------------------------------------------------------------
-FNetworkPredictionData_Server_Hero::FNetworkPredictionData_Server_Hero(const UHeroMovementComponent& ServerMovement)
+FNetworkPredictionData_Server_AtomCharacter::FNetworkPredictionData_Server_AtomCharacter(const UAtomCharacterMovementComponent& ServerMovement)
 	: Super(ServerMovement)
 {
 
 }
 
-FNetworkPredictionData_Server_Hero::~FNetworkPredictionData_Server_Hero()
+FNetworkPredictionData_Server_AtomCharacter::~FNetworkPredictionData_Server_AtomCharacter()
 {
 
 }

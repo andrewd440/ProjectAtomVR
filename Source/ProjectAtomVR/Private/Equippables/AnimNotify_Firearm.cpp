@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "AnimNotify_Firearm.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 
 void UAnimNotify_Firearm::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)

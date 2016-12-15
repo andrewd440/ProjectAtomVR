@@ -10,7 +10,7 @@ AFirearmUIActor* UFirearmWidget::GetFirearmUI()
 	return static_cast<AFirearmUIActor*>(GetOwner());
 }
 
-class AHeroFirearm* UFirearmWidget::GetFirearm()
+class AAtomFirearm* UFirearmWidget::GetFirearm()
 {
 	check(GetFirearmUI());
 	return GetFirearmUI()->GetFirearm();

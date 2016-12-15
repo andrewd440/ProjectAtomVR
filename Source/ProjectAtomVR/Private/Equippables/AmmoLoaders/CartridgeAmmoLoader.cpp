@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "CartridgeAmmoLoader.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 
 UCartridgeAmmoLoader::UCartridgeAmmoLoader(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -25,7 +25,7 @@ void UCartridgeAmmoLoader::LoadAmmo(UObject* LoadObject)
 
 	if (LoadObject != nullptr)
 	{
-		AHeroEquippable* Cartridge = static_cast<AHeroEquippable*>(LoadObject);		
+		AAtomEquippable* Cartridge = static_cast<AAtomEquippable*>(LoadObject);		
 
 		Cartridge->SetCanReturnToLoadout(false);
 		if (Cartridge->IsEquipped())
@@ -98,15 +98,15 @@ void UCartridgeAmmoLoader::InitializeLoader()
 
 void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	check(Cast<AHeroBase>(OtherActor) && "HeroBase should be the only response to this trigger.");
+	check(Cast<AAtomCharacter>(OtherActor) && "HeroBase should be the only response to this trigger.");
 	check(GetFirearm()->IsEquipped() && "Overlap events should be unbound when not the HeroFirearm is not equipped.");
 
-	AHeroBase* OverlapHero = static_cast<AHeroBase*>(OtherActor);
-	AHeroFirearm* MyFirearm = GetFirearm();	
+	AAtomCharacter* OverlapHero = static_cast<AAtomCharacter*>(OtherActor);
+	AAtomFirearm* MyFirearm = GetFirearm();	
 
 	if (OverlapHero == MyFirearm->GetHeroOwner()) // This is our hero
 	{
-		AHeroEquippable* OtherEquippable = OverlapHero->GetEquippable(!MyFirearm->GetEquippedHand());
+		AAtomEquippable* OtherEquippable = OverlapHero->GetEquippable(!MyFirearm->GetEquippedHand());
 
 		if (OtherEquippable && OtherEquippable->IsA(CartridgeType)) // The opposite hand equippable is the right cartridge type
 		{				

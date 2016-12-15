@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "HeroMovementType.h"
+#include "AtomCharacterMovementType.h"
 #include "TeleportMovementType.generated.h"
 
 /**
  * Hero movement type that enables teleportation based movement.
  */
 UCLASS(ClassGroup = (Hero), meta = (BlueprintSpawnableComponent))
-class PROJECTATOMVR_API UTeleportMovementType : public UHeroMovementType
+class PROJECTATOMVR_API UTeleportMovementType : public UAtomCharacterMovementType
 {
 	GENERATED_BODY()
 	

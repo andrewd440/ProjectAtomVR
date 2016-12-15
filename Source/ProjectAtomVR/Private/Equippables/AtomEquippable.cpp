@@ -1,7 +1,7 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 #include "Animation/AnimSequence.h"
 #include "EquippableState.h"
 #include "EquippableStateInactive.h"
@@ -18,11 +18,11 @@ namespace
 	static const FName SecondaryHandAttachRightSocket{ TEXT("SecondaryHandAttachRight") };
 }
 
-const FName AHeroEquippable::MeshComponentName = TEXT("Mesh");
-const FName AHeroEquippable::InactiveStateName = TEXT("InactiveState");
-const FName AHeroEquippable::ActiveStateName = TEXT("ActiveState");
+const FName AAtomEquippable::MeshComponentName = TEXT("Mesh");
+const FName AAtomEquippable::InactiveStateName = TEXT("InactiveState");
+const FName AAtomEquippable::ActiveStateName = TEXT("ActiveState");
 
-AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
+AAtomEquippable::AAtomEquippable(const FObjectInitializer& ObjectInitializer/* = FObjectInitializer::Get()*/)
 {
 	bReplicates = true;
 	bReplicatesAttachment = false;
@@ -44,14 +44,14 @@ AHeroEquippable::AHeroEquippable(const FObjectInitializer& ObjectInitializer/* =
 	SecondaryHandGripTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::HeroHand, ECollisionResponse::ECR_Overlap);
 
-	SecondaryHandGripTrigger->OnComponentBeginOverlap.AddDynamic(this, &AHeroEquippable::OnBeginOverlapSecondaryHandTrigger);
-	SecondaryHandGripTrigger->OnComponentEndOverlap.AddDynamic(this, &AHeroEquippable::OnEndOverlapSecondaryHandTrigger);
+	SecondaryHandGripTrigger->OnComponentBeginOverlap.AddDynamic(this, &AAtomEquippable::OnBeginOverlapSecondaryHandTrigger);
+	SecondaryHandGripTrigger->OnComponentEndOverlap.AddDynamic(this, &AAtomEquippable::OnEndOverlapSecondaryHandTrigger);
 
 	bIsSecondaryHandAttachmentAllowed = true;
 	bReturnToLoadout = true;
 }
 
-void AHeroEquippable::BeginPlay()
+void AAtomEquippable::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -72,12 +72,12 @@ void AHeroEquippable::BeginPlay()
 	}
 }
 
-void AHeroEquippable::Tick(float DeltaSeconds)
+void AAtomEquippable::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 }
 
-void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
+void AAtomEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 {
 	check(StateStack.Num() > 0 && StateStack.Top() == InactiveState && "StateStack should only have the InactiveState when equipping.");
 	
@@ -103,12 +103,12 @@ void AHeroEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 	ActiveState->OnStatePushed();
 }
 
-bool AHeroEquippable::CanEquip(const EHand Hand) const
+bool AAtomEquippable::CanEquip(const EHand Hand) const
 {
 	return !IsEquipped() && GetWorld()->GetTimeSeconds() > UnequipTimeStamp + ReuseDelay;
 }
 
-void AHeroEquippable::Unequip(const EEquipType EquipType)
+void AAtomEquippable::Unequip(const EEquipType EquipType)
 {
 	ensure(EquipStatus.bIsEquipped);
 	EquipStatus.bIsEquipped = false;
@@ -142,7 +142,7 @@ void AHeroEquippable::Unequip(const EEquipType EquipType)
 	}
 }
 
-void AHeroEquippable::SetCanReturnToLoadout(bool bCanReturn)
+void AAtomEquippable::SetCanReturnToLoadout(bool bCanReturn)
 {
 	if (bCanReturn != bReturnToLoadout)
 	{
@@ -151,18 +151,18 @@ void AHeroEquippable::SetCanReturnToLoadout(bool bCanReturn)
 	}
 }
 
-bool AHeroEquippable::CanReturnToLoadout() const
+bool AAtomEquippable::CanReturnToLoadout() const
 {
 	return bReturnToLoadout;
 }
 
-void AHeroEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)
+void AAtomEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)
 {
 	LoadoutAttachComponent = AttachComponent;
 	LoadoutAttachSocket = AttachSocket;
 }
 
-void AHeroEquippable::PushState(UEquippableState* InPushState)
+void AAtomEquippable::PushState(UEquippableState* InPushState)
 {
 	ensure(StateStack.Find(InPushState) == INDEX_NONE);
 	check(InPushState);
@@ -180,7 +180,7 @@ void AHeroEquippable::PushState(UEquippableState* InPushState)
 	InPushState->OnStatePushed();
 }
 
-void AHeroEquippable::ServerPushState_Implementation(UEquippableState* State)
+void AAtomEquippable::ServerPushState_Implementation(UEquippableState* State)
 {
 	// The server could already be in the requested state, so check first.
 	if (StateStack.Top() != State)
@@ -189,17 +189,17 @@ void AHeroEquippable::ServerPushState_Implementation(UEquippableState* State)
 	}
 }
 
-bool AHeroEquippable::ServerPushState_Validate(UEquippableState* State)
+bool AAtomEquippable::ServerPushState_Validate(UEquippableState* State)
 {
 	return true;
 }
 
-UEquippableState* AHeroEquippable::GetCurrentState() const
+UEquippableState* AAtomEquippable::GetCurrentState() const
 {
 	return StateStack.Top();
 }
 
-void AHeroEquippable::PopState(UEquippableState* InPopState)
+void AAtomEquippable::PopState(UEquippableState* InPopState)
 {
 	ensure(StateStack.Top() == InPopState);
 	ensure(StateStack.Num() > 0);
@@ -217,7 +217,7 @@ void AHeroEquippable::PopState(UEquippableState* InPopState)
 	StateStack.Top()->OnEnteredState();
 }
 
-void AHeroEquippable::ServerPopState_Implementation(UEquippableState* InPopState)
+void AAtomEquippable::ServerPopState_Implementation(UEquippableState* InPopState)
 {
 	// The server could already be in the requested state, so check first.
 	if (StateStack.Top() == InPopState)
@@ -226,12 +226,12 @@ void AHeroEquippable::ServerPopState_Implementation(UEquippableState* InPopState
 	}
 }
 
-bool AHeroEquippable::ServerPopState_Validate(UEquippableState* InPopState)
+bool AAtomEquippable::ServerPopState_Validate(UEquippableState* InPopState)
 {
 	return true;
 }
 
-void AHeroEquippable::OnRep_EquipStatus()
+void AAtomEquippable::OnRep_EquipStatus()
 {
 	if (EquipStatus.EquipType == EEquipType::Normal && HasActorBegunPlay())
 	{
@@ -256,16 +256,16 @@ void AHeroEquippable::OnRep_EquipStatus()
 	}
 }
 
-void AHeroEquippable::OnRep_Owner()
+void AAtomEquippable::OnRep_Owner()
 {
 	Super::OnRep_Owner();
 
-	HeroOwner = Cast<AHeroBase>(GetOwner());
+	HeroOwner = Cast<AAtomCharacter>(GetOwner());
 
 	ensureMsgf(GetOwner() ? HeroOwner != nullptr : true , TEXT("AHeroEquippable should only be owned by a AHeroBase."));
 }
 
-void AHeroEquippable::OnEquipped()
+void AAtomEquippable::OnEquipped()
 {		
 	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.EquippedHand);
 
@@ -291,7 +291,7 @@ void AHeroEquippable::OnEquipped()
 	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
 
-void AHeroEquippable::OnUnequipped()
+void AAtomEquippable::OnUnequipped()
 {
 	UnequipTimeStamp = GetWorld()->GetTimeSeconds();
 
@@ -317,32 +317,32 @@ void AHeroEquippable::OnUnequipped()
 	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
 
-TSubclassOf<class AEquippableUIActor> AHeroEquippable::GetUIActor() const
+TSubclassOf<class AEquippableUIActor> AAtomEquippable::GetUIActor() const
 {
 	return EquippableUI;
 }
 
-void AHeroEquippable::SetReplicatesAttachment(bool bShouldReplicate)
+void AAtomEquippable::SetReplicatesAttachment(bool bShouldReplicate)
 {
 	bReplicatesAttachment = bShouldReplicate;
 }
 
-void AHeroEquippable::SetupInputComponent(UInputComponent* InInputComponent)
+void AAtomEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	check(InInputComponent);
 }
 
-USceneComponent* AHeroEquippable::GetOffsetTarget() const
+USceneComponent* AAtomEquippable::GetOffsetTarget() const
 {
 	return HeroOwner->GetHandMeshTarget(EquipStatus.EquippedHand);
 }
 
-void AHeroEquippable::GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
+void AAtomEquippable::GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
 {
 	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.EquippedHand, LocationOut, RotationOut);
 }
 
-void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	const EHand SecondaryHand = !EquipStatus.EquippedHand;
 
@@ -360,7 +360,7 @@ void AHeroEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 	}
 }
 
-void AHeroEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AAtomEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	const EHand SecondaryHand = !EquipStatus.EquippedHand;
 
@@ -376,36 +376,36 @@ void AHeroEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* Over
 	}
 }
 
-void AHeroEquippable::ServerEquip_Implementation(const EHand Hand)
+void AAtomEquippable::ServerEquip_Implementation(const EHand Hand)
 {
 	Equip(Hand);
 }
 
-bool AHeroEquippable::ServerEquip_Validate(const EHand Hand)
+bool AAtomEquippable::ServerEquip_Validate(const EHand Hand)
 {
 	return true;
 }
 
-void AHeroEquippable::ServerUnequip_Implementation()
+void AAtomEquippable::ServerUnequip_Implementation()
 {
 	Unequip();
 }
 
-bool AHeroEquippable::ServerUnequip_Validate()
+bool AAtomEquippable::ServerUnequip_Validate()
 {
 	return true;
 }
 
-void AHeroEquippable::SetOwner(AActor* NewOwner)
+void AAtomEquippable::SetOwner(AActor* NewOwner)
 {
 	Super::SetOwner(NewOwner);
 	
-	HeroOwner = Cast<AHeroBase>(GetOwner());
+	HeroOwner = Cast<AAtomCharacter>(GetOwner());
 
 	ensureMsgf(GetOwner() ? HeroOwner != nullptr : true, TEXT("AHeroEquippable should only be owned by a AHeroBase."));
 }
 
-void AHeroEquippable::PostInitializeComponents()
+void AAtomEquippable::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
@@ -423,14 +423,14 @@ void AHeroEquippable::PostInitializeComponents()
 	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;		
 }
 
-void AHeroEquippable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AAtomEquippable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AHeroEquippable, EquipStatus, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAtomEquippable, EquipStatus, COND_SkipOwner);
 }
 
-void AHeroEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
+void AAtomEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
 {
 	Super::PreReplication(ChangedPropertyTracker);
 
@@ -442,7 +442,7 @@ void AHeroEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropert
 	}
 }
 
-bool AHeroEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+bool AAtomEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);;
 
@@ -455,7 +455,7 @@ bool AHeroEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FO
 	return WroteSomething;
 }
 
-void AHeroEquippable::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList)
+void AAtomEquippable::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList)
 {
 	Super::GetSubobjectsWithStableNamesForNetworking(ObjList);
 

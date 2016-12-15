@@ -2,11 +2,11 @@
 
 #include "ProjectAtomVR.h"
 #include "AtomUISystem.h"
-#include "HeroLoadout.h"
-#include "HeroLoadoutTemplate.h"
+#include "AtomLoadout.h"
+#include "AtomLoadoutTemplate.h"
 
 #include "UI/EquippableUIActor.h"
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 
 UAtomUISystem::UAtomUISystem()
 {
@@ -23,7 +23,7 @@ AAtomPlayerController* UAtomUISystem::GetOwner() const
 	return Owner;
 }
 
-AHeroBase* UAtomUISystem::GetHero() const
+AAtomCharacter* UAtomUISystem::GetHero() const
 {
 	return Owner->GetHero();
 }
@@ -32,7 +32,7 @@ void UAtomUISystem::SpawnHeroUI()
 {
 	check(HeroUI.Equippables.Num() == 0);
 
-	UHeroLoadout* Loadout = GetHero()->GetLoadout();
+	UAtomLoadout* Loadout = GetHero()->GetLoadout();
 	const auto& TemplateSlots = Loadout->GetLoadoutTemplate().GetDefaultObject()->GetLoadoutSlots();
 	auto& LoadoutSlots = Loadout->GetLoadoutSlots();
 
@@ -40,14 +40,14 @@ void UAtomUISystem::SpawnHeroUI()
 
 	for (int32 i = 0; i < TemplateSlots.Num(); ++i)
 	{
-		FHeroLoadoutSlot& LoadoutSlot = LoadoutSlots[i];
-		const FHeroLoadoutTemplateSlot& TemplateSlot = TemplateSlots[i];
+		FAtomLoadoutSlot& LoadoutSlot = LoadoutSlots[i];
+		const FAtomLoadoutTemplateSlot& TemplateSlot = TemplateSlots[i];
 
 		// Create the UI only if the item is created. If not, (i.e. not replicated yet) wait until the item changed
 		// event tells us it is there.
 		if (LoadoutSlot.Item != nullptr)
 		{
-			const TSubclassOf<AEquippableUIActor> EquippableUIClass = TemplateSlot.ItemClass->GetDefaultObject<AHeroEquippable>()->GetUIActor();
+			const TSubclassOf<AEquippableUIActor> EquippableUIClass = TemplateSlot.ItemClass->GetDefaultObject<AAtomEquippable>()->GetUIActor();
 
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.ObjectFlags |= RF_Transient;
@@ -82,14 +82,14 @@ class UWorld* UAtomUISystem::GetWorld() const
 
 void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
 {
-	UHeroLoadout* Loadout = GetHero()->GetLoadout();
+	UAtomLoadout* Loadout = GetHero()->GetLoadout();
 	const auto& LoadoutSlots = Loadout->GetLoadoutSlots();
 
 	AEquippableUIActor*& UIActor = HeroUI.Equippables[LoadoutIndex];
 
 	if ((Change & ELoadoutSlotChangeType::Item) == ELoadoutSlotChangeType::Item)
 	{
-		AHeroEquippable* NewItem = LoadoutSlots[LoadoutIndex].Item;
+		AAtomEquippable* NewItem = LoadoutSlots[LoadoutIndex].Item;
 
 		if (NewItem != nullptr)
 		{
@@ -97,7 +97,7 @@ void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 			{
 				// Not created yet, make it now
 				const auto& TemplateSlots = Loadout->GetLoadoutTemplate().GetDefaultObject()->GetLoadoutSlots();
-				const auto EquippableUIClass = TemplateSlots[LoadoutIndex].ItemClass->GetDefaultObject<AHeroEquippable>()->GetUIActor();
+				const auto EquippableUIClass = TemplateSlots[LoadoutIndex].ItemClass->GetDefaultObject<AAtomEquippable>()->GetUIActor();
 
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.ObjectFlags |= RF_Transient;

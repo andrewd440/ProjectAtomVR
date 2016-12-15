@@ -77,5 +77,5 @@ public:
 
 protected:
 	/** The owning weapon */
-	class AHeroFirearm* GetFirearm() const;
+	class AAtomFirearm* GetFirearm() const;
 };

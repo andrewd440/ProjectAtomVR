@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Object.h"
-#include "HeroLoadout.generated.h"
+#include "AtomLoadout.generated.h"
 
 UENUM(BlueprintType, meta = (Bitflags))
 enum class ELoadoutSlotChangeType : uint8
@@ -16,7 +16,7 @@ enum class ELoadoutSlotChangeType : uint8
 ENUM_CLASS_FLAGS(ELoadoutSlotChangeType);
 
 USTRUCT()
-struct FHeroLoadoutSlot
+struct FAtomLoadoutSlot
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -26,7 +26,7 @@ struct FHeroLoadoutSlot
 	FItemChanged OnSlotChanged;
 
 	UPROPERTY(BlueprintReadOnly)
-	class AHeroEquippable* Item = nullptr;
+	class AAtomEquippable* Item = nullptr;
 
 	// Remaining items for this slot
 	UPROPERTY(BlueprintReadOnly)
@@ -46,19 +46,19 @@ struct FHeroLoadoutSlot
  * 
  */
 UCLASS(DefaultToInstanced, EditInlineNew)
-class PROJECTATOMVR_API UHeroLoadout : public UObject
+class PROJECTATOMVR_API UAtomLoadout : public UObject
 {
 	GENERATED_BODY()
 	
 public:
-	static const FHeroLoadoutSlot NullLoadoutSlot;
+	static const FAtomLoadoutSlot NullLoadoutSlot;
 
 public:
 	/**
 	 * Initializes loadout slots. Does not spawn any loadout items.
 	 * Should be called by the owning hero on PostInitializeComponents.
 	 */
-	void InitializeLoadout(class AHeroBase* Owner);	
+	void InitializeLoadout(class AAtomCharacter* Owner);	
 
 	/** 
 	 * Spawns all loadout items. Should be called after the owning hero as been possessed by
@@ -80,19 +80,19 @@ public:
 	 * unequip the specified item. If successful, the AHeroBase::Unequip will be called on
 	 * the owning hero.
 	 **/
-	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AHeroEquippable* Item);
+	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEquippable* Item);
 
 	/** Gets the loadout slots. */
-	const TArray<FHeroLoadoutSlot>& GetLoadoutSlots() const;
+	const TArray<FAtomLoadoutSlot>& GetLoadoutSlots() const;
 
 	/** Gets the loadout slots. */
-	TArray<FHeroLoadoutSlot>& GetLoadoutSlots();
+	TArray<FAtomLoadoutSlot>& GetLoadoutSlots();
 
 	/** Gets the loadout template. Template items and loadout slots map one-to-one. */
-	const TSubclassOf<class UHeroLoadoutTemplate> GetLoadoutTemplate() const;
+	const TSubclassOf<class UAtomLoadoutTemplate> GetLoadoutTemplate() const;
 
 	UFUNCTION(BlueprintCallable, Category = Loadout)
-	const FHeroLoadoutSlot& GetItemSlot(const class AHeroEquippable* Item) const;
+	const FAtomLoadoutSlot& GetItemSlot(const class AAtomEquippable* Item) const;
 
 	USceneComponent* GetAttachParent() const;
 
@@ -106,17 +106,17 @@ protected:
 	* Only bound on the server. Called when a loadout item changes it's return to loadout
 	* property.
 	*/
-	void OnReturnToLoadoutChanged(class AHeroEquippable* Item, int32 LoadoutIndex);
+	void OnReturnToLoadoutChanged(class AAtomEquippable* Item, int32 LoadoutIndex);
 
 	UFUNCTION()
 	void OnRep_Loadout();
 
 private:
 	/** Creates all loadout weapons. Should only be called on server. */
-	void CreateLoadoutEquippables(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
+	void CreateLoadoutEquippables(const TArray<struct FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
 
 	/** Creates all loadout item triggers. Should only be called on controlling players. */
-	void CreateLoadoutTriggers(const TArray<struct FHeroLoadoutTemplateSlot>& LoadoutTemplateSlots);
+	void CreateLoadoutTriggers(const TArray<struct FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
 	
 	/** UObject Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;
@@ -133,7 +133,7 @@ private:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = HeroLoadout)
-	TSubclassOf<class UHeroLoadoutTemplate> LoadoutTemplate;
+	TSubclassOf<class UAtomLoadoutTemplate> LoadoutTemplate;
 
 	/** Haptic played when the players' hand overlaps an equippable item. */
 	UPROPERTY(EditDefaultsOnly, Category = HeroLoadout)
@@ -141,7 +141,7 @@ protected:
 
 private:
 	UPROPERTY(ReplicatedUsing=OnRep_Loadout, VisibleAnywhere, Category = HeroLoadout)
-	TArray<FHeroLoadoutSlot> Loadout;
+	TArray<FAtomLoadoutSlot> Loadout;
 
-	class AHeroBase* HeroOwner = nullptr;
+	class AAtomCharacter* HeroOwner = nullptr;
 };

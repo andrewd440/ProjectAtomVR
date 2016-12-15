@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Blueprint/UserWidget.h"
-#include "HeroLoadout.h"
+#include "AtomLoadout.h"
 
 #include "EquippableWidget.generated.h"
 
@@ -47,7 +47,7 @@ public:
 	* be Item, as that is handle externally.
 	*/
 	UFUNCTION(BlueprintImplementableEvent, Category = EquippableWidget)
-	void OnLoadoutChanged(ELoadoutSlotChangeType Change, const FHeroLoadoutSlot& LoadoutSlot);
+	void OnLoadoutChanged(ELoadoutSlotChangeType Change, const FAtomLoadoutSlot& LoadoutSlot);
 
 protected:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = EquippableWidget)

@@ -2,7 +2,7 @@
 
 #include "ProjectAtomVR.h"
 #include "ShotTypeInstant.h"
-#include "HeroFirearm.h"
+#include "AtomFirearm.h"
 #include "Effects/AtomImpactEffect.h"
 
 namespace
@@ -12,7 +12,7 @@ namespace
 
 FShotData UShotTypeInstant::GetShotData() const
 {
-	const AHeroFirearm* const Firearm = GetFirearm();
+	const AAtomFirearm* const Firearm = GetFirearm();
 	
 	FShotData ShotData;
 	ShotData.Start = Firearm->GetMuzzleLocation();
@@ -81,7 +81,7 @@ void UShotTypeInstant::FireShot(const FShotData& ShotData)
 
 void UShotTypeInstant::ProcessFiredShotImpact(const FHitResult& Impact)
 {
-	AHeroFirearm* const Firearm = GetFirearm();
+	AAtomFirearm* const Firearm = GetFirearm();
 
 	if (Impact.bBlockingHit && Impact.Actor.IsValid())
 	{

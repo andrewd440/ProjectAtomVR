@@ -1,16 +1,16 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroBase.h"
+#include "AtomCharacter.h"
 
-#include "HeroMovementType.h"
-#include "HeroMovementComponent.h"
+#include "AtomCharacterMovementType.h"
+#include "AtomCharacterMovementComponent.h"
 #include "NetMotionControllerComponent.h"
 #include "HMDCapsuleComponent.h"
 #include "HMDCameraComponent.h"
-#include "HeroLoadout.h"
+#include "AtomLoadout.h"
 #include "Engine/ActorChannel.h"
-#include "HeroEquippable.h"
+#include "AtomEquippable.h"
 #include "Animation/AnimSequence.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
@@ -22,8 +22,8 @@ namespace
 }
 
 // Sets default values
-AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UHeroMovementComponent>(ACharacter::CharacterMovementComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
+AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UAtomCharacterMovementComponent>(ACharacter::CharacterMovementComponentName).SetDefaultSubobjectClass<UHMDCapsuleComponent>(ACharacter::CapsuleComponentName))
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -40,7 +40,7 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	Camera->SetupAttachment(RootComponent);
 	Camera->bLockToHmd = true;
 	Camera->SetIsReplicated(true);
-	Camera->OnPostNetTransformUpdate.BindUObject(this, &AHeroBase::UpdateMeshLocation);
+	Camera->OnPostNetTransformUpdate.BindUObject(this, &AAtomCharacter::UpdateMeshLocation);
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	BodyMesh->SetOnlyOwnerSee(true);
@@ -96,12 +96,12 @@ AHeroBase::AHeroBase(const FObjectInitializer& ObjectInitializer /*= FObjectInit
 	RightHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 	// Setup loadout
-	Loadout = CreateDefaultSubobject<UHeroLoadout>(TEXT("Loadout"));
+	Loadout = CreateDefaultSubobject<UAtomLoadout>(TEXT("Loadout"));
 
 	JumpMaxCount = 0;	
 }
 
-void AHeroBase::BeginPlay()
+void AAtomCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -113,7 +113,7 @@ void AHeroBase::BeginPlay()
 	Loadout->SpawnLoadout();
 }
 
-void AHeroBase::Tick( float DeltaTime )
+void AAtomCharacter::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
@@ -125,7 +125,7 @@ void AHeroBase::Tick( float DeltaTime )
 	}	
 }
 
-void AHeroBase::UpdateMeshLocation(float DeltaTime)
+void AAtomCharacter::UpdateMeshLocation(float DeltaTime)
 {
 	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
 	FVector CameraForward2D = Camera->GetForwardVector();	
@@ -195,16 +195,16 @@ void AHeroBase::UpdateMeshLocation(float DeltaTime)
 	BaseRotationOffset = FullBodyRelativeTransform.GetRotation();
 }
 
-void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
+void AAtomCharacter::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
 {
 	Super::SetupPlayerInputComponent(InInputComponent);
 
 	// Bind inputs for hero
-	InInputComponent->BindAction(TEXT("GripLeft"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Left>);
-	InInputComponent->BindAction(TEXT("GripRight"), EInputEvent::IE_Pressed, this, &AHeroBase::OnEquipPressed<EHand::Right>);
+	InInputComponent->BindAction(TEXT("GripLeft"), EInputEvent::IE_Pressed, this, &AAtomCharacter::OnEquipPressed<EHand::Left>);
+	InInputComponent->BindAction(TEXT("GripRight"), EInputEvent::IE_Pressed, this, &AAtomCharacter::OnEquipPressed<EHand::Right>);
 
 	// Setup all movement types component input bindings
-	TInlineComponentArray<UHeroMovementType*> MovementTypeComponents;
+	TInlineComponentArray<UAtomCharacterMovementType*> MovementTypeComponents;
 	GetComponents(MovementTypeComponents);
 
 	for (auto MovementType : MovementTypeComponents)
@@ -213,7 +213,7 @@ void AHeroBase::SetupPlayerInputComponent(class UInputComponent* InInputComponen
 	}
 }
 
-void AHeroBase::PostInitializeComponents()
+void AAtomCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();		
 
@@ -228,7 +228,7 @@ void AHeroBase::PostInitializeComponents()
 	Loadout->InitializeLoadout(this);
 }
 
-void AHeroBase::PostNetReceiveLocationAndRotation()
+void AAtomCharacter::PostNetReceiveLocationAndRotation()
 {
 	if (Role == ROLE_SimulatedProxy)
 	{
@@ -245,12 +245,12 @@ void AHeroBase::PostNetReceiveLocationAndRotation()
 	}
 }
 
-FVector AHeroBase::GetVelocity() const
+FVector AAtomCharacter::GetVelocity() const
 {
 	return GetCapsuleComponent()->GetComponentVelocity();
 }
 
-bool AHeroBase::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FReplicationFlags *RepFlags)
+bool AAtomCharacter::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	bool bWroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
@@ -259,12 +259,12 @@ bool AHeroBase::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunch, FR
 	return bWroteSomething;
 }
 
-void AHeroBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
-void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
+void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
 {
 	// Get correct location and rotation
 	FVector DestinationOffset = GetActorLocation() - Camera->GetWorldHeadLocation();
@@ -280,7 +280,7 @@ void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& De
 		PlayerCameraManager->StartCameraFade(0.f, 1.f, 0.1f, FLinearColor::Black, false, true);
 
 		// Set delegate to finish the teleport
-		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AHeroBase::FinishTeleport, CapsuleDestination, GetActorRotation());
+		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AAtomCharacter::FinishTeleport, CapsuleDestination, GetActorRotation());
 		FTimerHandle TimerHandle;
 		GetWorldTimerManager().SetTimer(TimerHandle, FinishTeleportDelegate, 0.1f, false);
 	}
@@ -291,20 +291,20 @@ void AHeroBase::MovementTeleport(const FVector& DestLocation, const FRotator& De
 	}
 }
 
-UHMDCapsuleComponent* AHeroBase::GetHMDCapsuleComponent() const
+UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const
 {
 	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
 }
 
-USceneComponent* AHeroBase::GetHandMeshTarget(const EHand Hand) const
+USceneComponent* AAtomCharacter::GetHandMeshTarget(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
 }
 
-void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
+void AAtomCharacter::Equip(AAtomEquippable* Item, const EHand Hand)
 { 
 	// Unequip first if hand is in use
-	AHeroEquippable*& EquippablePtr = (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
+	AAtomEquippable*& EquippablePtr = (Hand == EHand::Left) ? LeftHandEquippable : RightHandEquippable;
 
 	if (EquippablePtr != nullptr)
 	{
@@ -314,7 +314,7 @@ void AHeroBase::Equip(AHeroEquippable* Item, const EHand Hand)
 	Item->Equip(Hand);
 }
 
-void AHeroBase::OnEquipped(AHeroEquippable* Item, const EHand Hand)
+void AAtomCharacter::OnEquipped(AAtomEquippable* Item, const EHand Hand)
 {
 	if (Hand == EHand::Left)
 	{
@@ -326,7 +326,7 @@ void AHeroBase::OnEquipped(AHeroEquippable* Item, const EHand Hand)
 	}
 }
 
-void AHeroBase::Unequip(AHeroEquippable* Item, const EHand Hand)
+void AAtomCharacter::Unequip(AAtomEquippable* Item, const EHand Hand)
 {
 	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
 
@@ -340,7 +340,7 @@ void AHeroBase::Unequip(AHeroEquippable* Item, const EHand Hand)
 	}
 }
 
-void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
+void AAtomCharacter::OnUnequipped(AAtomEquippable* Item, const EHand Hand)
 {
 	ensure(Item == LeftHandEquippable || Item == RightHandEquippable);
 
@@ -360,7 +360,7 @@ void AHeroBase::OnUnequipped(AHeroEquippable* Item, const EHand Hand)
 	}
 }
 
-void AHeroBase::GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const
+void AAtomCharacter::GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector& Location, FRotator& Rotation) const
 {
 	const FDefaultHandTransform& HandTransform = (Hand == EHand::Left) ? DefaultLeftHandTransform : DefaultRightHandTransform;
 
@@ -368,17 +368,17 @@ void AHeroBase::GetDefaultHandMeshLocationAndRotation(const EHand Hand, FVector&
 	Rotation = HandTransform.Rotation;
 }
 
-FVector AHeroBase::GetDefaultHandMeshLocation(const EHand Hand) const
+FVector AAtomCharacter::GetDefaultHandMeshLocation(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Location : DefaultRightHandTransform.Location;
 }
 
-FRotator AHeroBase::GetDefaultHandMeshRotation(const EHand Hand) const
+FRotator AAtomCharacter::GetDefaultHandMeshRotation(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? DefaultLeftHandTransform.Rotation : DefaultRightHandTransform.Rotation;
 }
 
-UMeshComponent* AHeroBase::GetBodyAttachmentComponent() const
+UMeshComponent* AAtomCharacter::GetBodyAttachmentComponent() const
 {
 	if (IsLocallyControlled())
 	{
@@ -390,17 +390,17 @@ UMeshComponent* AHeroBase::GetBodyAttachmentComponent() const
 	}
 }
 
-USkeletalMeshComponent* AHeroBase::GetHandAttachmentComponent(const EHand Hand) const
+USkeletalMeshComponent* AAtomCharacter::GetHandAttachmentComponent(const EHand Hand) const
 {
 	return !IsLocallyControlled() ? GetMesh() : (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
 }
 
-FVector AHeroBase::GetRoomScaleVelocity() const
+FVector AAtomCharacter::GetRoomScaleVelocity() const
 {
 	return RoomScaleVelocity;
 }
 
-void AHeroBase::PlayHandAnimation(const EHand Hand, const FHandAnim& Anim)
+void AAtomCharacter::PlayHandAnimation(const EHand Hand, const FHandAnim& Anim)
 {
 	if (IsLocallyControlled())
 	{
@@ -426,7 +426,7 @@ void AHeroBase::PlayHandAnimation(const EHand Hand, const FHandAnim& Anim)
 	}
 }
 
-void AHeroBase::StopHandAnimation(const EHand Hand, const FHandAnim& Anim)
+void AAtomCharacter::StopHandAnimation(const EHand Hand, const FHandAnim& Anim)
 {
 	if (IsLocallyControlled())
 	{
@@ -450,13 +450,13 @@ void AHeroBase::StopHandAnimation(const EHand Hand, const FHandAnim& Anim)
 	}
 }
 
-UHeroLoadout* AHeroBase::GetLoadout() const
+UAtomLoadout* AAtomCharacter::GetLoadout() const
 {
 	return Loadout;
 }
 
 template <EHand Hand>
-void AHeroBase::OnEquipPressed()
+void AAtomCharacter::OnEquipPressed()
 {
 	if (Hand == EHand::Left)
 	{
@@ -482,7 +482,7 @@ void AHeroBase::OnEquipPressed()
 	}	
 }
 
-void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
+void AAtomCharacter::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 {	
 	GetHeroMovementComponent()->TeleportMove(DestLocation);
 
@@ -491,12 +491,12 @@ void AHeroBase::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
 }
 
-FVector AHeroBase::GetPawnViewLocation() const
+FVector AAtomCharacter::GetPawnViewLocation() const
 {
 	return Camera->GetComponentLocation();
 }
 
-FRotator AHeroBase::GetViewRotation() const
+FRotator AAtomCharacter::GetViewRotation() const
 {
 	return Camera->GetComponentRotation();
 }

@@ -3,22 +3,22 @@
 #pragma once
 
 #include "GameFramework/CharacterMovementComponent.h"
-#include "HeroMovementComponent.generated.h"
+#include "AtomCharacterMovementComponent.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API UHeroMovementComponent : public UCharacterMovementComponent
+class PROJECTATOMVR_API UAtomCharacterMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 	
 public:
-	UHeroMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	UAtomCharacterMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	void TeleportMove(const FVector& Destination);
 
-	class FNetworkPredictionData_Server_Hero* GetPredictionData_Server_Hero() const;
+	class FNetworkPredictionData_Server_AtomCharacter* GetPredictionData_Server_Hero() const;
 
 protected:
 	class UHMDCapsuleComponent* GetHMDCapsule() const;
@@ -45,7 +45,7 @@ protected:
 	/** UActorComponent Interface End */
 
 protected:
-	friend class FSavedMove_Hero;
+	friend class FSavedMove_AtomCharacter;
 	uint32 bWantsToTeleport : 1;
 
 	UPROPERTY(ReplicatedUsing=OnRep_PendingTeleportDestination)
@@ -57,7 +57,7 @@ private:
 };
 
 
-class PROJECTATOMVR_API FSavedMove_Hero : public FSavedMove_Character
+class PROJECTATOMVR_API FSavedMove_AtomCharacter : public FSavedMove_Character
 {
 	using Super = FSavedMove_Character;
 
@@ -74,7 +74,7 @@ public:
 	virtual void SetInitialPosition(ACharacter* C) override;
 
 public:
-	FSavedMove_Hero();
+	FSavedMove_AtomCharacter();
 
 	/** FSavedMove_Character Interface Begin */
 	virtual bool CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* InPawn, float MaxDelta) const override;
@@ -90,26 +90,26 @@ public:
 	FVector TeleportLocation; // Only valid if bWantsToTeleport
 };
 
-class PROJECTATOMVR_API FNetworkPredictionData_Client_Hero : public FNetworkPredictionData_Client_Character
+class PROJECTATOMVR_API FNetworkPredictionData_Client_AtomCharacter : public FNetworkPredictionData_Client_Character
 {
 	using Super = FNetworkPredictionData_Client_Character;
 
 public:
-	FNetworkPredictionData_Client_Hero(const UHeroMovementComponent& ClientMovement);
-	virtual ~FNetworkPredictionData_Client_Hero();
+	FNetworkPredictionData_Client_AtomCharacter(const UAtomCharacterMovementComponent& ClientMovement);
+	virtual ~FNetworkPredictionData_Client_AtomCharacter();
 
 	/** FNetworkPredictionData_Client_Character Interface Begin */
 	virtual FSavedMovePtr AllocateNewMove() override;
 	/** FNetworkPredictionData_Client_Character Interface End */
 };
 
-class PROJECTATOMVR_API FNetworkPredictionData_Server_Hero : public FNetworkPredictionData_Server_Character
+class PROJECTATOMVR_API FNetworkPredictionData_Server_AtomCharacter : public FNetworkPredictionData_Server_Character
 {
 	using Super = FNetworkPredictionData_Server_Character;
 
 public:
-	FNetworkPredictionData_Server_Hero(const UHeroMovementComponent& ServerMovement);
-	virtual ~FNetworkPredictionData_Server_Hero();
+	FNetworkPredictionData_Server_AtomCharacter(const UAtomCharacterMovementComponent& ServerMovement);
+	virtual ~FNetworkPredictionData_Server_AtomCharacter();
 
 public:
 	FVector ClientLocation = FVector::ZeroVector;

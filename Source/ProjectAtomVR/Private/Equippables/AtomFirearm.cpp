@@ -1,8 +1,8 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "HeroFirearm.h"
-#include "HeroBase.h"
+#include "AtomFirearm.h"
+#include "AtomCharacter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Animation/AnimInstance.h"
@@ -27,9 +27,9 @@ namespace
 	static const FName SlideLockSection{ TEXT("SlideLock") };
 }
 
-AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponent>(AHeroEquippable::MeshComponentName).
-							  SetDefaultSubobjectClass<UEquippableStateActiveFirearm>(AHeroEquippable::ActiveStateName))
+AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponent>(AAtomEquippable::MeshComponentName).
+							  SetDefaultSubobjectClass<UEquippableStateActiveFirearm>(AAtomEquippable::ActiveStateName))
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
@@ -63,7 +63,7 @@ AHeroFirearm::AHeroFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 }
 
 
-void AHeroFirearm::Tick( float DeltaTime )
+void AAtomFirearm::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
@@ -76,7 +76,7 @@ void AHeroFirearm::Tick( float DeltaTime )
 	
 }
 
-void AHeroFirearm::UpdateChamberingHandle()
+void AAtomFirearm::UpdateChamberingHandle()
 {
 	if (bIsHoldingChamberHandle)
 	{
@@ -152,7 +152,7 @@ void AHeroFirearm::UpdateChamberingHandle()
 	}
 }
 
-void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
+void AAtomFirearm::UpdateRecoilOffset(float DeltaSeconds)
 {
 	UE_LOG(LogFirearm, Log, TEXT("Updating recoil offset for firearm."));
 
@@ -208,32 +208,32 @@ void AHeroFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	}
 }
 
-FVector AHeroFirearm::GetMuzzleLocation() const
+FVector AAtomFirearm::GetMuzzleLocation() const
 {
 	return GetMesh()->GetSocketLocation(MuzzleSocket);
 }
 
-FQuat AHeroFirearm::GetMuzzleRotation() const
+FQuat AAtomFirearm::GetMuzzleRotation() const
 {
 	return GetMesh()->GetSocketQuaternion(MuzzleSocket);
 }
 
-bool AHeroFirearm::IsChamberEmpty() const
+bool AAtomFirearm::IsChamberEmpty() const
 {
 	return bIsChamberEmpty;
 }
 
-float AHeroFirearm::GetChamberingProgress() const
+float AAtomFirearm::GetChamberingProgress() const
 {
 	return (ChamberingProgress + ChamberingIndex) / (float)ChamberHandleMovement.Num();
 }
 
-bool AHeroFirearm::IsHoldingChamberingHandle() const
+bool AAtomFirearm::IsHoldingChamberingHandle() const
 {
 	return bIsHoldingChamberHandle;
 }
 
-bool AHeroFirearm::CanFire() const
+bool AAtomFirearm::CanFire() const
 {
 	return !IsChamberEmpty() &&
 		!bIsHoldingChamberHandle &&
@@ -241,7 +241,7 @@ bool AHeroFirearm::CanFire() const
 		!IsMuzzleInGeometry();
 }
 
-bool AHeroFirearm::IsMuzzleInGeometry() const
+bool AAtomFirearm::IsMuzzleInGeometry() const
 {
 	const FCollisionObjectQueryParams ObjectParams{ FCollisionObjectQueryParams::AllStaticObjects };
 	const FCollisionQueryParams QueryParams{ NAME_None, false, this };
@@ -253,7 +253,7 @@ bool AHeroFirearm::IsMuzzleInGeometry() const
 	return GetWorld()->OverlapAnyTestByObjectType(WorldLocation, WorldRotation, ObjectParams, FCollisionShape::MakeCapsule(BlockFireVolume.CapsuleRadius, BlockFireVolume.CapsuleHalfHeight), QueryParams);
 }
 
-void AHeroFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
+void AAtomFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 {
 	if (!bForceLocalOnly && 
 		!HasAuthority() && 
@@ -271,7 +271,7 @@ void AHeroFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 	}
 }
 
-void AHeroFirearm::DiscardAmmo()
+void AAtomFirearm::DiscardAmmo()
 {
 	if (AmmoLoader->DiscardAmmo())
 	{
@@ -288,27 +288,27 @@ void AHeroFirearm::DiscardAmmo()
 	}
 }
 
-void AHeroFirearm::ServerLoadAmmo_Implementation(UObject* LoadObject)
+void AAtomFirearm::ServerLoadAmmo_Implementation(UObject* LoadObject)
 {
 	LoadAmmo(LoadObject);
 }
 
-bool AHeroFirearm::ServerLoadAmmo_Validate(UObject* LoadObject)
+bool AAtomFirearm::ServerLoadAmmo_Validate(UObject* LoadObject)
 {
 	return true;
 }
 
-void AHeroFirearm::ServerDiscardAmmo_Implementation()
+void AAtomFirearm::ServerDiscardAmmo_Implementation()
 {
 	DiscardAmmo();
 }
 
-bool AHeroFirearm::ServerDiscardAmmo_Validate()
+bool AAtomFirearm::ServerDiscardAmmo_Validate()
 {
 	return true;
 }
 
-void AHeroFirearm::FireShot()
+void AAtomFirearm::FireShot()
 {
 	check(ShotType);
 
@@ -350,7 +350,7 @@ void AHeroFirearm::FireShot()
 	}
 }
 
-void AHeroFirearm::DryFire()
+void AAtomFirearm::DryFire()
 {
 	if (DryFireSound)
 	{
@@ -358,7 +358,7 @@ void AHeroFirearm::DryFire()
 	}	
 }
 
-void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
+void AAtomFirearm::ServerFireShot_Implementation(FShotData ShotData)
 {
 	UE_LOG(LogFirearm, Log, TEXT("ServerFireShot"));
 	GenerateShotRecoil(ShotData.Seed);
@@ -372,12 +372,12 @@ void AHeroFirearm::ServerFireShot_Implementation(FShotData ShotData)
 	ReloadChamber(true);
 }
 
-bool AHeroFirearm::ServerFireShot_Validate(FShotData ShotData)
+bool AAtomFirearm::ServerFireShot_Validate(FShotData ShotData)
 {
 	return true;
 }
 
-void AHeroFirearm::PlaySingleShotSequence()
+void AAtomFirearm::PlaySingleShotSequence()
 {
 	// Activate if not active or not looping
 	if (MuzzleFX != nullptr && (MuzzleFXComponent == nullptr || !MuzzleFX->IsLooping()))
@@ -402,7 +402,7 @@ void AHeroFirearm::PlaySingleShotSequence()
 	}
 }
 
-void AHeroFirearm::OnOppositeHandTriggerPressed()
+void AAtomFirearm::OnOppositeHandTriggerPressed()
 {
 	if (CanGripChamberingHandle())
 	{		
@@ -411,7 +411,7 @@ void AHeroFirearm::OnOppositeHandTriggerPressed()
 	}
 }
 
-void AHeroFirearm::OnOppositeHandTriggerReleased()
+void AAtomFirearm::OnOppositeHandTriggerReleased()
 {
 	if (bIsHoldingChamberHandle)
 	{
@@ -420,7 +420,7 @@ void AHeroFirearm::OnOppositeHandTriggerReleased()
 	}	
 }
 
-bool AHeroFirearm::CanGripChamberingHandle() const
+bool AAtomFirearm::CanGripChamberingHandle() const
 {
 	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.EquippedHand) == nullptr)
 	{		
@@ -434,7 +434,7 @@ bool AHeroFirearm::CanGripChamberingHandle() const
 	return false;
 }
 
-void AHeroFirearm::OnChamberingHandleGrabbed()
+void AAtomFirearm::OnChamberingHandleGrabbed()
 {
 	bIsHoldingChamberHandle = true;
 	ChamberingIndex = 0;
@@ -445,7 +445,7 @@ void AHeroFirearm::OnChamberingHandleGrabbed()
 	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 }
 
-void AHeroFirearm::OnChamberingHandleReleased()
+void AAtomFirearm::OnChamberingHandleReleased()
 {
 	bIsHoldingChamberHandle = false;
 
@@ -464,7 +464,7 @@ void AHeroFirearm::OnChamberingHandleReleased()
 	LastChamberState = EChamberState::Set;
 }
 
-void AHeroFirearm::OnSlideLockPressed()
+void AAtomFirearm::OnSlideLockPressed()
 {
 	if (bIsSlideLockActive && AmmoLoader->GetAmmoCount() > 0)
 	{
@@ -473,7 +473,7 @@ void AHeroFirearm::OnSlideLockPressed()
 	}	
 }
 
-void AHeroFirearm::ActivateSlideLock()
+void AAtomFirearm::ActivateSlideLock()
 {
 	if (FiringMontage && FiringMontage->IsValidSectionName(SlideLockSection))
 	{
@@ -495,7 +495,7 @@ void AHeroFirearm::ActivateSlideLock()
 	}
 }
 
-void AHeroFirearm::ReleaseSlideLock()
+void AAtomFirearm::ReleaseSlideLock()
 {
 	bIsSlideLockActive = false;
 
@@ -510,7 +510,7 @@ void AHeroFirearm::ReleaseSlideLock()
 	ReloadChamber(false);
 }
 
-void AHeroFirearm::GenerateShotRecoil(uint8 Seed)
+void AAtomFirearm::GenerateShotRecoil(uint8 Seed)
 {
 	// Get random rotation [-1, 1] to factor in with RecoilPushSpread and
 	// apply the rotation to RecoilPush
@@ -531,7 +531,7 @@ void AHeroFirearm::GenerateShotRecoil(uint8 Seed)
 	bIsRecoilActive = true;
 }
 
-void AHeroFirearm::ReloadChamber(bool bIsFired)
+void AAtomFirearm::ReloadChamber(bool bIsFired)
 {
 	// Eject first if not empty
 	if (!bIsChamberEmpty && CartridgeEjectComponent)
@@ -567,12 +567,12 @@ void AHeroFirearm::ReloadChamber(bool bIsFired)
 	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
 }
 
-void AHeroFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
+void AAtomFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
 {
 	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), CartridgeCollideSound, Location);
 }
 
-void AHeroFirearm::OnRep_IsHoldingChamberHandle()
+void AAtomFirearm::OnRep_IsHoldingChamberHandle()
 {
 	if (bIsHoldingChamberHandle)
 	{
@@ -584,7 +584,7 @@ void AHeroFirearm::OnRep_IsHoldingChamberHandle()
 	}
 }
 
-void AHeroFirearm::OnRep_IsSlideLockActive()
+void AAtomFirearm::OnRep_IsSlideLockActive()
 {
 	if(!bIsSlideLockActive)
 	{
@@ -600,24 +600,24 @@ void AHeroFirearm::OnRep_IsSlideLockActive()
 	}
 }
 
-void AHeroFirearm::SetupInputComponent(UInputComponent* InInputComponent)
+void AAtomFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	Super::SetupInputComponent(InInputComponent);
 
 	const FName WeaponInteractName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("WeaponInteractLeft") : TEXT("WeaponInteractRight");
-	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AHeroFirearm::OnOppositeHandTriggerPressed).bConsumeInput = false;
-	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AHeroFirearm::OnOppositeHandTriggerReleased).bConsumeInput = false;
+	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AAtomFirearm::OnOppositeHandTriggerPressed).bConsumeInput = false;
+	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AAtomFirearm::OnOppositeHandTriggerReleased).bConsumeInput = false;
 
 	if (Stats.bHasSlideLock)
 	{
 		const FName SlideLockName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
-		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AHeroFirearm::OnSlideLockPressed);
+		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AAtomFirearm::OnSlideLockPressed);
 	}
 
 	AmmoLoader->SetupInputComponent(InInputComponent);
 }
 
-void AHeroFirearm::ServerSetSlideLock_Implementation(bool bIsActive)
+void AAtomFirearm::ServerSetSlideLock_Implementation(bool bIsActive)
 {
 	if (bIsActive != bIsSlideLockActive)
 	{
@@ -632,12 +632,12 @@ void AHeroFirearm::ServerSetSlideLock_Implementation(bool bIsActive)
 	}
 }
 
-bool AHeroFirearm::ServerSetSlideLock_Validate(bool bIsActive)
+bool AAtomFirearm::ServerSetSlideLock_Validate(bool bIsActive)
 {
 	return true;
 }
 
-void AHeroFirearm::ServerSetIsHoldingChamberingHandle_Implementation(bool bIsHeld)
+void AAtomFirearm::ServerSetIsHoldingChamberingHandle_Implementation(bool bIsHeld)
 {
 	if (bIsHeld != bIsHoldingChamberHandle)
 	{
@@ -652,20 +652,20 @@ void AHeroFirearm::ServerSetIsHoldingChamberingHandle_Implementation(bool bIsHel
 	}
 }
 
-bool AHeroFirearm::ServerSetIsHoldingChamberingHandle_Validate(bool bIsHeld)
+bool AAtomFirearm::ServerSetIsHoldingChamberingHandle_Validate(bool bIsHeld)
 {
 	return true;
 }
 
-void AHeroFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AAtomFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsHoldingChamberHandle, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AHeroFirearm, bIsSlideLockActive, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAtomFirearm, bIsHoldingChamberHandle, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAtomFirearm, bIsSlideLockActive, COND_SkipOwner);
 }
 
-void AHeroFirearm::StartFiringSequence()
+void AAtomFirearm::StartFiringSequence()
 {
 	if (TriggerPullMontage)
 	{
@@ -673,7 +673,7 @@ void AHeroFirearm::StartFiringSequence()
 	}
 }
 
-void AHeroFirearm::StopFiringSequence()
+void AAtomFirearm::StopFiringSequence()
 {
 	if (MuzzleFXComponent && MuzzleFXComponent->IsActive() && MuzzleFXComponent->Template->IsLooping())
 	{
@@ -693,12 +693,12 @@ void AHeroFirearm::StopFiringSequence()
 	}
 }
 
-UAmmoLoader* AHeroFirearm::GetAmmoLoader() const
+UAmmoLoader* AAtomFirearm::GetAmmoLoader() const
 {
 	return AmmoLoader;
 }
 
-void AHeroFirearm::PostInitializeComponents()
+void AAtomFirearm::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
@@ -710,7 +710,7 @@ void AHeroFirearm::PostInitializeComponents()
 
 		if (CartridgeCollideSound)
 		{
-			CartridgeEjectComponent->OnParticleCollide.AddDynamic(this, &AHeroFirearm::OnEjectedCartridgeCollide);
+			CartridgeEjectComponent->OnParticleCollide.AddDynamic(this, &AAtomFirearm::OnEjectedCartridgeCollide);
 		}		
 	}	
 
@@ -722,7 +722,7 @@ void AHeroFirearm::PostInitializeComponents()
 	}	
 }
 
-bool AHeroFirearm::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+bool AAtomFirearm::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
@@ -731,7 +731,7 @@ bool AHeroFirearm::ReplicateSubobjects(class UActorChannel *Channel, class FOutB
 	return WroteSomething;
 }
 
-void AHeroFirearm::OnEquipped()
+void AAtomFirearm::OnEquipped()
 {
 	Super::OnEquipped();
 
@@ -739,7 +739,7 @@ void AHeroFirearm::OnEquipped()
 	bIsRecoilActive = false;
 }
 
-void AHeroFirearm::OnUnequipped()
+void AAtomFirearm::OnUnequipped()
 {
 	Super::OnUnequipped();
 
@@ -747,7 +747,7 @@ void AHeroFirearm::OnUnequipped()
 	bIsRecoilActive = false;
 }
 
-void AHeroFirearm::BeginPlay()
+void AAtomFirearm::BeginPlay()
 {
 	Super::BeginPlay();
 
