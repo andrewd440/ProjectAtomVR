@@ -101,6 +101,7 @@ public:
 
 	/** AActor Interface Begin */
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;	
+	virtual void Destroyed() override;
 	/** AActor Interface End */
 
 protected:

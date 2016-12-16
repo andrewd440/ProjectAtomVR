@@ -753,3 +753,10 @@ void AAtomFirearm::BeginPlay()
 
 	AmmoLoader->BeginPlay();
 }
+
+void AAtomFirearm::Destroyed()
+{
+	AmmoLoader->FirearmDestroyed();
+
+	Super::Destroyed();
+}

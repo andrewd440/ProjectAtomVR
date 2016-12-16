@@ -24,6 +24,7 @@ public:
 	virtual bool DiscardAmmo() override;
 	virtual void LoadAmmo(UObject* LoadObject) override;
 	virtual void InitializeLoader() override;
+	virtual void FirearmDestroyed() override;
 	/** UAmmoLoader Interface End */
 
 	/** UObject Interface Begin */

@@ -65,6 +65,17 @@ bool UMagazineAmmoLoader::IsTickable() const
 			bIsLoadingMagazine;
 }
 
+void UMagazineAmmoLoader::FirearmDestroyed()
+{
+	if (Magazine != nullptr)
+	{
+		Magazine->Destroy();
+		Magazine = nullptr;
+	}
+
+	Super::FirearmDestroyed();
+}
+
 void UMagazineAmmoLoader::BeginPlay()
 {
 	Super::BeginPlay();

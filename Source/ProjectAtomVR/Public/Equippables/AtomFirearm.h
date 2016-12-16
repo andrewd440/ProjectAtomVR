@@ -186,6 +186,11 @@ protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
 	/** AHeroEquippable Interface End */
 
+	/** AActor Interface Begin */
+public:
+	virtual void Destroyed() override;
+	/** AActor Interface End */
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)
 	FFirearmStats Stats;

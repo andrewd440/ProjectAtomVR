@@ -259,6 +259,13 @@ bool AAtomCharacter::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunc
 	return bWroteSomething;
 }
 
+void AAtomCharacter::Destroyed()
+{
+	Loadout->DestroyLoadout();
+
+	Super::Destroyed();
+}
+
 void AAtomCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

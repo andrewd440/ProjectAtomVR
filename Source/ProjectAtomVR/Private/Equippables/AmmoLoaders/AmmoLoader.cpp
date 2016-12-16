@@ -27,6 +27,11 @@ void UAmmoLoader::SetupInputComponent(class UInputComponent* InputComponent)
 
 }
 
+void UAmmoLoader::FirearmDestroyed()
+{
+
+}
+
 void UAmmoLoader::OnEquipped()
 {
 

@@ -61,10 +61,14 @@ public:
 	void InitializeLoadout(class AAtomCharacter* Owner);	
 
 	/** 
-	 * Spawns all loadout items. Should be called after the owning hero as been possessed by
-	 * a controller (i.e. BeginPlay). 
+	 * Spawns all loadout items. Should be called in the owning character BeginPlay(). 
 	 */
 	void SpawnLoadout();
+
+	/**
+	* Destroys all loadout items. Should be called when the owning character is destroyed.
+	*/
+	void DestroyLoadout();
 
 	/**
 	* Requests an equip from the loadout. OverlapComponent will be used to check for

@@ -102,6 +102,26 @@ void UAtomLoadout::SpawnLoadout()
 	}
 }
 
+void UAtomLoadout::DestroyLoadout()
+{
+	for (FAtomLoadoutSlot& Slot : Loadout)
+	{
+		if (Slot.StorageTrigger != nullptr)
+		{
+			Slot.StorageTrigger->DestroyComponent();
+			Slot.StorageTrigger = nullptr;
+		}
+
+		if (Slot.Item != nullptr)
+		{
+			Slot.Item->Destroy();
+			Slot.Item = nullptr;
+		}
+
+		Slot.OnSlotChanged.Unbind();
+	}
+}
+
 bool UAtomLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
 {
 	for (FAtomLoadoutSlot& Slot : Loadout)

@@ -36,6 +36,11 @@ public:
 	virtual void SetupInputComponent(class UInputComponent* InputComponent);
 
 	/**
+	* Called when the owning firearm is destroyed.
+	*/
+	virtual void FirearmDestroyed();
+
+	/**
 	* Called when the owning HeroFirearm is equipped.
 	*/
 	virtual void OnEquipped();
