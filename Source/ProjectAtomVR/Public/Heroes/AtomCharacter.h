@@ -94,11 +94,13 @@ public:
 
 	/** APawn Interface Begin */
 	virtual void PostInitializeComponents() override;
-	virtual FVector GetVelocity() const override;		
+	virtual FVector GetVelocity() const override;	
+	virtual void PossessedBy(AController* NewController) override;
+	virtual void UnPossessed() override;
 	/** APawn Interface End */
 
 	/** AActor Interface Begin */
-	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;	
 	/** AActor Interface End */
 
 protected:

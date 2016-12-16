@@ -82,6 +82,12 @@ public:
 	 **/
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEquippable* Item);
 
+	/**
+	* Called when the possessing controller is changed for the owning character.
+	* Updates loadout attachments and related components.
+	*/
+	void OnCharacterControllerChanged();
+
 	/** Gets the loadout slots. */
 	const TArray<FAtomLoadoutSlot>& GetLoadoutSlots() const;
 
@@ -143,5 +149,5 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_Loadout, VisibleAnywhere, Category = HeroLoadout)
 	TArray<FAtomLoadoutSlot> Loadout;
 
-	class AAtomCharacter* HeroOwner = nullptr;
+	class AAtomCharacter* CharacterOwner = nullptr;
 };

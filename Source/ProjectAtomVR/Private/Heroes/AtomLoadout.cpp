@@ -7,7 +7,7 @@
 #include "Equippables/AtomEquippable.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogHeroLoadout, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogLoadout, Log, All);
 
 namespace
 {
@@ -38,7 +38,7 @@ void UAtomLoadout::CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>&
 {
 	for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 	{
-		USphereComponent* Trigger = NewObject<USphereComponent>(HeroOwner);
+		USphereComponent* Trigger = NewObject<USphereComponent>(CharacterOwner);
 		Trigger->SetIsReplicated(false);
 
 		Trigger->RegisterComponent();
@@ -59,7 +59,7 @@ void UAtomLoadout::CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>&
 
 void UAtomLoadout::InitializeLoadout(class AAtomCharacter* Owner)
 {
-	HeroOwner = Owner;
+	CharacterOwner = Owner;
 
 	if (LoadoutTemplate)
 	{
@@ -81,21 +81,21 @@ void UAtomLoadout::InitializeLoadout(class AAtomCharacter* Owner)
 
 void UAtomLoadout::SpawnLoadout()
 {
-	check(HeroOwner && "Loadout has not been initialized.");
+	check(CharacterOwner && "Loadout has not been initialized.");
 
 	if (LoadoutTemplate)
 	{
 		const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
 		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
 
-		if (HeroOwner->IsLocallyControlled())
+		if (CharacterOwner->IsLocallyControlled())
 		{
-			UE_LOG(LogHeroLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *HeroOwner->GetController()->GetName(), *HeroOwner->GetName());
+			UE_LOG(LogLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *CharacterOwner->GetController()->GetName(), *CharacterOwner->GetName());
 			CreateLoadoutTriggers(LoadoutTemplateSlots);
 		}
 
 		// Weapons will only be spawned by server
-		if (HeroOwner->HasAuthority())
+		if (CharacterOwner->HasAuthority())
 		{
 			CreateLoadoutEquippables(LoadoutTemplateSlots);
 		}
@@ -109,7 +109,7 @@ bool UAtomLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 		if (Slot.Item && Slot.Item->CanEquip(Hand) &&
 			OverlapComponent->IsOverlappingComponent(Slot.StorageTrigger))
 		{
-			HeroOwner->Equip(Slot.Item, Hand);
+			CharacterOwner->Equip(Slot.Item, Hand);
 			return true;
 		}
 	}	
@@ -123,11 +123,59 @@ bool UAtomLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEq
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
-		HeroOwner->Unequip(Item, Item->GetEquippedHand());
+		CharacterOwner->Unequip(Item, Item->GetEquippedHand());
 		return true;
 	}
 
 	return false;
+}
+
+void UAtomLoadout::OnCharacterControllerChanged()
+{
+	UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
+
+	if (Loadout.Num() > 0)
+	{
+		if (CharacterOwner->IsLocallyControlled())
+		{
+			// Create triggers if needed
+			if (Loadout[0].StorageTrigger == nullptr)
+			{
+				const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+				const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+
+				CreateLoadoutTriggers(LoadoutTemplateSlots);
+			}
+
+			// Update all attachments
+			for (auto& Slot : Loadout)
+			{
+				if (Slot.Item)
+				{
+					Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
+					Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
+				}
+			}
+		}
+		else
+		{			
+			for (auto& Slot : Loadout)
+			{
+				// Any triggers should be deleted
+				if (Slot.StorageTrigger)
+				{
+					Slot.StorageTrigger->DestroyComponent();
+					Slot.StorageTrigger = nullptr;
+				}				
+
+				if (Slot.Item)
+				{
+					Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
+					Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
+				}
+			}
+		}
+	}
 }
 
 const TArray<FAtomLoadoutSlot>& UAtomLoadout::GetLoadoutSlots() const
@@ -159,7 +207,7 @@ const FAtomLoadoutSlot& UAtomLoadout::GetItemSlot(const class AAtomEquippable* I
 
 USceneComponent* UAtomLoadout::GetAttachParent() const
 {
-	return HeroOwner->GetBodyAttachmentComponent();
+	return CharacterOwner->GetBodyAttachmentComponent();
 }
 
 void UAtomLoadout::PreNetReceive()
@@ -177,7 +225,7 @@ void UAtomLoadout::PreNetReceive()
 
 class UWorld* UAtomLoadout::GetWorld() const
 {
-	return HeroOwner ? HeroOwner->GetWorld() : nullptr;
+	return CharacterOwner ? CharacterOwner->GetWorld() : nullptr;
 }
 
 void UAtomLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -192,20 +240,20 @@ void UAtomLoadout::OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedCompon
 		EControllerHand ControllerHand = EControllerHand::Left;
 		EHand Hand = EHand::Left;
 
-		ensureMsgf(OtherComp == HeroOwner->GetHandTrigger<EHand::Right>() || OtherComp == HeroOwner->GetHandTrigger<EHand::Left>(), TEXT("Loadout slot triggers should only overlapped hero hand triggers. Check your collision setups."));
-		if (OtherComp == HeroOwner->GetHandTrigger<EHand::Right>())
+		ensureMsgf(OtherComp == CharacterOwner->GetHandTrigger<EHand::Right>() || OtherComp == CharacterOwner->GetHandTrigger<EHand::Left>(), TEXT("Loadout slot triggers should only overlapped hero hand triggers. Check your collision setups."));
+		if (OtherComp == CharacterOwner->GetHandTrigger<EHand::Right>())
 		{
 			ControllerHand = EControllerHand::Right;
 			Hand = EHand::Right;
 		}
 
 		// Check if the item can be equipped. If it is already equipped, check if the overlapped hand has the item equipped.
-		const AAtomEquippable* CurrentlyEquipped = HeroOwner->GetEquippable(Hand);
+		const AAtomEquippable* CurrentlyEquipped = CharacterOwner->GetEquippable(Hand);
 
 		if ((CurrentlyEquipped == nullptr && OverlappedItem->CanEquip(Hand)) ||
 			(OverlappedItem->IsEquipped() && CurrentlyEquipped == OverlappedItem))
 		{
-			APlayerController* const PC = Cast<APlayerController>(HeroOwner->GetController());
+			APlayerController* const PC = Cast<APlayerController>(CharacterOwner->GetController());
 			ensureMsgf(PC != nullptr && PC->IsLocalController(), TEXT("Loadout trigger overlaps should only occur on locally controlled heros."));
 
 			if (PC && TriggerFeedback)
@@ -221,8 +269,8 @@ void UAtomLoadout::CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlo
 	if (UWorld* const World = GetWorld())
 	{
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Instigator = HeroOwner;
-		SpawnParams.Owner = HeroOwner;
+		SpawnParams.Instigator = CharacterOwner;
+		SpawnParams.Owner = CharacterOwner;
 
 		for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 		{
@@ -244,7 +292,7 @@ void UAtomLoadout::CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlo
 			}
 			else
 			{
-				UE_LOG(LogHeroLoadout, Warning, TEXT("FHeroLoadoutTemplateSlot item was null. No item will be created from this slot."));
+				UE_LOG(LogLoadout, Warning, TEXT("FHeroLoadoutTemplateSlot item was null. No item will be created from this slot."));
 			}
 		}
 	}
@@ -269,8 +317,8 @@ void UAtomLoadout::OnReturnToLoadoutChanged(AAtomEquippable* Item, int32 Loadout
 				--Slot.Count;
 
 				FActorSpawnParameters SpawnParams;
-				SpawnParams.Instigator = HeroOwner;
-				SpawnParams.Owner = HeroOwner;
+				SpawnParams.Instigator = CharacterOwner;
+				SpawnParams.Owner = CharacterOwner;
 
 				Slot.Item = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
 				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);

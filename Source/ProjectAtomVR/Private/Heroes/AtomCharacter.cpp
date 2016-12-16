@@ -259,6 +259,20 @@ bool AAtomCharacter::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunc
 	return bWroteSomething;
 }
 
+void AAtomCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+
+	Loadout->OnCharacterControllerChanged();
+}
+
+void AAtomCharacter::UnPossessed()
+{
+	Super::UnPossessed();
+
+	Loadout->OnCharacterControllerChanged();
+}
+
 void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
