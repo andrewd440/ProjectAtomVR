@@ -21,10 +21,10 @@ public:
 
 	void SetOwner(AAtomPlayerController* Owner);
 	AAtomPlayerController* GetOwner() const;
-	AAtomCharacter* GetHero() const;
+	AAtomCharacter* GetCharacter() const;
 
-	void SpawnHeroUI();
-	void DestroyHeroUI();
+	void SpawnCharacterUI();
+	void DestroyCharacterUI();
 	
 	/** UObject Interface Begin */
 	virtual class UWorld* GetWorld() const override;
@@ -41,7 +41,6 @@ private:
 	{
 		TArray<AEquippableUIActor*> Equippables;			
 
-		// LoadoutSlots
 		// Hero (UI on the hero only, i.e. health)
 	} HeroUI;
 };

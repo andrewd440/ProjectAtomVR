@@ -197,11 +197,6 @@ void AAtomCharacter::UpdateMeshLocation(float DeltaTime)
 	BaseRotationOffset = FullBodyRelativeTransform.GetRotation();
 }
 
-class UWidgetInteractionComponent* AAtomCharacter::GetWidgetInteraction() const
-{
-	return WidgetInteraction;
-}
-
 void AAtomCharacter::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
 {
 	Super::SetupPlayerInputComponent(InInputComponent);
@@ -278,17 +273,6 @@ void AAtomCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	Loadout->OnCharacterControllerChanged();
-
-	if (IsLocallyControlled())
-	{
-		WidgetInteraction = NewObject<UWidgetInteractionComponent>(this);
-		WidgetInteraction->RegisterComponent();
-		WidgetInteraction->Deactivate();
-		WidgetInteraction->bShowDebug = true;
-
-		WidgetInteraction->AttachToComponent(bIsRightHanded ? RightHandController : LeftHandController, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
-	}
 }
 
 void AAtomCharacter::UnPossessed()
@@ -296,12 +280,6 @@ void AAtomCharacter::UnPossessed()
 	Super::UnPossessed();
 
 	Loadout->OnCharacterControllerChanged();
-
-	if (WidgetInteraction)
-	{
-		WidgetInteraction->DestroyComponent();
-		WidgetInteraction = nullptr;
-	}
 }
 
 void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

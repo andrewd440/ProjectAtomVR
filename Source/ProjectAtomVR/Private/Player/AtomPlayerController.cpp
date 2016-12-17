@@ -23,22 +23,37 @@ void AAtomPlayerController::PostInitializeComponents()
 void AAtomPlayerController::SetPawn(APawn* aPawn)
 {
 	const bool IsNewPawn = (AtomCharacter != aPawn);
-	if (UISystem && AtomCharacter && IsNewPawn)
+	if (IsNewPawn && AtomCharacter)
 	{
-		UISystem->DestroyHeroUI();
+		if (WidgetInteraction)
+		{
+			WidgetInteraction->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		}
+
+		if (UISystem)
+		{
+			UISystem->DestroyCharacterUI();
+		}		
 	}
 
 	Super::SetPawn(aPawn);
 
 	AtomCharacter = Cast<AAtomCharacter>(aPawn);
 
-	if (AtomCharacter)
+	if (IsNewPawn && AtomCharacter)
 	{
 		AtomCharacter->SetIsRightHanded(bIsRightHanded);
 
-		if (UISystem && IsNewPawn)
+		if (WidgetInteraction)
 		{
-			UISystem->SpawnHeroUI();
+			USceneComponent* Attachment = AtomCharacter->GetHandController(bIsRightHanded ? EHand::Right : EHand::Right);
+			WidgetInteraction->AttachToComponent(Attachment, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+			WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
+		}
+
+		if (UISystem)
+		{
+			UISystem->SpawnCharacterUI();
 		}
 	}
 }
@@ -61,14 +76,43 @@ void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 	}
 
 	Super::SetPlayer(InPlayer);
+
+	// Create widget interaction for local controllers
+	if (IsLocalController())
+	{
+		WidgetInteraction = NewObject<UWidgetInteractionComponent>(this);
+		WidgetInteraction->RegisterComponent();
+		WidgetInteraction->Deactivate();
+		WidgetInteraction->bShowDebug = true;
+	}
+	else if (WidgetInteraction != nullptr)
+	{
+		WidgetInteraction->DestroyComponent();
+		WidgetInteraction = nullptr;
+	}
 }
 
 void AAtomPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	const FName MenuAction = bIsRightHanded ? TEXT("MenuRight") : TEXT("MenuLeft");
-	InputComponent->BindAction(MenuAction, IE_Pressed, this, &AAtomPlayerController::OnMenuButtonPressed);
+	FName MenuAction;
+	FName MenuClickAction;
+
+	if (bIsRightHanded)
+	{
+		MenuAction = TEXT("Menu_Right");
+		MenuClickAction = TEXT("MenuClick_Right");
+	}
+	else
+	{
+		MenuAction = TEXT("Menu_Left");
+		MenuClickAction = TEXT("MenuClick_Left");
+	}
+
+	InputComponent->BindAction(MenuAction, IE_Pressed, this, &AAtomPlayerController::OnMenuButtonPressed).bConsumeInput = true;
+	InputComponent->BindAction(MenuClickAction, IE_Pressed, this, &AAtomPlayerController::OnMenuClickPressed).bConsumeInput = false;
+	InputComponent->BindAction(MenuClickAction, IE_Released, this, &AAtomPlayerController::OnMenuClickReleased).bConsumeInput = false;
 }
 
 void AAtomPlayerController::CreateUISystem()
@@ -93,20 +137,31 @@ void AAtomPlayerController::execRequestCharacterChange(FString Name)
 
 void AAtomPlayerController::OnMenuButtonPressed()
 {
-	if (AtomCharacter)
+	if (WidgetInteraction->IsActive())
 	{
-		UWidgetInteractionComponent* const WidgetInteraction = AtomCharacter->GetWidgetInteraction();
+		WidgetInteraction->Deactivate();
+		SetInputMode(FInputModeGameOnly{});
+	}
+	else
+	{
+		WidgetInteraction->Activate();
+		SetInputMode(FInputModeGameAndUI{});
+	}
+}
 
-		if (WidgetInteraction->IsActive())
-		{
-			WidgetInteraction->Deactivate();
-			SetInputMode(FInputModeGameOnly{});
-		}
-		else
-		{
-			WidgetInteraction->Activate();
-			SetInputMode(FInputModeGameAndUI{});
-		}
+void AAtomPlayerController::OnMenuClickPressed()
+{
+	if (WidgetInteraction->IsActive())
+	{
+		WidgetInteraction->PressPointerKey(EKeys::LeftMouseButton);
+	}
+}
+
+void AAtomPlayerController::OnMenuClickReleased()
+{
+	if (WidgetInteraction->IsActive())
+	{
+		WidgetInteraction->ReleasePointerKey(EKeys::LeftMouseButton);
 	}
 }
 

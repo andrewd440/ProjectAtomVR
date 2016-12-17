@@ -23,16 +23,16 @@ AAtomPlayerController* UAtomUISystem::GetOwner() const
 	return Owner;
 }
 
-AAtomCharacter* UAtomUISystem::GetHero() const
+AAtomCharacter* UAtomUISystem::GetCharacter() const
 {
 	return Owner->GetHero();
 }
 
-void UAtomUISystem::SpawnHeroUI()
+void UAtomUISystem::SpawnCharacterUI()
 {
 	check(HeroUI.Equippables.Num() == 0);
 
-	UAtomLoadout* Loadout = GetHero()->GetLoadout();
+	UAtomLoadout* Loadout = GetCharacter()->GetLoadout();
 	const auto& TemplateSlots = Loadout->GetLoadoutTemplate().GetDefaultObject()->GetLoadoutSlots();
 	auto& LoadoutSlots = Loadout->GetLoadoutSlots();
 
@@ -61,7 +61,7 @@ void UAtomUISystem::SpawnHeroUI()
 	}
 }
 
-void UAtomUISystem::DestroyHeroUI()
+void UAtomUISystem::DestroyCharacterUI()
 {
 	for (AEquippableUIActor* Equippable : HeroUI.Equippables)
 	{
@@ -82,7 +82,7 @@ class UWorld* UAtomUISystem::GetWorld() const
 
 void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
 {
-	UAtomLoadout* Loadout = GetHero()->GetLoadout();
+	UAtomLoadout* Loadout = GetCharacter()->GetLoadout();
 	const auto& LoadoutSlots = Loadout->GetLoadoutSlots();
 
 	AEquippableUIActor*& UIActor = HeroUI.Equippables[LoadoutIndex];

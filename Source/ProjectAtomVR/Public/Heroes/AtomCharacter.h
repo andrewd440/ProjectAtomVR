@@ -159,9 +159,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* RightHandTrigger;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
-	class UWidgetInteractionComponent* WidgetInteraction;
-
 	struct FDefaultHandTransform
 	{
 		FVector Location;
@@ -207,8 +204,6 @@ public:
 
 	template <EHand Hand>
 	USphereComponent* GetHandTrigger() const;
-
-	class UWidgetInteractionComponent* GetWidgetInteraction() const;
 };
 
 template <EHand Hand>

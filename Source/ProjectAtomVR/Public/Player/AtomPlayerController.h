@@ -43,6 +43,9 @@ protected:
 
 	void OnMenuButtonPressed();
 
+	void OnMenuClickPressed();
+	void OnMenuClickReleased();
+
 private:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
@@ -67,8 +70,12 @@ protected:
 private:
 	UPROPERTY()
 	class UAtomUISystem* UISystem = nullptr;
+
 	AAtomCharacter* AtomCharacter = nullptr;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, meta = ( AllowPrivateAccess = "True" ))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
+	class UWidgetInteractionComponent* WidgetInteraction;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomPlayerController, meta = ( AllowPrivateAccess = "True" ))
 	TSubclassOf<AAtomCharacter> RequestedCharacter = nullptr;
 };
