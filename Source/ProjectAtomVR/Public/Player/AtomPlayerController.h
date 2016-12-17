@@ -30,10 +30,16 @@ public:
 	*/
 	TSubclassOf<AAtomCharacter> GetRequestedCharacter() const;
 
+	/**
+	* Checks if the player is right handed.
+	*/
+	bool IsRightHanded() const;
+
 	/** APlayerController Interface Begin */
 	virtual void PostInitializeComponents() override;
 	virtual void SetPawn(APawn* aPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void SetPlayer(UPlayer* InPlayer) override;
 	/** APlayerController Interface End */
 	
 protected:
@@ -46,10 +52,17 @@ private:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetIsRightHanded(bool InbIsRightHanded);
+
+protected:
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	uint32 bIsRightHanded : 1;
+
 private:
 	UPROPERTY()
 	class UAtomUISystem* UISystem = nullptr;
-	AAtomCharacter* Hero = nullptr;
+	AAtomCharacter* AtomCharacter = nullptr;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, meta = ( AllowPrivateAccess = "True" ))
 	TSubclassOf<AAtomCharacter> RequestedCharacter = nullptr;

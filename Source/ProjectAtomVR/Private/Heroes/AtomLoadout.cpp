@@ -152,33 +152,39 @@ bool UAtomLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEq
 
 void UAtomLoadout::OnCharacterControllerChanged()
 {
-	UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
-
 	if (Loadout.Num() > 0)
 	{
 		if (CharacterOwner->IsLocallyControlled())
 		{
-			// Create triggers if needed
-			if (Loadout[0].StorageTrigger == nullptr)
+			// Only if BeginPlay has fired.
+			if (CharacterOwner->HasActorBegunPlay())
 			{
-				const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
-				const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+				UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
 
-				CreateLoadoutTriggers(LoadoutTemplateSlots);
-			}
-
-			// Update all attachments
-			for (auto& Slot : Loadout)
-			{
-				if (Slot.Item)
+				// Create triggers if needed
+				if (Loadout[0].StorageTrigger == nullptr)
 				{
-					Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
-					Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
+					const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+					const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+
+					CreateLoadoutTriggers(LoadoutTemplateSlots);
+				}
+
+				// Update all attachments
+				for (auto& Slot : Loadout)
+				{
+					if (Slot.Item)
+					{
+						Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
+						Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
+					}
 				}
 			}
 		}
 		else
 		{			
+			UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
+
 			for (auto& Slot : Loadout)
 			{
 				// Any triggers should be deleted

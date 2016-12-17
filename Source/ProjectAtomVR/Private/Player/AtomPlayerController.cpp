@@ -4,6 +4,7 @@
 #include "AtomPlayerController.h"
 #include "AtomCharacter.h"
 #include "UI/AtomUISystem.h"
+#include "AtomLocalPlayer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
@@ -21,22 +22,24 @@ void AAtomPlayerController::PostInitializeComponents()
 
 void AAtomPlayerController::SetPawn(APawn* aPawn)
 {
-	AAtomCharacter* NewHero = Cast<AAtomCharacter>(aPawn);
-	if (UISystem && Hero && Hero != NewHero)
+	const bool IsNewPawn = (AtomCharacter != aPawn);
+	if (UISystem && AtomCharacter && IsNewPawn)
 	{
 		UISystem->DestroyHeroUI();
 	}
 
 	Super::SetPawn(aPawn);
 
-	if (UISystem && NewHero && Hero != NewHero)
+	AtomCharacter = Cast<AAtomCharacter>(aPawn);
+
+	if (AtomCharacter)
 	{
-		Hero = NewHero;
-		UISystem->SpawnHeroUI();
-	}
-	else
-	{
-		Hero = NewHero;
+		AtomCharacter->SetIsRightHanded(bIsRightHanded);
+
+		if (UISystem && IsNewPawn)
+		{
+			UISystem->SpawnHeroUI();
+		}
 	}
 }
 
@@ -45,6 +48,18 @@ void AAtomPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AAtomPlayerController, RequestedCharacter, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AAtomPlayerController, bIsRightHanded, COND_SkipOwner);
+}
+
+void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
+{
+	Super::SetPlayer(InPlayer);
+
+	if (UAtomLocalPlayer* AtomPlayer = Cast<UAtomLocalPlayer>(InPlayer))
+	{
+		bIsRightHanded = AtomPlayer->GetIsRightHanded();
+		ServerSetIsRightHanded(bIsRightHanded);
+	}
 }
 
 void AAtomPlayerController::CreateUISystem()
@@ -67,6 +82,16 @@ void AAtomPlayerController::execRequestCharacterChange(FString Name)
 	}
 }
 
+void AAtomPlayerController::ServerSetIsRightHanded_Implementation(bool InbIsRightHanded)
+{
+	bIsRightHanded = InbIsRightHanded;
+}
+
+bool AAtomPlayerController::ServerSetIsRightHanded_Validate(bool InbIsRightHanded)
+{
+	return true;
+}
+
 void AAtomPlayerController::ServerRequestCharacterChange_Implementation(TSubclassOf<AAtomCharacter> CharacterClass)
 {
 	if (AAtomGameMode* AtomGameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>())
@@ -82,7 +107,7 @@ bool AAtomPlayerController::ServerRequestCharacterChange_Validate(TSubclassOf<AA
 
 AAtomCharacter* AAtomPlayerController::GetHero() const
 {
-	return Hero;
+	return AtomCharacter;
 }
 
 void AAtomPlayerController::SetRequestedCharacter(TSubclassOf<AAtomCharacter> CharacterClass)
@@ -93,5 +118,10 @@ void AAtomPlayerController::SetRequestedCharacter(TSubclassOf<AAtomCharacter> Ch
 TSubclassOf<AAtomCharacter> AAtomPlayerController::GetRequestedCharacter() const
 {
 	return RequestedCharacter;
+}
+
+bool AAtomPlayerController::IsRightHanded() const
+{
+	return bIsRightHanded;
 }
 

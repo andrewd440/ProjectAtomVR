@@ -30,6 +30,8 @@ public:
 
 	bool IsRightHanded() const { return bIsRightHanded; }
 
+	void SetIsRightHanded(bool InbIsRightHanded);
+
 	virtual void Equip(AAtomEquippable* Item, const EHand Hand);
 
 	/** Called by Equippable when the equipping process is complete. */
@@ -157,6 +159,9 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* RightHandTrigger;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	class UWidgetInteractionComponent* WidgetInteraction;
+
 	struct FDefaultHandTransform
 	{
 		FVector Location;
@@ -167,7 +172,6 @@ private:
 	FDefaultHandTransform DefaultRightHandTransform;
 
 	/** If the player is right hand dominant. */
-	UPROPERTY(config)
 	uint32 bIsRightHanded : 1;
 
 public:

@@ -12,6 +12,7 @@
 #include "Engine/ActorChannel.h"
 #include "AtomEquippable.h"
 #include "Animation/AnimSequence.h"
+#include "WidgetInteractionComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
@@ -105,9 +106,10 @@ void AAtomCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GEngine->HMDDevice.IsValid())
+	if (IsLocallyControlled() && GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
+		GEngine->HMDDevice->ResetOrientation();
 	}		
 
 	Loadout->SpawnLoadout();
@@ -271,6 +273,17 @@ void AAtomCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	Loadout->OnCharacterControllerChanged();
+
+	if (IsLocallyControlled())
+	{
+		WidgetInteraction = NewObject<UWidgetInteractionComponent>(this);
+		WidgetInteraction->RegisterComponent();
+		WidgetInteraction->Deactivate();
+		WidgetInteraction->bShowDebug = true;
+
+		WidgetInteraction->AttachToComponent(bIsRightHanded ? RightHandController : LeftHandController, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
+	}
 }
 
 void AAtomCharacter::UnPossessed()
@@ -278,6 +291,12 @@ void AAtomCharacter::UnPossessed()
 	Super::UnPossessed();
 
 	Loadout->OnCharacterControllerChanged();
+
+	if (WidgetInteraction)
+	{
+		WidgetInteraction->DestroyComponent();
+		WidgetInteraction = nullptr;
+	}
 }
 
 void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -320,6 +339,11 @@ UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const
 USceneComponent* AAtomCharacter::GetHandMeshTarget(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
+}
+
+void AAtomCharacter::SetIsRightHanded(bool InbIsRightHanded)
+{
+	bIsRightHanded = InbIsRightHanded;
 }
 
 void AAtomCharacter::Equip(AAtomEquippable* Item, const EHand Hand)

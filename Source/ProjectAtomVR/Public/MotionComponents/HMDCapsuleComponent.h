@@ -5,13 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "HMDCapsuleComponent.generated.h"
 
-/**
- * Supported Attachment:
- *	VRRoot
- *		|- UCameraComponent
- *			|- UHMDCapsuleComponent
- */
-UCLASS()
+UCLASS(ClassGroup = "Collision", editinlinenew, hidecategories = (Object, LOD, Lighting, TextureStreaming), meta = (DisplayName = "HMD Capsule Collision", BlueprintSpawnableComponent))
 class PROJECTATOMVR_API UHMDCapsuleComponent : public UCapsuleComponent
 {
 	GENERATED_BODY()

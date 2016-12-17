@@ -12,3 +12,13 @@ float UAtomLocalPlayer::GetPlayerHeight() const
 {
 	return PlayerHeight;
 }
+
+void UAtomLocalPlayer::SetIsRightHanded(bool InbIsRightHanded)
+{
+	bIsRightHanded = InbIsRightHanded;
+}
+
+bool UAtomLocalPlayer::GetIsRightHanded() const
+{
+	return bIsRightHanded;
+}
