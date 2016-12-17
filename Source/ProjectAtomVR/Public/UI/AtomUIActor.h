@@ -13,4 +13,6 @@ class PROJECTATOMVR_API AAtomUIActor : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AAtomUIActor();
+
+	class AAtomUISystem* GetAtomUISystem() const;
 };

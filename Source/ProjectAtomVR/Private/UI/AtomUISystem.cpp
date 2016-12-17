@@ -7,28 +7,32 @@
 
 #include "UI/EquippableUIActor.h"
 #include "AtomEquippable.h"
+#include "GameModeUISubsystem.h"
 
-UAtomUISystem::UAtomUISystem()
+AAtomUISystem::AAtomUISystem()
 {
 
 }
 
-void UAtomUISystem::SetOwner(AAtomPlayerController* InOwner)
+AAtomPlayerController* AAtomUISystem::GetPlayerController() const
 {
-	Owner = InOwner;
+	return PlayerController;
 }
 
-AAtomPlayerController* UAtomUISystem::GetOwner() const
+void AAtomUISystem::SetOwner(AActor* NewOwner)
 {
-	return Owner;
+	Super::SetOwner(NewOwner);
+
+	PlayerController = Cast<AAtomPlayerController>(NewOwner);
+	ensure(PlayerController);
 }
 
-AAtomCharacter* UAtomUISystem::GetCharacter() const
+AAtomCharacter* AAtomUISystem::GetCharacter() const
 {
-	return Owner->GetHero();
+	return PlayerController->GetHero();
 }
 
-void UAtomUISystem::SpawnCharacterUI()
+void AAtomUISystem::SpawnCharacterUI()
 {
 	check(HeroUI.Equippables.Num() == 0);
 
@@ -51,17 +55,18 @@ void UAtomUISystem::SpawnCharacterUI()
 
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.ObjectFlags |= RF_Transient;
-			SpawnParams.Owner = LoadoutSlot.Item;
+			SpawnParams.Owner = this;
 			AEquippableUIActor* EquippableUI = GetWorld()->SpawnActor<AEquippableUIActor>(EquippableUIClass, SpawnParams);
+			EquippableUI->SetEquippable(LoadoutSlot.Item);
 
 			HeroUI.Equippables[i] = EquippableUI;
 		}
 
-		LoadoutSlot.OnSlotChanged.BindUObject(this, &UAtomUISystem::OnLoadoutSlotChanged, i);
+		LoadoutSlot.OnSlotChanged.BindUObject(this, &AAtomUISystem::OnLoadoutSlotChanged, i);
 	}
 }
 
-void UAtomUISystem::DestroyCharacterUI()
+void AAtomUISystem::DestroyCharacterUI()
 {
 	for (AEquippableUIActor* Equippable : HeroUI.Equippables)
 	{
@@ -74,13 +79,28 @@ void UAtomUISystem::DestroyCharacterUI()
 	HeroUI.Equippables.Empty();
 }
 
-class UWorld* UAtomUISystem::GetWorld() const
+void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass)
 {
-	check(Owner);
-	return Owner->GetWorld();
+	if (GameModeUI != nullptr)
+	{
+		GameModeUI->ConditionalBeginDestroy();
+		GameModeUI = nullptr;
+	}
+
+	if (GameModeClass->IsChildOf(AAtomGameMode::StaticClass()))
+	{
+		AAtomGameMode* GameModeCDO = GameModeClass->GetDefaultObject<AAtomGameMode>();
+
+		if (TSubclassOf<UGameModeUISubsystem> GameModeUIClass = GameModeCDO->GetUIClass())
+		{
+			GameModeUI = NewObject<UGameModeUISubsystem>(this, GameModeUIClass, TEXT("GameModeUISubsystem"), RF_Transient);
+			GameModeUI->InitializeSystem(this, GameModeCDO);
+		}
+	}
 }
 
-void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
+
+void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
 {
 	UAtomLoadout* Loadout = GetCharacter()->GetLoadout();
 	const auto& LoadoutSlots = Loadout->GetLoadoutSlots();
@@ -101,13 +121,14 @@ void UAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.ObjectFlags |= RF_Transient;
-				SpawnParams.Owner = NewItem;
+				SpawnParams.Owner = this;
 				UIActor = GetWorld()->SpawnActor<AEquippableUIActor>(EquippableUIClass, SpawnParams);
+				UIActor->SetEquippable(NewItem);
 			}
 			else
 			{
 				// Just update the owner
-				UIActor->SetOwner(NewItem);
+				UIActor->SetEquippable(NewItem);
 			}
 		}
 		else if (UIActor != nullptr)

@@ -35,9 +35,9 @@ void AFirearmUIActor::BeginPlay()
 
 AAtomFirearm* AFirearmUIActor::GetFirearm() const
 {
-	check(!GetOwner() || Cast<AAtomFirearm>(GetOwner())); // Might be null in editor
+	check(!GetEquippable() || Cast<AAtomFirearm>(GetEquippable())); // Might be null in editor
 
-	return static_cast<AAtomFirearm*>(GetOwner());
+	return static_cast<AAtomFirearm*>(GetEquippable());
 }
 
 void AFirearmUIActor::OnAmmoCountChanged()

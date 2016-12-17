@@ -25,9 +25,12 @@ void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FAt
 
 class AAtomEquippable* AEquippableUIActor::GetEquippable() const
 {
-	check(GetOwner() == nullptr || Cast<AAtomEquippable>(GetOwner()));
+	return Equippable.Get();
+}
 
-	return static_cast<AAtomEquippable*>(GetOwner());
+void AEquippableUIActor::SetEquippable(AAtomEquippable* NewEquippable)
+{
+	Equippable = NewEquippable;
 }
 
 void AEquippableUIActor::PostInitializeComponents()
@@ -56,7 +59,7 @@ void AEquippableUIActor::PostInitializeComponents()
 			}
 		});
 
-		if (auto Equippable = Cast<AAtomEquippable>(GetOwner()))
+		if (Equippable.IsValid())
 		{
 			if (auto EquippableWidgetComponent = Cast<UEquippableWidgetComponent>(WidgetComponent))
 			{
@@ -73,7 +76,7 @@ void AEquippableUIActor::PostInitializeComponents()
 				{
 					// Attach to item loadout slot
 					const UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
-					const FAtomLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable);
+					const FAtomLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable.Get());
 					
 					AttachParent = Loadout->GetAttachParent();
 					AttachSocket = LoadoutSlot.UISocket;				
@@ -122,8 +125,6 @@ void AEquippableUIActor::Destroyed()
 void AEquippableUIActor::OnEquippedStatusChanged()
 {
 	check(Cast<AAtomEquippable>(GetOwner()));
-
-	AAtomEquippable* Equippable = static_cast<AAtomEquippable*>(GetOwner());
 
 	if (Equippable->IsEquipped())
 	{

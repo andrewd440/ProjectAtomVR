@@ -9,6 +9,7 @@ class AAtomEquippable;
 class UEquippableWidget;
 enum class ELoadoutSlotChangeType : uint8;
 
+class AAtomEquippable;
 
 /**
  * 
@@ -28,7 +29,9 @@ public:
 	void OnLoadoutChanged(ELoadoutSlotChangeType Type, const struct FAtomLoadoutSlot& LoadoutSlot);
 
 	UFUNCTION(BlueprintCallable, Category = EquippableUI)
-	class AAtomEquippable* GetEquippable() const;
+	AAtomEquippable* GetEquippable() const;
+
+	void SetEquippable(AAtomEquippable* NewEquippable);
 
 	/** AActor Interface Begin */
 	virtual void PostInitializeComponents() override;
@@ -47,6 +50,8 @@ protected:
 
 private:
 	TArray<UEquippableWidget*> EquippableWidgets;
+
+	TWeakObjectPtr<AAtomEquippable> Equippable = nullptr;
 };
 
 FORCEINLINE const TArray<UEquippableWidget*>& AEquippableUIActor::GetWidgets() const { return EquippableWidgets; }

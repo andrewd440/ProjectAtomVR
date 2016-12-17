@@ -21,6 +21,8 @@ public:
 
 	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
 
+	TSubclassOf<class UGameModeUISubsystem> GetUIClass() const;
+
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
@@ -35,6 +37,9 @@ public:
 	/** AGameModeBase Interface End */
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
+	TSubclassOf<UGameModeUISubsystem> UIClass;
+
 	/** Game time limit in seconds. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;

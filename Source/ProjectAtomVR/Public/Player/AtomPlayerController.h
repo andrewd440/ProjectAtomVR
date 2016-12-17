@@ -34,7 +34,7 @@ public:
 	* Checks if the player is right handed.
 	*/
 	bool IsRightHanded() const;
-	
+
 protected:
 	void CreateUISystem();
 
@@ -59,6 +59,7 @@ public:
 	virtual void SetPawn(APawn* aPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetPlayer(UPlayer* InPlayer) override;
+	virtual void ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass) override;
 protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */
@@ -69,7 +70,7 @@ protected:
 
 private:
 	UPROPERTY()
-	class UAtomUISystem* UISystem = nullptr;
+	class AAtomUISystem* UISystem = nullptr;
 
 	AAtomCharacter* AtomCharacter = nullptr;
 

@@ -31,6 +31,11 @@ void AAtomGameMode::RequestCharacterChange(AAtomPlayerController* Controller, TS
 	}
 }
 
+TSubclassOf<UGameModeUISubsystem> AAtomGameMode::GetUIClass() const
+{
+	return UIClass;
+}
+
 void AAtomGameMode::ScoreKill_Implementation(APlayerController* Killer, APlayerController* Victim)
 {
 

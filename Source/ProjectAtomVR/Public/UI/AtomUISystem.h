@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "UObject/NoExportTypes.h"
+#include "GameFramework/Actor.h"
 #include "AtomUISystem.generated.h"
 
 enum class ELoadoutSlotChangeType : uint8;
@@ -12,30 +12,34 @@ class AAtomPlayerController;
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API UAtomUISystem : public UObject
+class PROJECTATOMVR_API AAtomUISystem : public AActor
 {
 	GENERATED_BODY()
 	
 public:
-	UAtomUISystem();
+	AAtomUISystem();
 
-	void SetOwner(AAtomPlayerController* Owner);
-	AAtomPlayerController* GetOwner() const;
+	AAtomPlayerController* GetPlayerController() const;
 	AAtomCharacter* GetCharacter() const;
 
 	void SpawnCharacterUI();
 	void DestroyCharacterUI();
 	
-	/** UObject Interface Begin */
-	virtual class UWorld* GetWorld() const override;
-	/** UObject Interface End */	
+	void CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass);
+
+	/** AActor Interface Begin */
+	virtual void SetOwner(AActor* NewOwner) override;
+	/** AActor Interface End */
 
 
 private:
 	void OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex);
 
 private:
-	AAtomPlayerController* Owner;
+	AAtomPlayerController* PlayerController;
+
+	UPROPERTY()
+	class UGameModeUISubsystem* GameModeUI;
 
 	struct FHeroUI
 	{

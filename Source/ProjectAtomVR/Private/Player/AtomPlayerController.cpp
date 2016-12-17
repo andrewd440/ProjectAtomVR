@@ -119,9 +119,12 @@ void AAtomPlayerController::CreateUISystem()
 {
 	if (IsLocalController())
 	{
-		UE_LOG(LogAtomPlayerController, Verbose, TEXT("Spawned UISystem"));
-		UISystem = NewObject<UAtomUISystem>(this, TEXT("UISystem"), RF_Transient);
-		UISystem->SetOwner(this);
+		UE_LOG(LogAtomPlayerController, Log, TEXT("Spawned UISystem"));
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.ObjectFlags |= RF_Transient;
+		UISystem = GetWorld()->SpawnActor<AAtomUISystem>(AAtomUISystem::StaticClass(), SpawnParams);
 	}
 }
 
@@ -206,5 +209,15 @@ TSubclassOf<AAtomCharacter> AAtomPlayerController::GetRequestedCharacter() const
 bool AAtomPlayerController::IsRightHanded() const
 {
 	return bIsRightHanded;
+}
+
+void AAtomPlayerController::ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass)
+{
+	Super::ReceivedGameModeClass(GameModeClass);
+
+	if (UISystem)
+	{
+		UISystem->CreateGameModeUI(GameModeClass);
+	}
 }
 
