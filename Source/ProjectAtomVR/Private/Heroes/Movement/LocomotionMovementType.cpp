@@ -16,7 +16,7 @@ void ULocomotionMovementType::SetupPlayerInputComponent(class UInputComponent* I
 	Super::SetupPlayerInputComponent(InputComponent);
 
 	FName ForwardInput, RightInput, GripInput;
-	if (GetHero()->IsRightHanded())
+	if (GetCharacter()->IsRightHanded())
 	{
 		ForwardInput = TEXT("MotionControllerThumbLeft_Y");
 		RightInput = TEXT("MotionControllerThumbLeft_X");
@@ -37,21 +37,23 @@ void ULocomotionMovementType::SetupPlayerInputComponent(class UInputComponent* I
 
 void ULocomotionMovementType::OnMoveForward(float Value)
 {
+	AAtomCharacter* const MyCharacter = GetCharacter();
+
 	if (!bIsGripPressed)
 	{
-		AAtomCharacter* const MyHero = GetHero();
-		const FVector Direction = MyHero->GetBodyMesh()->GetForwardVector();
-		MyHero->AddMovementInput(Direction.GetSafeNormal2D(), Value);
+		const FVector Direction = MyCharacter->GetBodyMesh()->GetForwardVector();
+		MyCharacter->AddMovementInput(Direction.GetSafeNormal2D(), Value);
 	}
 }
 
 void ULocomotionMovementType::OnMoveRight(float Value)
 {
+	AAtomCharacter* const MyCharacter = GetCharacter();
+
 	if (!bIsGripPressed)
 	{
-		AAtomCharacter* const MyHero = GetHero();
-		const FVector Direction = MyHero->GetBodyMesh()->GetRightVector();
-		MyHero->AddMovementInput(Direction.GetSafeNormal2D(), Value);
+		const FVector Direction = MyCharacter->GetBodyMesh()->GetRightVector();
+		MyCharacter->AddMovementInput(Direction.GetSafeNormal2D(), Value);
 	}
 }
 

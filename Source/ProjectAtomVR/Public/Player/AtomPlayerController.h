@@ -34,13 +34,6 @@ public:
 	* Checks if the player is right handed.
 	*/
 	bool IsRightHanded() const;
-
-	/** APlayerController Interface Begin */
-	virtual void PostInitializeComponents() override;
-	virtual void SetPawn(APawn* aPawn) override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void SetPlayer(UPlayer* InPlayer) override;
-	/** APlayerController Interface End */
 	
 protected:
 	void CreateUISystem();
@@ -48,12 +41,24 @@ protected:
 	UFUNCTION(Exec)
 	void execRequestCharacterChange(FString Name);
 
+	void OnMenuButtonPressed();
+
 private:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSetIsRightHanded(bool InbIsRightHanded);
+
+	/** APlayerController Interface Begin */
+public:
+	virtual void PostInitializeComponents() override;
+	virtual void SetPawn(APawn* aPawn) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void SetPlayer(UPlayer* InPlayer) override;
+protected:
+	virtual void SetupInputComponent() override;
+	/** APlayerController Interface End */
 
 protected:
 	UPROPERTY(Replicated, BlueprintReadOnly)

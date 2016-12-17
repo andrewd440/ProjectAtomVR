@@ -197,6 +197,11 @@ void AAtomCharacter::UpdateMeshLocation(float DeltaTime)
 	BaseRotationOffset = FullBodyRelativeTransform.GetRotation();
 }
 
+class UWidgetInteractionComponent* AAtomCharacter::GetWidgetInteraction() const
+{
+	return WidgetInteraction;
+}
+
 void AAtomCharacter::SetupPlayerInputComponent(class UInputComponent* InInputComponent)
 {
 	Super::SetupPlayerInputComponent(InInputComponent);

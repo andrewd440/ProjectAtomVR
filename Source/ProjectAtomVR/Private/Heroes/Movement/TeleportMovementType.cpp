@@ -23,7 +23,7 @@ void UTeleportMovementType::SetupPlayerInputComponent(class UInputComponent* Inp
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
-	const FName TeleportInput = (GetHero()->IsRightHanded()) ? TEXT("TeleportLeft") : TEXT("TeleportRight");
+	const FName TeleportInput = (GetCharacter()->IsRightHanded()) ? TEXT("TeleportLeft") : TEXT("TeleportRight");
 	InputComponent->BindAction(TeleportInput, IE_Pressed, this, &UTeleportMovementType::OnTeleportPressed);
 	InputComponent->BindAction(TeleportInput, IE_Released, this, &UTeleportMovementType::OnTeleportReleased);
 }
@@ -169,7 +169,7 @@ void UTeleportMovementType::UpdateTeleportActor(const FHitResult& DestinationHit
 				TeleportActor->SetActorLocation(NavLocation.Location, false, nullptr, ETeleportType::TeleportPhysics);
 			}
 
-			const float TeleportYaw = GetHero()->GetCamera()->GetComponentRotation().Yaw;
+			const float TeleportYaw = GetCharacter()->GetCamera()->GetComponentRotation().Yaw;
 			TeleportActor->SetActorRotation(FRotator{ 0, TeleportYaw, 0 });
 
 			bIsTargetValid = true;
@@ -213,7 +213,7 @@ void UTeleportMovementType::OnTeleportPressed()
 	}
 
 	// Attach the teleport arc to non-dominate hand
-	ArcSpline->AttachToComponent(GetHero()->GetHandController<EHandType::Nondominate>(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	ArcSpline->AttachToComponent(GetCharacter()->GetHandController<EHandType::Nondominate>(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	bIsTeleportActive = true;
 }
@@ -222,7 +222,7 @@ void UTeleportMovementType::OnTeleportReleased()
 {
 	if (bIsTargetValid)
 	{
-		GetHero()->MovementTeleport(TeleportActor->GetActorLocation(), TeleportActor->GetActorRotation());
+		GetCharacter()->MovementTeleport(TeleportActor->GetActorLocation(), TeleportActor->GetActorRotation());
 	}
 
 	bIsTeleportActive = false;

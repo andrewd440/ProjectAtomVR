@@ -24,8 +24,8 @@ public:
 	/** UActorComponent Interface End */
 
 private:
-	class AAtomCharacter* Hero; // The owning hero
+	class AAtomCharacter* Character; // The owning hero
 
 public:
-	class AAtomCharacter* GetHero() const { return Hero; }
+	class AAtomCharacter* GetCharacter() const { return Character; }
 };

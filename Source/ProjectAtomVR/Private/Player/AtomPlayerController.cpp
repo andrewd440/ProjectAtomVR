@@ -53,13 +53,22 @@ void AAtomPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 {
-	Super::SetPlayer(InPlayer);
-
+	// Set handedness before Super::SetPlayer to setup input correctly
 	if (UAtomLocalPlayer* AtomPlayer = Cast<UAtomLocalPlayer>(InPlayer))
 	{
 		bIsRightHanded = AtomPlayer->GetIsRightHanded();
 		ServerSetIsRightHanded(bIsRightHanded);
 	}
+
+	Super::SetPlayer(InPlayer);
+}
+
+void AAtomPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	const FName MenuAction = bIsRightHanded ? TEXT("MenuRight") : TEXT("MenuLeft");
+	InputComponent->BindAction(MenuAction, IE_Pressed, this, &AAtomPlayerController::OnMenuButtonPressed);
 }
 
 void AAtomPlayerController::CreateUISystem()
@@ -79,6 +88,25 @@ void AAtomPlayerController::execRequestCharacterChange(FString Name)
 	if (Class && Class->IsChildOf(AAtomCharacter::StaticClass()))
 	{
 		ServerRequestCharacterChange(Class);
+	}
+}
+
+void AAtomPlayerController::OnMenuButtonPressed()
+{
+	if (AtomCharacter)
+	{
+		UWidgetInteractionComponent* const WidgetInteraction = AtomCharacter->GetWidgetInteraction();
+
+		if (WidgetInteraction->IsActive())
+		{
+			WidgetInteraction->Deactivate();
+			SetInputMode(FInputModeGameOnly{});
+		}
+		else
+		{
+			WidgetInteraction->Activate();
+			SetInputMode(FInputModeGameAndUI{});
+		}
 	}
 }
 

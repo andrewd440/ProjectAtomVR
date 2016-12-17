@@ -207,6 +207,8 @@ public:
 
 	template <EHand Hand>
 	USphereComponent* GetHandTrigger() const;
+
+	class UWidgetInteractionComponent* GetWidgetInteraction() const;
 };
 
 template <EHand Hand>

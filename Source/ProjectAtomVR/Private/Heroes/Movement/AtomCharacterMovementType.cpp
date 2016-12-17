@@ -20,5 +20,5 @@ void UAtomCharacterMovementType::PostLoad()
 {
 	Super::PostLoad();
 
-	Hero = Cast<AAtomCharacter>(GetOwner());
+	Character = Cast<AAtomCharacter>(GetOwner());
 }
