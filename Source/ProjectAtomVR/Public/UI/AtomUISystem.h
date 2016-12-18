@@ -22,11 +22,31 @@ public:
 	AAtomPlayerController* GetPlayerController() const;
 	AAtomCharacter* GetCharacter() const;
 
-	void SpawnCharacterUI();
+	/**
+	* Creates all UIs for the controlled character.
+	*/
+	void CreateCharacterUI();
+
+	/**
+	* Destroys all character UIs that have been created.
+	*/
 	void DestroyCharacterUI();
 	
+	/**
+	* Creates all UIs for a specified GameMode.
+	*/
 	void CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass);
 
+	/**
+	* Destroys all existing GameMode UIs that have been created.
+	*/
+	void DestroyGameModeUI();
+
+	/**
+	* Gets the UI locator actor in the current level. This is the actor tag with
+	* 'UILocator' within the level that manages static UI placement.
+	* @returns
+	*/
 	AActor* GetUILocatorActor() const;
 
 	USceneComponent* FindFirstUILocator(const FName Tag) const;

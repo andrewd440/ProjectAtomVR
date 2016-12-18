@@ -9,6 +9,8 @@
 #include "AtomEquippable.h"
 #include "GameModeUISubsystem.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogUISystem, Log, All);
+
 AAtomUISystem::AAtomUISystem()
 {
 
@@ -51,12 +53,7 @@ void AAtomUISystem::PostInitializeComponents()
 void AAtomUISystem::Destroyed()
 {
 	DestroyCharacterUI();
-
-	if (GameModeUI)
-	{
-		GameModeUI->Destroy();
-		GameModeUI = nullptr;
-	}
+	DestroyGameModeUI();
 
 	Super::Destroyed();
 }
@@ -66,8 +63,9 @@ AAtomCharacter* AAtomUISystem::GetCharacter() const
 	return PlayerController->GetHero();
 }
 
-void AAtomUISystem::SpawnCharacterUI()
+void AAtomUISystem::CreateCharacterUI()
 {
+	UE_LOG(LogUISystem, Log, TEXT("Spawning character UI."));
 	check(HeroUI.Equippables.Num() == 0);
 
 	UAtomLoadout* Loadout = GetCharacter()->GetLoadout();
@@ -102,6 +100,7 @@ void AAtomUISystem::SpawnCharacterUI()
 
 void AAtomUISystem::DestroyCharacterUI()
 {
+	UE_LOG(LogUISystem, Log, TEXT("Destroying character UI."));
 	for (AEquippableUIActor* Equippable : HeroUI.Equippables)
 	{
 		if (Equippable)
@@ -114,13 +113,10 @@ void AAtomUISystem::DestroyCharacterUI()
 }
 
 void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass)
-{
-	if (GameModeUI != nullptr)
-	{
-		GameModeUI->ConditionalBeginDestroy();
-		GameModeUI = nullptr;
-	}
+{		
+	DestroyGameModeUI();
 
+	UE_LOG(LogUISystem, Log, TEXT("Creating GameMode UI."));
 	if (GameModeClass->IsChildOf(AAtomGameMode::StaticClass()))
 	{
 		AAtomGameMode* GameModeCDO = GameModeClass->GetDefaultObject<AAtomGameMode>();
@@ -130,6 +126,17 @@ void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeCl
 			GameModeUI = NewObject<UGameModeUISubsystem>(this, GameModeUIClass, TEXT("GameModeUISubsystem"), RF_Transient);
 			GameModeUI->InitializeSystem(this, GameModeCDO);
 		}
+	}
+}
+
+void AAtomUISystem::DestroyGameModeUI()
+{
+	if (GameModeUI)
+	{
+		UE_LOG(LogUISystem, Log, TEXT("Destroying GameMode UI."));
+
+		GameModeUI->Destroy();
+		GameModeUI = nullptr;
 	}
 }
 

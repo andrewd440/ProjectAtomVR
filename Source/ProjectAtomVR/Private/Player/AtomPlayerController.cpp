@@ -68,7 +68,7 @@ void AAtomPlayerController::SetPawn(APawn* aPawn)
 
 		if (UISystem)
 		{
-			UISystem->SpawnCharacterUI();
+			UISystem->CreateCharacterUI();
 		}
 	}
 }

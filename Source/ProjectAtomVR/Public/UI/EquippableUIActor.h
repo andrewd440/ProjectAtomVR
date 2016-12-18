@@ -42,6 +42,8 @@ public:
 protected:
 	const TArray<UEquippableWidget*>& GetWidgets() const;
 
+	void UpdateWidgetAttachments();
+
 	/**
 	* Called when the equip status of the owning equippable has changed.
 	* @returns
