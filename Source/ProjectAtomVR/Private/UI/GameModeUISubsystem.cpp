@@ -19,7 +19,12 @@ void UGameModeUISubsystem::InitializeSystem(AAtomUISystem* Owner, AAtomGameMode*
 	GameState = GetWorld()->GetGameState<AAtomGameState>();
 }
 
+void UGameModeUISubsystem::Destroy()
+{
+	ConditionalBeginDestroy();
+}
+
 class UWorld* UGameModeUISubsystem::GetWorld() const
 {
-	return UISystem->GetWorld();
+	return UISystem ? UISystem->GetWorld() : nullptr;
 }

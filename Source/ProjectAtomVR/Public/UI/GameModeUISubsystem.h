@@ -21,6 +21,10 @@ public:
 
 	virtual void InitializeSystem(AAtomUISystem* Owner, AAtomGameMode* GameModeCDO);
 	
+	virtual void Destroy();
+
+	AAtomUISystem* GetUISystem() const { return UISystem; }
+
 	/** UObject Interface Begin */
 	virtual class UWorld* GetWorld() const override;
 	/** UObject Interface End */

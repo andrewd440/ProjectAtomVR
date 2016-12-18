@@ -55,11 +55,13 @@ private:
 
 	/** APlayerController Interface Begin */
 public:
+	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 	virtual void SetPawn(APawn* aPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetPlayer(UPlayer* InPlayer) override;
 	virtual void ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass) override;
+	virtual void Destroyed() override;
 protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */

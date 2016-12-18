@@ -24,7 +24,41 @@ void AAtomUISystem::SetOwner(AActor* NewOwner)
 	Super::SetOwner(NewOwner);
 
 	PlayerController = Cast<AAtomPlayerController>(NewOwner);
-	ensure(PlayerController);
+	ensure(IsActorBeingDestroyed() || PlayerController != nullptr);
+}
+
+void AAtomUISystem::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void AAtomUISystem::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// Find the UILocator actor
+	for (FActorIterator It(GetWorld()); It; ++It)
+	{
+		AActor* Actor = *It;
+		if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(TEXT("UILocator")))
+		{
+			UILocator = Actor;
+			break;
+		}
+	}
+}
+
+void AAtomUISystem::Destroyed()
+{
+	DestroyCharacterUI();
+
+	if (GameModeUI)
+	{
+		GameModeUI->Destroy();
+		GameModeUI = nullptr;
+	}
+
+	Super::Destroyed();
 }
 
 AAtomCharacter* AAtomUISystem::GetCharacter() const
@@ -99,6 +133,56 @@ void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeCl
 	}
 }
 
+AActor* AAtomUISystem::GetUILocatorActor() const
+{
+	return UILocator;
+}
+
+USceneComponent* AAtomUISystem::FindFirstUILocator(const FName Tag) const
+{
+	if (UILocator)
+	{
+		TInlineComponentArray<UActorComponent*> Components;
+		UILocator->GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
+		{
+			if (Component->ComponentHasTag(Tag))
+			{
+				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+				{
+					return SceneComponent;
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+TArray<USceneComponent*> AAtomUISystem::FindAllUILocators(const FName Tag) const
+{
+	TArray<USceneComponent*> UILocators;
+
+	if (UILocator)
+	{
+		TInlineComponentArray<UActorComponent*> Components;
+		UILocator->GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
+		{
+			if (Component->ComponentHasTag(Tag))
+			{
+				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
+				{
+					UILocators.Add(SceneComponent);
+				}
+			}
+		}
+	}
+
+	return UILocators;
+}
 
 void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
 {
@@ -139,7 +223,7 @@ void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 		}
 	}
 
-	Change &= ~ELoadoutSlotChangeType::Item; // Item flag is processed, remove it a move on.
+	Change &= ~ELoadoutSlotChangeType::Item; // Item flag is processed, remove it and move on.
 
 	if (Change != ELoadoutSlotChangeType::None && UIActor != nullptr)
 	{

@@ -9,7 +9,7 @@ enum class ELoadoutSlotChangeType : uint8;
 class AAtomPlayerController;
 
 /**
- * 
+ * Some UI systems require a 'UILocator' tagged actor to be in the level to be placed in the correct location.
  */
 UCLASS()
 class PROJECTATOMVR_API AAtomUISystem : public AActor
@@ -27,8 +27,16 @@ public:
 	
 	void CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass);
 
+	AActor* GetUILocatorActor() const;
+
+	USceneComponent* FindFirstUILocator(const FName Tag) const;
+	TArray<USceneComponent*> FindAllUILocators(const FName Tag) const;
+
 	/** AActor Interface Begin */
 	virtual void SetOwner(AActor* NewOwner) override;
+	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
+	virtual void Destroyed() override;
 	/** AActor Interface End */
 
 
@@ -37,6 +45,9 @@ private:
 
 private:
 	AAtomPlayerController* PlayerController;
+
+	UPROPERTY()
+	AActor* UILocator;
 
 	UPROPERTY()
 	class UGameModeUISubsystem* GameModeUI;

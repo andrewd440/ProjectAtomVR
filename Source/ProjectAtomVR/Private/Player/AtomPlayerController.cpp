@@ -13,6 +13,21 @@ AAtomPlayerController::AAtomPlayerController()
 
 }
 
+void AAtomPlayerController::BeginPlay()
+{
+	Super::BeginPlay();	
+
+	if (HasAuthority())
+	{
+		AAtomGameMode* const GameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>();
+
+		if (UISystem && GameMode)
+		{
+			UISystem->CreateGameModeUI(GameMode->GetClass());
+		}
+	}
+}
+
 void AAtomPlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -72,15 +87,20 @@ void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 	if (UAtomLocalPlayer* AtomPlayer = Cast<UAtomLocalPlayer>(InPlayer))
 	{
 		bIsRightHanded = AtomPlayer->GetIsRightHanded();
+
+		Super::SetPlayer(InPlayer);
 		ServerSetIsRightHanded(bIsRightHanded);
 	}
-
-	Super::SetPlayer(InPlayer);
+	else
+	{
+		Super::SetPlayer(InPlayer);
+	}
 
 	// Create widget interaction for local controllers
 	if (IsLocalController())
 	{
 		WidgetInteraction = NewObject<UWidgetInteractionComponent>(this);
+		WidgetInteraction->SetIsReplicated(false);
 		WidgetInteraction->RegisterComponent();
 		WidgetInteraction->Deactivate();
 		WidgetInteraction->bShowDebug = true;
@@ -219,5 +239,16 @@ void AAtomPlayerController::ReceivedGameModeClass(TSubclassOf<class AGameModeBas
 	{
 		UISystem->CreateGameModeUI(GameModeClass);
 	}
+}
+
+void AAtomPlayerController::Destroyed()
+{
+	if (UISystem)
+	{
+		UISystem->Destroy();
+		UISystem = nullptr;
+	}
+
+	Super::Destroyed();
 }
 
