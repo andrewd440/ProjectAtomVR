@@ -3,11 +3,11 @@
 #include "ProjectAtomVR.h"
 #include "AtomGameInstance.h"
 
-#include "../../OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Classes/OnlineSessionClient.h"
 #include "OnlineSessionInterface.h"
 #include "../../OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Public/OnlineSubsystemUtils.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSessionSettings.h"
+#include "Online/AtomOnlineSessionClient.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomGameInstance, Log, All);
 
@@ -19,33 +19,17 @@ namespace
 UAtomGameInstance::UAtomGameInstance()
 {
 	OnCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateUObject(this, &UAtomGameInstance::OnCreateSessionComplete);
-	OnFindSessionsCompletedDelegate = FOnFindSessionsCompleteDelegate::CreateUObject(this, &UAtomGameInstance::OnSearchSessionsComplete);
 	OnJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateUObject(this, &UAtomGameInstance::OnJoinSessionComplete);
 }
 
 TSubclassOf<UOnlineSession> UAtomGameInstance::GetOnlineSessionClass()
 {
-	return UOnlineSessionClient::StaticClass();
-}
-
-bool UAtomGameInstance::StartSessionSearch()
-{
-	return true;
-}
-
-bool UAtomGameInstance::EndSessionSearch()
-{
-	return true;
-}
-
-void UAtomGameInstance::OnSearchSessionsComplete(bool bWasSuccessful)
-{
-
+	return UAtomOnlineSessionClient::StaticClass();
 }
 
 bool UAtomGameInstance::CreateSession()
 {
-	UE_LOG(LogAtomGameInstance, Log, TEXT("Creating online session for %s"), *GetFirstGamePlayer()->GetName());
+	UE_LOG(LogAtomOnlineSession, Log, TEXT("Creating online session for %s"), *GetFirstGamePlayer()->GetName());
 
 	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
 	if (SessionInt.IsValid())
@@ -55,6 +39,8 @@ bool UAtomGameInstance::CreateSession()
 		Settings.bAllowInvites = true;
 		Settings.bAllowJoinInProgress = true;
 		Settings.NumPublicConnections = MaxSessionConnections;
+		Settings.bAllowJoinViaPresence = true;
+		Settings.bShouldAdvertise = true;
 
 		Settings.Set(SETTING_MAPNAME, OnlineLobbyMap.ToString(), EOnlineDataAdvertisementType::ViaOnlineService);
 		Settings.Set(SETTING_GAMEMODE, OnlineLobbyGameMode.ToString(), EOnlineDataAdvertisementType::ViaOnlineService);
@@ -64,7 +50,7 @@ bool UAtomGameInstance::CreateSession()
 	}
 	else
 	{
-		UE_LOG(LogAtomGameInstance, Warning, TEXT("CreateSession failed. Could not find a valid online session interface."));
+		UE_LOG(LogAtomOnlineSession, Warning, TEXT("CreateSession failed. Could not find a valid online session interface."));
 		return false;
 	}
 }
@@ -93,15 +79,67 @@ void UAtomGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSucc
 
 bool UAtomGameInstance::JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult)
 {
-	return true;
+	bool bOperationSuccessful = false;
+
+	if (SearchResult.IsValid())
+	{
+		UE_LOG(LogAtomOnlineSession, Log, TEXT("Starting to join online session by %s for %s"), *SearchResult.Session.OwningUserName, *LocalPlayer->GetName());
+
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+		if (SessionInt.IsValid())
+		{
+			check(!SessionInt->IsPlayerInSession(GameSessionName, *LocalPlayer->GetPreferredUniqueNetId())); // Should not already be in a session
+
+			OnJoinSessionCompleteHandle = SessionInt->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
+
+			SessionInt->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), GameSessionName, SearchResult);
+		}
+	}
+	else
+	{
+		UE_LOG(LogAtomOnlineSession, Warning, TEXT("%s attempted to join online session using invalid search result."), *LocalPlayer->GetName());
+	}
+
+	return bOperationSuccessful;
 }
 
 bool UAtomGameInstance::JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults)
 {
-	return true;
+	if (UAtomOnlineSessionClient* AtomOnlineSession = Cast<UAtomOnlineSessionClient>(GetOnlineSession()))
+	{
+		TSharedPtr<FOnlineSessionSearch> SearchSettings = AtomOnlineSession->GetSearchSettings();
+
+		if (SearchSettings.IsValid() && SearchSettings->SearchResults.IsValidIndex(SessionIndexInSearchResults))
+		{
+			return JoinSession(LocalPlayer, SearchSettings->SearchResults[SessionIndexInSearchResults]);
+		}
+	}
+
+	return false;
 }
 
 void UAtomGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+	if (SessionInt.IsValid())
+	{
+		SessionInt->ClearOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteHandle);
+	}
 
+	// #AtomTodo Handle other result types
+	if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
+	{
+		if (GameMode->GameSession != nullptr)
+		{
+			switch (Result)
+			{
+				case EOnJoinSessionCompleteResult::Success:
+				{
+					ULocalPlayer* const LocalPlayer = GetFirstGamePlayer();
+					GameMode->GameSession->TravelToSession(LocalPlayer->GetControllerId(), SessionName);
+					break;
+				}
+			}
+		}		
+	}	
 }

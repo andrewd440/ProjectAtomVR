@@ -17,9 +17,6 @@ class PROJECTATOMVR_API UAtomGameInstance : public UGameInstance
 public:
 	UAtomGameInstance();
 
-	virtual bool StartSessionSearch();
-	virtual bool EndSessionSearch();
-
 	/**
 	* Creates an online session and loads the online lobby map.
 	*/
@@ -35,8 +32,6 @@ public:
 protected:
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 
-	void OnSearchSessionsComplete(bool bWasSuccessful);
-
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 
 protected:
@@ -48,11 +43,9 @@ protected:
 
 	// Handle for network operations
 	FDelegateHandle OnCreateSessionCompleteHandle;
-	FDelegateHandle OnFindSessionsCompleteHandle;
 	FDelegateHandle OnJoinSessionCompleteHandle;
 
 	// Delegates for network operations
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
-	FOnFindSessionsCompleteDelegate OnFindSessionsCompletedDelegate;
 	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
 };
