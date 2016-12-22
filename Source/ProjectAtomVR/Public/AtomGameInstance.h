@@ -23,6 +23,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AtomGameInstance)
 	virtual bool CreateSession();
 
+	class UAtomPlaylistManager* GetPlaylistManager() const;
+
 	/** UGameInstance Interface Begin */
 	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass() override;
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) override;
@@ -40,6 +42,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameInstance)
 	FName OnlineLobbyGameMode;
+
+	UPROPERTY(EditAnywhere, Instanced, Category = AtomGameInstance)
+	class UAtomPlaylistManager* PlaylistManager;
 
 	// Handle for network operations
 	FDelegateHandle OnCreateSessionCompleteHandle;

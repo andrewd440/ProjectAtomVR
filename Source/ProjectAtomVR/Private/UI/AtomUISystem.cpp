@@ -85,11 +85,11 @@ void AAtomUISystem::CreateCharacterUI()
 		{
 			const TSubclassOf<AEquippableUIActor> EquippableUIClass = TemplateSlot.ItemClass->GetDefaultObject<AAtomEquippable>()->GetUIActor();
 
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.ObjectFlags |= RF_Transient;
-			SpawnParams.Owner = this;
-			AEquippableUIActor* EquippableUI = GetWorld()->SpawnActor<AEquippableUIActor>(EquippableUIClass, SpawnParams);
+			AEquippableUIActor* EquippableUI = GetWorld()->SpawnActorDeferred<AEquippableUIActor>(EquippableUIClass, FTransform::Identity, this);
+			EquippableUI->SetFlags(RF_Transient);
 			EquippableUI->SetEquippable(LoadoutSlot.Item);
+
+			EquippableUI->FinishSpawning(FTransform::Identity, true);
 
 			HeroUI.Equippables[i] = EquippableUI;
 		}
@@ -210,11 +210,11 @@ void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 				const auto& TemplateSlots = Loadout->GetLoadoutTemplate().GetDefaultObject()->GetLoadoutSlots();
 				const auto EquippableUIClass = TemplateSlots[LoadoutIndex].ItemClass->GetDefaultObject<AAtomEquippable>()->GetUIActor();
 
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.ObjectFlags |= RF_Transient;
-				SpawnParams.Owner = this;
-				UIActor = GetWorld()->SpawnActor<AEquippableUIActor>(EquippableUIClass, SpawnParams);
+				UIActor = GetWorld()->SpawnActorDeferred<AEquippableUIActor>(EquippableUIClass, FTransform::Identity, this);
+				UIActor->SetFlags(RF_Transient);
 				UIActor->SetEquippable(NewItem);
+
+				UIActor->FinishSpawning(FTransform::Identity, true);
 			}
 			else
 			{

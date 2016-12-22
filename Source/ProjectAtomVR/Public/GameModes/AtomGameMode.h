@@ -40,7 +40,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	TSubclassOf<UGameModeUISubsystem> UIClass;
 
-	/** Game time limit in seconds. */
+	/** Game time limit in seconds. 0 = No time limit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;
 

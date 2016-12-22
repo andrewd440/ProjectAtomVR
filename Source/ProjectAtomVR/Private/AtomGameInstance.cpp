@@ -18,6 +18,8 @@ namespace
 
 UAtomGameInstance::UAtomGameInstance()
 {
+	PlaylistManager = CreateDefaultSubobject<UAtomPlaylistManager>(TEXT("PlaylistManager"));
+
 	OnCreateSessionCompleteDelegate = FOnCreateSessionCompleteDelegate::CreateUObject(this, &UAtomGameInstance::OnCreateSessionComplete);
 	OnJoinSessionCompleteDelegate = FOnJoinSessionCompleteDelegate::CreateUObject(this, &UAtomGameInstance::OnJoinSessionComplete);
 }
@@ -55,6 +57,11 @@ bool UAtomGameInstance::CreateSession()
 	}
 }
 
+class UAtomPlaylistManager* UAtomGameInstance::GetPlaylistManager() const
+{
+	return PlaylistManager;
+}
+
 void UAtomGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
@@ -65,7 +72,7 @@ void UAtomGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSucc
 
 		if (bWasSuccessful)
 		{
-			const FString URLString = FString::Printf(TEXT("%s?listen?game=%s"), *OnlineLobbyMap.ToString(), *OnlineLobbyGameMode.ToString());
+			const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *OnlineLobbyMap.ToString(), *OnlineLobbyGameMode.ToString());
 
 			// Travel to the online lobby
 			GetWorld()->ServerTravel(URLString);

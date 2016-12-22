@@ -48,15 +48,16 @@ bool AAtomGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerControlle
 
 bool AAtomGameMode::ReadyToEndMatch_Implementation()
 {
-	ensure(GetGameState<AGameState>());
-
 	if (Super::ReadyToEndMatch_Implementation())
 	{
 		return true;
 	}
-	else if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
+	else if (TimeLimit > 0)
 	{
-		return AtomGameState->ElapsedTime >= TimeLimit;
+		if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
+		{
+			return AtomGameState->ElapsedTime >= TimeLimit;
+		}		
 	}
 
 	return false;
