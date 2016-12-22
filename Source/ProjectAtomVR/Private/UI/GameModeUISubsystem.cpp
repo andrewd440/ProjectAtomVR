@@ -12,7 +12,7 @@ UGameModeUISubsystem::UGameModeUISubsystem()
 
 }
 
-void UGameModeUISubsystem::InitializeSystem(AAtomUISystem* Owner, AAtomGameMode* GameModeCDO)
+void UGameModeUISubsystem::InitializeSystem(AAtomUISystem* Owner, AAtomBaseGameMode* GameModeCDO)
 {
 	UISystem = Owner;
 

@@ -117,9 +117,9 @@ void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeCl
 	DestroyGameModeUI();
 
 	UE_LOG(LogUISystem, Log, TEXT("Creating GameMode UI."));
-	if (GameModeClass->IsChildOf(AAtomGameMode::StaticClass()))
+	if (GameModeClass->IsChildOf(AAtomBaseGameMode::StaticClass()))
 	{
-		AAtomGameMode* GameModeCDO = GameModeClass->GetDefaultObject<AAtomGameMode>();
+		AAtomBaseGameMode* GameModeCDO = GameModeClass->GetDefaultObject<AAtomBaseGameMode>();
 
 		if (TSubclassOf<UGameModeUISubsystem> GameModeUIClass = GameModeCDO->GetUIClass())
 		{

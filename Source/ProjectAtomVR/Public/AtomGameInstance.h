@@ -25,6 +25,9 @@ public:
 
 	class UAtomPlaylistManager* GetPlaylistManager() const;
 
+	FName GetLobbyMap() const { return OnlineLobbyMap; }
+	FName GetLobbyGameMode() const { return OnlineLobbyGameMode; }
+
 	/** UGameInstance Interface Begin */
 	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass() override;
 	virtual bool JoinSession(ULocalPlayer* LocalPlayer, const FOnlineSessionSearchResult& SearchResult) override;

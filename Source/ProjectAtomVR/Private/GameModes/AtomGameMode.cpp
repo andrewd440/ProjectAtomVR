@@ -4,36 +4,11 @@
 #include "AtomGameMode.h"
 #include "AtomPlayerController.h"
 #include "AtomCharacter.h"
+#include "AtomGameInstance.h"
 
 AAtomGameMode::AAtomGameMode()
 {
-	GameStateClass = AAtomGameState::StaticClass();
-	DefaultPawnClass = AAtomCharacter::StaticClass();
-	PlayerControllerClass = AAtomPlayerController::StaticClass();
-}
 
-void AAtomGameMode::RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character)
-{
-	Controller->SetRequestedCharacter(Character);
-
-	if (IsCharacterChangeAllowed(Controller))
-	{
-		// Unposses and destroy existing pawn
-		APawn* Pawn = Controller->GetPawn();
-		Controller->UnPossess();
-
-		if (Pawn)
-		{
-			Pawn->Destroy(true);
-		}
-
-		RestartPlayer(Controller);
-	}
-}
-
-TSubclassOf<UGameModeUISubsystem> AAtomGameMode::GetUIClass() const
-{
-	return UIClass;
 }
 
 void AAtomGameMode::ScoreKill_Implementation(APlayerController* Killer, APlayerController* Victim)
@@ -63,15 +38,16 @@ bool AAtomGameMode::ReadyToEndMatch_Implementation()
 	return false;
 }
 
-UClass* AAtomGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+void AAtomGameMode::HandleMatchHasEnded()
 {
-	if (AAtomPlayerController* AtomController = Cast<AAtomPlayerController>(InController))
-	{
-		if (AtomController->GetRequestedCharacter() != nullptr)
-		{
-			return AtomController->GetRequestedCharacter();
-		}
-	}
+	Super::HandleMatchHasEnded();
 
-	return DefaultPawnClass;
+	// Travel back to lobby
+	check(Cast<UAtomGameInstance>(GetGameInstance()));
+
+	UAtomGameInstance* const GameInstance = static_cast<UAtomGameInstance*>(GetGameInstance());
+
+	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *GameInstance->GetLobbyMap().ToString(), *GameInstance->GetLobbyGameMode().ToString());
+	GetWorld()->ServerTravel(URLString);
 }
+

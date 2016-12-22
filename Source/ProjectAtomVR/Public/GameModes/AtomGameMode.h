@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "GameFramework/GameMode.h"
+#include "AtomBaseGameMode.h"
 #include "AtomGameMode.generated.h"
 
 /**
  * 
  */
 UCLASS(Config=Game)
-class PROJECTATOMVR_API AAtomGameMode : public AGameMode
+class PROJECTATOMVR_API AAtomGameMode : public AAtomBaseGameMode
 {
 	GENERATED_BODY()
 	
@@ -19,27 +19,17 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	void ScoreKill(APlayerController* Killer, APlayerController* Victim);
 
-	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
-
-	TSubclassOf<class UGameModeUISubsystem> GetUIClass() const;
-
 protected:
-	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
-	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
+	/** AAtomBaseGameMode Interface Begin */
+	virtual bool IsCharacterChangeAllowed_Implementation(class AAtomPlayerController* Controller) const override;
+	/** AAtomBaseGameMode Interface End */
 
 	/** AGameMode Interface Begin */
 	virtual bool ReadyToEndMatch_Implementation() override;
-	/** AGameMode Interface End */	
-
-	/** AGameModeBase Interface Begin */
-public:
-	UClass* GetDefaultPawnClassForController_Implementation(AController* InController);
-	/** AGameModeBase Interface End */
+	virtual void HandleMatchHasEnded() override;
+	/** AGameMode Interface End */
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
-	TSubclassOf<UGameModeUISubsystem> UIClass;
-
 	/** Game time limit in seconds. 0 = No time limit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;

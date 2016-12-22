@@ -15,7 +15,7 @@ class PROJECTATOMVR_API UMainMenuUISubsystem : public UGameModeUISubsystem
 	
 public:
 	/** UGameModeUISubsystem Interface Begin */
-	virtual void InitializeSystem(AAtomUISystem* Owner, AAtomGameMode* GameModeCDO) override;
+	virtual void InitializeSystem(AAtomUISystem* Owner, AAtomBaseGameMode* GameModeCDO) override;
 	virtual void Destroy() override;
 	/** UGameModeUISubsystem Interface End */
 

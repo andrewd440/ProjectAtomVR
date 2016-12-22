@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "GameModes/AtomGameMode.h"
+#include "AtomBaseGameMode.h"
 #include "AtomLobbyGameMode.generated.h"
 
 /**
@@ -12,7 +12,7 @@
  * time has passed, the next match is loaded.
  */
 UCLASS(Config=Game)
-class PROJECTATOMVR_API AAtomLobbyGameMode : public AAtomGameMode
+class PROJECTATOMVR_API AAtomLobbyGameMode : public AAtomBaseGameMode
 {
 	GENERATED_BODY()
 	

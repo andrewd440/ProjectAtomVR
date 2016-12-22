@@ -9,7 +9,7 @@ namespace
 }
 
 
-void UMainMenuUISubsystem::InitializeSystem(AAtomUISystem* Owner, AAtomGameMode* GameModeCDO)
+void UMainMenuUISubsystem::InitializeSystem(AAtomUISystem* Owner, AAtomBaseGameMode* GameModeCDO)
 {
 	Super::InitializeSystem(Owner, GameModeCDO);
 

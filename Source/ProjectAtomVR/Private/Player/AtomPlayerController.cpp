@@ -5,6 +5,7 @@
 #include "AtomCharacter.h"
 #include "UI/AtomUISystem.h"
 #include "AtomLocalPlayer.h"
+#include "GameModes/AtomBaseGameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
@@ -19,7 +20,7 @@ void AAtomPlayerController::BeginPlay()
 
 	if (HasAuthority())
 	{
-		AAtomGameMode* const GameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>();
+		AAtomBaseGameMode* const GameMode = GetWorld()->GetAuthGameMode<AAtomBaseGameMode>();
 
 		if (UISystem && GameMode)
 		{

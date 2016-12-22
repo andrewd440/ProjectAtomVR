@@ -6,7 +6,7 @@
 #include "GameModeUISubsystem.generated.h"
 
 class AAtomUISystem;
-class AAtomGameMode;
+class AAtomBaseGameMode;
 
 /**
  * 
@@ -19,7 +19,7 @@ class PROJECTATOMVR_API UGameModeUISubsystem : public UObject
 public:
 	UGameModeUISubsystem();
 
-	virtual void InitializeSystem(AAtomUISystem* Owner, AAtomGameMode* GameModeCDO);
+	virtual void InitializeSystem(AAtomUISystem* Owner, AAtomBaseGameMode* GameModeCDO);
 	
 	virtual void Destroy();
 

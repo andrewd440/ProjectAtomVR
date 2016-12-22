@@ -11,9 +11,6 @@ AAtomLobbyGameMode::AAtomLobbyGameMode()
 {
 	bUseSeamlessTravel = true;
 
-	MinPlayers = 0;
-	MaxPlayers = 10;
-
 	GameStateClass = AAtomLobbyGameState::StaticClass();
 }
 
