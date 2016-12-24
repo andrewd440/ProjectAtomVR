@@ -201,7 +201,7 @@ bool AAtomPlayerController::ServerSetIsRightHanded_Validate(bool InbIsRightHande
 
 void AAtomPlayerController::ServerRequestCharacterChange_Implementation(TSubclassOf<AAtomCharacter> CharacterClass)
 {
-	if (AAtomGameMode* AtomGameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>())
+	if (AAtomBaseGameMode* AtomGameMode = GetWorld()->GetAuthGameMode<AAtomBaseGameMode>())
 	{
 		AtomGameMode->RequestCharacterChange(this, CharacterClass);
 	}

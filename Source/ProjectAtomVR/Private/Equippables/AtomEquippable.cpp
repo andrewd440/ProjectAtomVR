@@ -271,7 +271,7 @@ void AAtomEquippable::OnEquipped()
 
 	FString AttachSocket;
 	PrimaryHandAttachSocket.ToString(AttachSocket);
-	AttachSocket += (EquipStatus.EquippedHand == EHand::Left) ? TEXT("_Left") : TEXT("_Right");
+	AttachSocket += (EquipStatus.EquippedHand == EHand::Left) ? TEXT("_l") : TEXT("_r");
 	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName{ *AttachSocket });
 
 	HeroOwner->PlayHandAnimation(EquipStatus.EquippedHand, AnimHandEquip);

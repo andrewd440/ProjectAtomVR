@@ -157,7 +157,7 @@ protected:
 
 protected:
 	/** Socket to attach to when equipped. Depending on the hand equipped, this socket name will be post-fixed
-	 ** with _Left or _Right.*/
+	 ** with _l or _r.*/
 	UPROPERTY(EditDefaultsOnly, Category = Equippable)
 	FName PrimaryHandAttachSocket = NAME_None;
 

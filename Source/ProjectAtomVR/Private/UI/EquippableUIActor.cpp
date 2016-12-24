@@ -35,7 +35,8 @@ void AEquippableUIActor::SetEquippable(AAtomEquippable* NewEquippable)
 	if (NewEquippable)
 	{
 		Equippable->OnEquippedStatusChangedUI.BindUObject(this, &AEquippableUIActor::OnEquippedStatusChanged);
-		UpdateWidgetAttachments();
+
+		UpdateWidgetAttachments();				
 	}	
 }
 
@@ -74,7 +75,6 @@ void AEquippableUIActor::PostInitializeComponents()
 
 	if (Equippable.IsValid())
 	{
-		Equippable->OnEquippedStatusChangedUI.BindUObject(this, &AEquippableUIActor::OnEquippedStatusChanged);
 		UpdateWidgetAttachments();
 	}
 }
@@ -126,7 +126,7 @@ void AEquippableUIActor::UpdateWidgetAttachments()
 			const UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
 			const FAtomLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable.Get());
 
-			AttachParent = Loadout->GetAttachParent();
+			AttachParent = Equippable->GetHeroOwner()->GetBodyMesh();
 			AttachSocket = LoadoutSlot.UISocket;
 		}
 
