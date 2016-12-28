@@ -111,6 +111,8 @@ public:
 
 	void SetReplicatesAttachment(bool bShouldReplicate);
 
+	ELoadoutType GetLoadoutType() const;
+
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
@@ -185,6 +187,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
 	TSubclassOf<class AEquippableUIActor> EquippableUI;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
+	ELoadoutType LoadoutType;
 
 	/** Seconds before this item can be equipped again after unequipping. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Equippable)

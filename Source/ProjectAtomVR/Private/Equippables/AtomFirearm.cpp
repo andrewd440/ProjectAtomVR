@@ -36,6 +36,8 @@ AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	bReplicates = true;
 
+	LoadoutType = ELoadoutType::Weapon;
+
 	Stats.Damage = 20;
 	Stats.FireRate = 0.1f;
 	Stats.RecoilDampening = .5f;

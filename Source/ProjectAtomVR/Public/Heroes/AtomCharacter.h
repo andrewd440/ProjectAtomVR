@@ -24,6 +24,8 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
+	ECharacterClass GetCharacterClass() const { return CharacterClass; }
+
 	virtual void MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation);
 
 	class UHMDCapsuleComponent* GetHMDCapsuleComponent() const;
@@ -115,48 +117,51 @@ private:
 	void UpdateMeshLocation(float DeltaTime);
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomCharacter)
+	ECharacterClass CharacterClass = ECharacterClass::Assault;
+
 	/** Socket on the body mesh that has the offset for the intended head mesh location. */
-	UPROPERTY(EditDefaultsOnly, Category = Hero)
+	UPROPERTY(EditDefaultsOnly, Category = AtomCharacter)
 	FName NeckBaseSocket = NAME_None;	
 
 	/** Room scale movement velocity of the player. */
-	UPROPERTY(Transient, BlueprintReadOnly, Category = Hero)
+	UPROPERTY(Transient, BlueprintReadOnly, Category = AtomCharacter)
 	FVector RoomScaleVelocity = FVector::ZeroVector;
 
 private:
 	FVector NeckBaseSocketOffset = FVector::ZeroVector;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* BodyMesh;
 
-	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, Instanced, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	class UAtomLoadout* Loadout;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	AAtomEquippable* LeftHandEquippable;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	UNetMotionControllerComponent* LeftHandController;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* LeftHandMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* LeftHandTrigger;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	AAtomEquippable* RightHandEquippable;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	UNetMotionControllerComponent* RightHandController;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	USkeletalMeshComponent* RightHandMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Hero, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* RightHandTrigger;
 
 	struct FDefaultHandTransform

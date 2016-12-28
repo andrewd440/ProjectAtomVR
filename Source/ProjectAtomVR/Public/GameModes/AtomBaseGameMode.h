@@ -16,6 +16,7 @@ class PROJECTATOMVR_API AAtomBaseGameMode : public AGameMode
 public:
 	AAtomBaseGameMode();
 
+	UFUNCTION(BlueprintCallable, Category = AtomBaseGameMode)
 	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
 
 	TSubclassOf<class UGameModeUISubsystem> GetUIClass() const;

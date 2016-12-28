@@ -40,7 +40,7 @@ public:
 	/** AActor Interface End */
 
 protected:
-	const TArray<UEquippableWidget*>& GetWidgets() const;
+	const TArray<UEquippableWidget*>& GetEquippableWidgets() const;
 
 	void UpdateWidgetAttachments();
 
@@ -56,4 +56,4 @@ private:
 	TWeakObjectPtr<AAtomEquippable> Equippable = nullptr;
 };
 
-FORCEINLINE const TArray<UEquippableWidget*>& AEquippableUIActor::GetWidgets() const { return EquippableWidgets; }
+FORCEINLINE const TArray<UEquippableWidget*>& AEquippableUIActor::GetEquippableWidgets() const { return EquippableWidgets; }

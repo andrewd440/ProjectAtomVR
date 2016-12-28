@@ -74,3 +74,20 @@ struct PROJECTATOMVR_API FMotionTransformRep
 	UPROPERTY()
 	FRotator Rotation;
 };
+
+UENUM()
+enum class ELoadoutType : uint8
+{
+	Item,
+	Weapon,
+	Ability
+};
+
+UENUM()
+enum class ECharacterClass : uint8
+{
+	Assault,
+	Defense,
+	Repair,
+	Support
+};

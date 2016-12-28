@@ -16,7 +16,7 @@ void AFirearmUIActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	for (auto* EquippableWidget : GetWidgets())
+	for (auto* EquippableWidget : GetEquippableWidgets())
 	{
 		if (auto* FirearmWidget = Cast<UFirearmWidget>(EquippableWidget))
 		{

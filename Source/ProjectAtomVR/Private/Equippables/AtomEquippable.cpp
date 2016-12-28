@@ -27,6 +27,8 @@ AAtomEquippable::AAtomEquippable(const FObjectInitializer& ObjectInitializer/* =
 	bReplicates = true;
 	bReplicatesAttachment = false;
 
+	LoadoutType = ELoadoutType::Item;
+
 	Mesh = CreateAbstractDefaultSubobject<UMeshComponent>(MeshComponentName);
 	RootComponent = Mesh;
 
@@ -325,6 +327,11 @@ TSubclassOf<class AEquippableUIActor> AAtomEquippable::GetUIActor() const
 void AAtomEquippable::SetReplicatesAttachment(bool bShouldReplicate)
 {
 	bReplicatesAttachment = bShouldReplicate;
+}
+
+ELoadoutType AAtomEquippable::GetLoadoutType() const
+{
+	return LoadoutType;
 }
 
 void AAtomEquippable::SetupInputComponent(UInputComponent* InInputComponent)

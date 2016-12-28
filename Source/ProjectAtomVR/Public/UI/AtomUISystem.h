@@ -9,7 +9,7 @@ enum class ELoadoutSlotChangeType : uint8;
 class AAtomPlayerController;
 
 /**
- * Some UI systems require a 'UILocator' tagged actor to be in the level to be placed in the correct location.
+ * 
  */
 UCLASS()
 class PROJECTATOMVR_API AAtomUISystem : public AActor
@@ -43,19 +43,12 @@ public:
 	void DestroyGameModeUI();
 
 	/**
-	* Gets the UI locator actor in the current level. This is the actor tag with
-	* 'UILocator' within the level that manages static UI placement.
-	* @returns
+	* Creates all UIs for the loaded level.
 	*/
-	AActor* GetUILocatorActor() const;
-
-	USceneComponent* FindFirstUILocator(const FName Tag) const;
-	TArray<USceneComponent*> FindAllUILocators(const FName Tag) const;
+	void CreateLevelUI();
 
 	/** AActor Interface Begin */
 	virtual void SetOwner(AActor* NewOwner) override;
-	virtual void BeginPlay() override;
-	virtual void PostInitializeComponents() override;
 	virtual void Destroyed() override;
 	/** AActor Interface End */
 
@@ -67,10 +60,10 @@ private:
 	AAtomPlayerController* PlayerController;
 
 	UPROPERTY()
-	AActor* UILocator;
+	class UGameModeUISubsystem* GameModeUI;
 
 	UPROPERTY()
-	class UGameModeUISubsystem* GameModeUI;
+	class ALevelUIManager* LevelUI = nullptr;
 
 	struct FHeroUI
 	{

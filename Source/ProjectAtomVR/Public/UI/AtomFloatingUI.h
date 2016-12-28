@@ -17,7 +17,6 @@ class PROJECTATOMVR_API AAtomFloatingUI : public AAtomUIActor
 {
 	GENERATED_BODY()
 	
-	
 public:
 	AAtomFloatingUI();
 

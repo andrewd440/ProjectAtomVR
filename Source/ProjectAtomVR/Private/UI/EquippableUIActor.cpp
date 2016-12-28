@@ -7,7 +7,6 @@
 #include "UI/EquippableWidgetComponent.h"
 #include "AtomLoadout.h"
 #include "UserWidget.h"
-#include "WidgetTree.h"
 
 
 AEquippableUIActor::AEquippableUIActor()
@@ -44,33 +43,14 @@ void AEquippableUIActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	TInlineComponentArray<UWidgetComponent*> WidgetComponents;
-	GetComponents<UWidgetComponent>(WidgetComponents);
-
-	for (UWidgetComponent* WidgetComponent : WidgetComponents)
+	const TArray<UUserWidget*>& MyWidgets = GetWidgets();
+	for (UUserWidget* Widget : MyWidgets)
 	{
-		// Set owner for all equippable user widgets
-		UUserWidget* Widget = WidgetComponent->GetUserWidgetObject();
-
-		// Add all EquippableWidgets to internal list
-		if (auto EquippableWidget = Cast<UEquippableWidget>(Widget))
+		if (UEquippableWidget* EquippableWidget = Cast<UEquippableWidget>(Widget))
 		{
 			EquippableWidgets.Add(EquippableWidget);
-		}
-		
-		Widget->WidgetTree->ForEachWidget([this](UWidget* TreeWidget) 
-		{ 
-			if (auto EquippableWidget = Cast<UEquippableWidget>(TreeWidget))
-			{
-				EquippableWidgets.Add(EquippableWidget);
-			}
-		});		
-	}
-
-	// Setup owner for all equippable widgets.
-	for (auto EquippableWidget : EquippableWidgets)
-	{
-		EquippableWidget->SetOwner(this);
+			EquippableWidget->SetOwner(this);
+		}	
 	}
 
 	if (Equippable.IsValid())
@@ -91,12 +71,6 @@ void AEquippableUIActor::SetOwner(AActor* NewOwner)
 
 void AEquippableUIActor::Destroyed()
 {
-	for (UEquippableWidget* Widget : EquippableWidgets)
-	{
-		if(Widget->IsValidLowLevel() && !Widget->IsPendingKill())
-			Widget->ConditionalBeginDestroy();
-	}
-
 	EquippableWidgets.Empty();
 
 	Super::Destroyed();

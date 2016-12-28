@@ -8,6 +8,7 @@
 #include "UI/EquippableUIActor.h"
 #include "AtomEquippable.h"
 #include "GameModeUISubsystem.h"
+#include "LevelUIManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUISystem, Log, All);
 
@@ -29,27 +30,6 @@ void AAtomUISystem::SetOwner(AActor* NewOwner)
 	ensure(IsActorBeingDestroyed() || PlayerController != nullptr);
 }
 
-void AAtomUISystem::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void AAtomUISystem::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	// Find the UILocator actor
-	for (FActorIterator It(GetWorld()); It; ++It)
-	{
-		AActor* Actor = *It;
-		if (Actor && !Actor->IsPendingKill() && Actor->ActorHasTag(TEXT("UILocator")))
-		{
-			UILocator = Actor;
-			break;
-		}
-	}
-}
-
 void AAtomUISystem::Destroyed()
 {
 	DestroyCharacterUI();
@@ -60,7 +40,7 @@ void AAtomUISystem::Destroyed()
 
 AAtomCharacter* AAtomUISystem::GetCharacter() const
 {
-	return PlayerController->GetHero();
+	return PlayerController->GetCharacter();
 }
 
 void AAtomUISystem::CreateCharacterUI()
@@ -140,55 +120,20 @@ void AAtomUISystem::DestroyGameModeUI()
 	}
 }
 
-AActor* AAtomUISystem::GetUILocatorActor() const
+void AAtomUISystem::CreateLevelUI()
 {
-	return UILocator;
-}
+	LevelUI = nullptr;
 
-USceneComponent* AAtomUISystem::FindFirstUILocator(const FName Tag) const
-{
-	if (UILocator)
+	for (FActorIterator It(GetWorld()); It && LevelUI == nullptr; ++It)
 	{
-		TInlineComponentArray<UActorComponent*> Components;
-		UILocator->GetComponents(Components);
-
-		for (UActorComponent* Component : Components)
-		{
-			if (Component->ComponentHasTag(Tag))
-			{
-				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
-				{
-					return SceneComponent;
-				}
-			}
-		}
+		LevelUI = Cast<ALevelUIManager>(*It);
 	}
 
-	return nullptr;
-}
-
-TArray<USceneComponent*> AAtomUISystem::FindAllUILocators(const FName Tag) const
-{
-	TArray<USceneComponent*> UILocators;
-
-	if (UILocator)
+	if (LevelUI != nullptr)
 	{
-		TInlineComponentArray<UActorComponent*> Components;
-		UILocator->GetComponents(Components);
-
-		for (UActorComponent* Component : Components)
-		{
-			if (Component->ComponentHasTag(Tag))
-			{
-				if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
-				{
-					UILocators.Add(SceneComponent);
-				}
-			}
-		}
+		UE_LOG(LogUISystem, Log, TEXT("Creating Level UI."));
+		LevelUI->SpawnLevelUI(this);
 	}
-
-	return UILocators;
 }
 
 void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
@@ -213,6 +158,7 @@ void AAtomUISystem::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 Lo
 				UIActor = GetWorld()->SpawnActorDeferred<AEquippableUIActor>(EquippableUIClass, FTransform::Identity, this);
 				UIActor->SetFlags(RF_Transient);
 				UIActor->SetEquippable(NewItem);
+				UIActor->SetUISystem(this);
 
 				UIActor->FinishSpawning(FTransform::Identity, true);
 			}

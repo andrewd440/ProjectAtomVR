@@ -18,7 +18,15 @@ class PROJECTATOMVR_API AAtomPlayerController : public APlayerController
 public:
 	AAtomPlayerController();
 
-	AAtomCharacter* GetHero() const;
+	AAtomCharacter* GetCharacter() const;
+
+	/**
+	* Checks if the player is right handed.
+	*/
+	bool IsRightHanded() const;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
 
 	/**
 	* Sets the requested character for this controller. Should only be set by the active game mode.
@@ -28,12 +36,7 @@ public:
 	/**
 	* Gets the requested character for this controller.
 	*/
-	TSubclassOf<AAtomCharacter> GetRequestedCharacter() const;
-
-	/**
-	* Checks if the player is right handed.
-	*/
-	bool IsRightHanded() const;
+	TSubclassOf<AAtomCharacter> GetRequestedCharacter() const;	
 
 protected:
 	void CreateUISystem();
@@ -48,9 +51,6 @@ protected:
 
 private:
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
-
-	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSetIsRightHanded(bool InbIsRightHanded);
 
 	/** APlayerController Interface Begin */
@@ -61,6 +61,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetPlayer(UPlayer* InPlayer) override;
 	virtual void ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass) override;
+	virtual void NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest) override;
 	virtual void Destroyed() override;
 protected:
 	virtual void SetupInputComponent() override;

@@ -20,10 +20,11 @@ AAtomFloatingUI::AAtomFloatingUI()
 	WidgetComponent->SetDrawAtDesiredSize(true);
 }
 
-void AAtomFloatingUI::SetWidget(AAtomUISystem* UISystem, TSubclassOf<UUserWidget> InWidget)
+void AAtomFloatingUI::SetWidget(AAtomUISystem* InUISystem, TSubclassOf<UUserWidget> InWidget)
 {
 	check(InWidget != nullptr);
 	WidgetClass = InWidget;
+	SetUISystem(InUISystem);
 
 	SetupWidgetComponent();
 }
@@ -40,8 +41,7 @@ void AAtomFloatingUI::SetupWidgetComponent()
 	Widget = CreateWidget<UUserWidget>(GetWorld(), WidgetClass);
 	check(Widget != nullptr);
 
-	ULocalPlayer* LocalPlayer = GetAtomUISystem()->GetPlayerController()->GetLocalPlayer();
-	Widget->SetOwningLocalPlayer(LocalPlayer);
+	Widget->SetPlayerContext(GetUISystem()->GetPlayerController());
 
 	WidgetComponent->SetWidget(Widget);
 }

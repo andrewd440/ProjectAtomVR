@@ -20,12 +20,18 @@ void AAtomPlayerController::BeginPlay()
 
 	if (HasAuthority())
 	{
+		// ReceivedGameModeClass not called for Authority, so create gamemode ui here.
 		AAtomBaseGameMode* const GameMode = GetWorld()->GetAuthGameMode<AAtomBaseGameMode>();
 
 		if (UISystem && GameMode)
 		{
 			UISystem->CreateGameModeUI(GameMode->GetClass());
 		}
+	}
+
+	if (UISystem != nullptr)
+	{
+		UISystem->CreateLevelUI();
 	}
 }
 
@@ -212,7 +218,7 @@ bool AAtomPlayerController::ServerRequestCharacterChange_Validate(TSubclassOf<AA
 	return true;
 }
 
-AAtomCharacter* AAtomPlayerController::GetHero() const
+AAtomCharacter* AAtomPlayerController::GetCharacter() const
 {
 	return AtomCharacter;
 }
@@ -225,6 +231,16 @@ void AAtomPlayerController::SetRequestedCharacter(TSubclassOf<AAtomCharacter> Ch
 TSubclassOf<AAtomCharacter> AAtomPlayerController::GetRequestedCharacter() const
 {
 	return RequestedCharacter;
+}
+
+void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest)
+{
+	Super::NotifyLoadedWorld(WorldPackageName, bFinalDest);
+
+	if (UISystem != nullptr)
+	{
+		UISystem->CreateLevelUI();
+	}
 }
 
 bool AAtomPlayerController::IsRightHanded() const
