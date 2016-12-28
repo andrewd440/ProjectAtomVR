@@ -42,17 +42,6 @@ void ULevelUIComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
-void ULevelUIComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
-{
-	if (UIActor != nullptr)
-	{
-		UIActor->Destroy();
-		UIActor = nullptr;
-	}
-
-	Super::OnComponentDestroyed(bDestroyingHierarchy);
-}
-
 void ULevelUIComponent::OnComponentCreated()
 {
 	Super::OnComponentCreated();

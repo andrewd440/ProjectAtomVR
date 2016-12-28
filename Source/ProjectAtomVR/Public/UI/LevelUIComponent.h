@@ -28,7 +28,6 @@ public:
 
 	/** USceneComponent Interface Begin */
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
 	virtual void OnComponentCreated() override;
 	virtual void OnRegister() override;
 	/** USceneComponent Interface End */

@@ -80,6 +80,8 @@ void AEquippableUIActor::UpdateWidgetAttachments()
 {
 	check(Equippable.IsValid());
 
+	AttachToActor(Equippable.Get(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
 	TInlineComponentArray<UEquippableWidgetComponent*> WidgetComponents;
 	GetComponents<UEquippableWidgetComponent>(WidgetComponents);
 
