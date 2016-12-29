@@ -333,6 +333,8 @@ void AAtomCharacter::Die(AController* Killer)
 
 void AAtomCharacter::OnDeath()
 {
+	Loadout->OnCharacterControllerChanged();
+
 	UpdateMeshVisibility();
 
 	// Stop any existing montages
@@ -381,6 +383,16 @@ void AAtomCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	Loadout->OnCharacterControllerChanged();
+
+	if (RightHandEquippable != nullptr)
+	{
+		RightHandEquippable->UpdateCharacterAttachment();
+	}
+
+	if (LeftHandEquippable != nullptr)
+	{
+		LeftHandEquippable->UpdateCharacterAttachment();
+	}
 }
 
 void AAtomCharacter::UnPossessed()
@@ -388,6 +400,16 @@ void AAtomCharacter::UnPossessed()
 	Super::UnPossessed();
 
 	Loadout->OnCharacterControllerChanged();
+
+	if (RightHandEquippable != nullptr)
+	{
+		RightHandEquippable->UpdateCharacterAttachment();
+	}
+
+	if (LeftHandEquippable != nullptr)
+	{
+		LeftHandEquippable->UpdateCharacterAttachment();
+	}
 }
 
 void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -518,7 +540,7 @@ FRotator AAtomCharacter::GetDefaultHandMeshRotation(const EHand Hand) const
 
 UMeshComponent* AAtomCharacter::GetBodyAttachmentComponent() const
 {
-	if (IsLocallyControlled())
+	if (IsLocallyControlled() && !bIsDying)
 	{
 		return BodyMesh;
 	}
@@ -530,7 +552,7 @@ UMeshComponent* AAtomCharacter::GetBodyAttachmentComponent() const
 
 USkeletalMeshComponent* AAtomCharacter::GetHandAttachmentComponent(const EHand Hand) const
 {
-	return !IsLocallyControlled() ? GetMesh() : (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
+	return (!IsLocallyControlled() && !bIsDying) ? GetMesh() : (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
 }
 
 FVector AAtomCharacter::GetRoomScaleVelocity() const

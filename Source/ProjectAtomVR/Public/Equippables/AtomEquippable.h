@@ -76,6 +76,8 @@ public:
 
 	virtual void Drop();
 
+	virtual void UpdateCharacterAttachment();
+
 	/**
 	* Control the behavior of this Equippable on Unequip. If true the Equippable will be returned to the
 	* loadout when unequipped. If false, the Equippable will just be detached from the attached parent.

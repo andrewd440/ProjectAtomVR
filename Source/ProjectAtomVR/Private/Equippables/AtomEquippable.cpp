@@ -189,6 +189,20 @@ void AAtomEquippable::Drop()
 	SetLifeSpan(10.f);
 }
 
+void AAtomEquippable::UpdateCharacterAttachment()
+{
+	check(HeroOwner);
+
+	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.Hand);
+
+	FString AttachSocket;
+	PrimaryHandAttachSocket.ToString(AttachSocket);
+	AttachSocket += (EquipStatus.Hand == EHand::Left) ? TEXT("_l") : TEXT("_r");
+	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName{ *AttachSocket });
+
+	HeroOwner->PlayHandAnimation(EquipStatus.Hand, AnimHandEquip);
+}
+
 void AAtomEquippable::SetCanReturnToLoadout(bool bCanReturn)
 {
 	if (bCanReturn != bReturnToLoadout)
@@ -324,14 +338,7 @@ void AAtomEquippable::OnRep_Owner()
 
 void AAtomEquippable::OnEquipped()
 {		
-	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.Hand);
-
-	FString AttachSocket;
-	PrimaryHandAttachSocket.ToString(AttachSocket);
-	AttachSocket += (EquipStatus.Hand == EHand::Left) ? TEXT("_l") : TEXT("_r");
-	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName{ *AttachSocket });
-
-	HeroOwner->PlayHandAnimation(EquipStatus.Hand, AnimHandEquip);
+	UpdateCharacterAttachment();
 
 	if (EquipSound)
 	{
