@@ -337,7 +337,7 @@ void UAtomLoadout::OnReturnToLoadoutChanged(AAtomEquippable* Item, int32 Loadout
 			const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
 			const FAtomLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateCDO->GetLoadoutSlots()[LoadoutIndex];
 			
-			if (Slot.Count > 0)
+			if (Slot.Count > 1)
 			{
 				// We have more, spawn one
 				--Slot.Count;
@@ -376,12 +376,15 @@ void UAtomLoadout::OnRep_Loadout()
 			AAtomEquippable* Item = Loadout[i].Item;
 
 			// Update local attachment only if not equipped. It may be equipped for late joining remotes.
-			if (!Item->IsEquipped())
+			if (Item != nullptr)
 			{
-				Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Loadout[i].StorageSocket);
-			}
-			
-			Item->SetLoadoutAttachment(GetAttachParent() ,Loadout[i].StorageSocket);
+				if (!Item->IsEquipped())
+				{
+					Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Loadout[i].StorageSocket);
+				}
+
+				Item->SetLoadoutAttachment(GetAttachParent(), Loadout[i].StorageSocket);
+			}			
 		}			
 
 		if (SavedLoadout[i].Count != Loadout[i].Count)

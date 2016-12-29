@@ -9,8 +9,9 @@ public class ProjectAtomVR : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
                         "ProjectAtomVR/Private",
-                        "ProjectAtomVR/Private/Heroes",
-                        "ProjectAtomVR/Private/Heroes/Movement",
+                        "ProjectAtomVR/Private/Characters",
+                        "ProjectAtomVR/Private/Characters/Movement",
+                        "ProjectAtomVR/Private/Player",
                         "ProjectAtomVR/Private/MotionComponents",
             });
 

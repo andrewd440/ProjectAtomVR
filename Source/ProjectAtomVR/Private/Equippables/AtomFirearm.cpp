@@ -86,7 +86,7 @@ void AAtomFirearm::UpdateChamberingHandle()
 		{
 			check(ChamberingIndex < ChamberHandleMovement.Num());
 
-			const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand);
+			const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand);
 			const FVector HandLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 
 			// Get the current movement progress based on the project of the hand delta on the chamber movement vector
@@ -327,6 +327,11 @@ void AAtomFirearm::FireShot()
 		const FShotData ShotData = ShotType->GetShotData();
 		GenerateShotRecoil(ShotData.Seed);
 
+		// Play effects and reload chamber before firing the shot. This keeps situations such as killing yourself in order.
+		// i.e. FireShot -> Die -> Drop Firearm -> Pop FiringState (which calls StopFiringSequence)
+		PlaySingleShotSequence();
+		ReloadChamber(true);
+
 		if (HasAuthority())
 		{			
 			ShotType->FireShot(ShotData);
@@ -336,9 +341,6 @@ void AAtomFirearm::FireShot()
 			ShotType->SimulateShot(ShotData);
 			ServerFireShot(ShotData);
 		}
-
-		PlaySingleShotSequence();
-		ReloadChamber(true);
 	}
 	else if(Role == ENetRole::ROLE_SimulatedProxy)
 	{
@@ -346,9 +348,11 @@ void AAtomFirearm::FireShot()
 		const FShotData ShotData = ShotType->GetShotData();
 		GenerateShotRecoil(ShotData.Seed);
 
-		ShotType->SimulateShot(ShotData);
+		// See above comment for operation ordering
 		PlaySingleShotSequence();
 		ReloadChamber(true);
+
+		ShotType->SimulateShot(ShotData);
 	}
 }
 
@@ -424,9 +428,9 @@ void AAtomFirearm::OnOppositeHandTriggerReleased()
 
 bool AAtomFirearm::CanGripChamberingHandle() const
 {
-	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.EquippedHand) == nullptr)
+	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.Hand) == nullptr)
 	{		
-		FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand)->GetComponentLocation();
+		FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand)->GetComponentLocation();
 		if (FVector::DistSquared(GripLocation, GetMesh()->GetSocketLocation(ChamberingHandleSocket)) <= ChamberingHandleRadius * ChamberingHandleRadius)
 		{
 			return true;
@@ -443,7 +447,7 @@ void AAtomFirearm::OnChamberingHandleGrabbed()
 	LastChamberState = EChamberState::Set;
 
 	// Assign relative hand location
-	const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.EquippedHand);
+	const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand);
 	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 }
 
@@ -606,13 +610,13 @@ void AAtomFirearm::SetupInputComponent(UInputComponent* InInputComponent)
 {
 	Super::SetupInputComponent(InInputComponent);
 
-	const FName WeaponInteractName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("WeaponInteractLeft") : TEXT("WeaponInteractRight");
+	const FName WeaponInteractName = (EquipStatus.Hand == EHand::Right) ? TEXT("WeaponInteractLeft") : TEXT("WeaponInteractRight");
 	InInputComponent->BindAction(WeaponInteractName, IE_Pressed, this, &AAtomFirearm::OnOppositeHandTriggerPressed).bConsumeInput = false;
 	InInputComponent->BindAction(WeaponInteractName, IE_Released, this, &AAtomFirearm::OnOppositeHandTriggerReleased).bConsumeInput = false;
 
 	if (Stats.bHasSlideLock)
 	{
-		const FName SlideLockName = (EquipStatus.EquippedHand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
+		const FName SlideLockName = (EquipStatus.Hand == EHand::Right) ? TEXT("SlideLockRight") : TEXT("SlideLockLeft");
 		InInputComponent->BindAction(SlideLockName, IE_Pressed, this, &AAtomFirearm::OnSlideLockPressed);
 	}
 

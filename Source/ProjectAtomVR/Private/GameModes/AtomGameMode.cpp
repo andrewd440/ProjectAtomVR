@@ -11,7 +11,7 @@ AAtomGameMode::AAtomGameMode()
 
 }
 
-void AAtomGameMode::ScoreKill_Implementation(APlayerController* Killer, APlayerController* Victim)
+void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* Victim)
 {
 
 }
@@ -49,5 +49,10 @@ void AAtomGameMode::HandleMatchHasEnded()
 
 	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *GameInstance->GetLobbyMap().ToString(), *GameInstance->GetLobbyGameMode().ToString());
 	GetWorld()->ServerTravel(URLString);
+}
+
+bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
+{
+	return false;
 }
 

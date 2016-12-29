@@ -89,6 +89,8 @@ public:
 
 	class UAtomLoadout* GetLoadout() const;
 
+	virtual bool CanDie() const;
+
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual FVector GetPawnViewLocation() const override;
@@ -101,6 +103,8 @@ public:
 	virtual FVector GetVelocity() const override;	
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
+	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const override;
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	/** APawn Interface End */
 
 	/** AActor Interface Begin */
@@ -113,10 +117,23 @@ protected:
 	void OnEquipPressed();
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
+	void UpdateMeshVisibility();
+
+	virtual void Die(AController* Killer);
+
+	virtual void OnDeath();
+	virtual void OnReceivedDamage();
+
+	UFUNCTION()
+	virtual void OnRep_IsDying();
+
 private:
 	void UpdateMeshLocation(float DeltaTime);
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomCharacter)
+	int32 Health = 100;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomCharacter)
 	ECharacterClass CharacterClass = ECharacterClass::Assault;
 
@@ -175,6 +192,9 @@ private:
 
 	/** If the player is right hand dominant. */
 	uint32 bIsRightHanded : 1;
+
+	UPROPERTY(BlueprintReadOnly, Transient, ReplicatedUsing=OnRep_IsDying, meta = (AllowPrivateAccess = "true"))
+	uint32 bIsDying : 1;
 
 public:
 	class UAtomCharacterMovementComponent* GetHeroMovementComponent() const;

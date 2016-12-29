@@ -90,6 +90,22 @@ void AAtomUISystem::DestroyCharacterUI()
 	}
 
 	HeroUI.Equippables.Empty();
+
+	// Unbind any slot change events
+	if (AAtomCharacter* Character = GetCharacter())
+	{
+		TArray<FAtomLoadoutSlot>& LoadoutSlots = Character->GetLoadout()->GetLoadoutSlots();
+
+		for (int32 i = 0; i < LoadoutSlots.Num(); ++i)
+		{
+			FAtomLoadoutSlot& LoadoutSlot = LoadoutSlots[i];
+
+			if (LoadoutSlot.OnSlotChanged.IsBoundToObject(this))
+			{
+				LoadoutSlot.OnSlotChanged.Unbind();
+			}
+		}
+	}
 }
 
 void AAtomUISystem::CreateGameModeUI(TSubclassOf<class AGameModeBase> GameModeClass)

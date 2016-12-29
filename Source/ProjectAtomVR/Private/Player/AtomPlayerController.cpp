@@ -233,6 +233,11 @@ TSubclassOf<AAtomCharacter> AAtomPlayerController::GetRequestedCharacter() const
 	return RequestedCharacter;
 }
 
+void AAtomPlayerController::UnFreeze()
+{
+	ServerRestartPlayer();
+}
+
 void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest)
 {
 	Super::NotifyLoadedWorld(WorldPackageName, bFinalDest);

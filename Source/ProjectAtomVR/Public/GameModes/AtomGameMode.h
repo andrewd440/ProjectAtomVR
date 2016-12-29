@@ -17,7 +17,7 @@ public:
 	AAtomGameMode();
 	
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
-	void ScoreKill(APlayerController* Killer, APlayerController* Victim);
+	void ScoreKill(AController* Killer, AController* Victim);
 
 protected:
 	/** AAtomBaseGameMode Interface Begin */
@@ -28,6 +28,10 @@ protected:
 	virtual bool ReadyToEndMatch_Implementation() override;
 	virtual void HandleMatchHasEnded() override;
 	/** AGameMode Interface End */
+
+	/** AGameModeBase Interface Begin */
+	virtual bool ShouldSpawnAtStartSpot(AController* Player) override;
+	/** AGameModeBase Interface End */
 
 protected:
 	/** Game time limit in seconds. 0 = No time limit */

@@ -13,6 +13,7 @@
 #include "AtomEquippable.h"
 #include "Animation/AnimSequence.h"
 #include "WidgetInteractionComponent.h"
+#include "Components/SkinnedMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
@@ -32,6 +33,9 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 
 	bReplicates = true;
 	bReplicateMovement = true;
+	bIsDying = false;
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(AtomCollisionChannels::InstantShot, ECollisionResponse::ECR_Ignore);
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bReceivesDecals = false;
@@ -129,6 +133,9 @@ void AAtomCharacter::Tick( float DeltaTime )
 
 void AAtomCharacter::UpdateMeshLocation(float DeltaTime)
 {
+	if (bIsDying)
+		return;
+
 	const FVector NeckBaseLocation = Camera->GetWorldNeckBaseLocation();
 	FVector CameraForward2D = Camera->GetForwardVector();	
 
@@ -268,6 +275,107 @@ void AAtomCharacter::Destroyed()
 	Super::Destroyed();
 }
 
+bool AAtomCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
+{
+	return CanDie() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}
+
+float AAtomCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float ActualDamage = 0;
+
+	if (Health > 0)
+	{
+		ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
+		//TakeHit(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
+
+		if (ActualDamage > 0)
+		{
+			Health -= ActualDamage;
+
+			if (Health <= 0)
+			{
+				Die(EventInstigator);
+			}
+		}
+	}
+
+	return ActualDamage;
+}
+
+void AAtomCharacter::Die(AController* Killer)
+{
+	check(HasAuthority());
+
+	bIsDying = true;
+	TearOff();
+
+	AAtomGameMode* GameMode = Cast<AAtomGameMode>(GetWorld()->GetAuthGameMode());
+	check(GameMode && "Deaths should only happen on AtomGameMode");
+
+	GameMode->ScoreKill(Killer, GetController());
+
+	DetachFromControllerPendingDestroy();
+
+	if (LeftHandEquippable != nullptr)
+	{
+		LeftHandEquippable->Drop();
+	}
+
+	if (RightHandEquippable != nullptr)
+	{
+		RightHandEquippable->Drop();
+	}
+
+	OnDeath();
+}
+
+void AAtomCharacter::OnDeath()
+{
+	UpdateMeshVisibility();
+
+	// Stop any existing montages
+	StopAnimMontage();
+	
+	// Set collision properties
+	static FName RagdollProfile{ TEXT("Ragdoll") };
+	GetMesh()->SetCollisionProfileName(RagdollProfile);
+
+	SetActorEnableCollision(true);
+
+	// Active ragdoll
+	if (GetMesh()->GetPhysicsAsset())
+	{
+		// Set all bodies of the mesh component to simulate
+		GetMesh()->SetAllBodiesSimulatePhysics(true);
+		GetMesh()->SetSimulatePhysics(true);
+		GetMesh()->WakeAllRigidBodies();
+
+		GetMesh()->bBlendPhysics = true;
+	}
+
+	// Stop and disable any character movement
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->SetComponentTickEnabled(false);
+
+	// Disable capsule
+	GetCapsuleComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+
+	SetLifeSpan(10.0f);
+}
+
+void AAtomCharacter::OnReceivedDamage()
+{
+
+}
+
+void AAtomCharacter::OnRep_IsDying()
+{
+	OnDeath();
+}
+
 void AAtomCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
@@ -285,6 +393,8 @@ void AAtomCharacter::UnPossessed()
 void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AAtomCharacter, bIsDying);
 }
 
 void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
@@ -483,6 +593,13 @@ UAtomLoadout* AAtomCharacter::GetLoadout() const
 	return Loadout;
 }
 
+bool AAtomCharacter::CanDie() const
+{
+	return Health > 0 && !IsPendingKill() &&
+		GetWorld()->GetGameState()->GameModeClass != nullptr &&
+		GetWorld()->GetGameState()->GameModeClass->IsChildOf(AAtomGameMode::StaticClass());
+}
+
 template <EHand Hand>
 void AAtomCharacter::OnEquipPressed()
 {
@@ -517,6 +634,29 @@ void AAtomCharacter::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
+}
+
+void AAtomCharacter::UpdateMeshVisibility()
+{
+	const bool bIsLocallyControlled = IsLocallyControlled();
+
+	GetMesh()->SetOwnerNoSee(bIsLocallyControlled);
+	GetMesh()->MeshComponentUpdateFlag = bIsLocallyControlled ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+
+	BodyMesh->SetOwnerNoSee(!bIsLocallyControlled);
+	LeftHandMesh->SetOwnerNoSee(!bIsLocallyControlled);
+	RightHandMesh->SetOwnerNoSee(!bIsLocallyControlled);
+
+	if (bIsLocallyControlled)
+	{
+		LeftHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+		RightHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	}
+	else
+	{
+		LeftHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+		RightHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	}
 }
 
 FVector AAtomCharacter::GetPawnViewLocation() const

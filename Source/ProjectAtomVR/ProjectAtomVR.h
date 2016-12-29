@@ -29,7 +29,7 @@ namespace AtomCollisionProfiles
 	static const FName HandTrigger{ TEXT("HandTrigger") };
 }
 
-namespace CollisionChannelAliases
+namespace AtomCollisionChannels
 {
 	static constexpr ECollisionChannel HeroHand = ECC_GameTraceChannel1;
 	static constexpr ECollisionChannel HandTrigger = ECC_GameTraceChannel2;

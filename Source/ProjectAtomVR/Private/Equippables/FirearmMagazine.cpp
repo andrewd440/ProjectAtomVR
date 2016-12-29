@@ -23,7 +23,7 @@ AFirearmMagazine::AFirearmMagazine(const FObjectInitializer& ObjectInitializer /
 	LoadTrigger->SetIsReplicated(false);
 	LoadTrigger->SetupAttachment(MyMesh);
 	LoadTrigger->bGenerateOverlapEvents = true;
-	LoadTrigger->SetCollisionObjectType(CollisionChannelAliases::ClipLoadTrigger);
+	LoadTrigger->SetCollisionObjectType(AtomCollisionChannels::ClipLoadTrigger);
 	LoadTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
-	LoadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::FirearmReloadTrigger, ECollisionResponse::ECR_Overlap);
+	LoadTrigger->SetCollisionResponseToChannel(AtomCollisionChannels::FirearmReloadTrigger, ECollisionResponse::ECR_Overlap);
 }

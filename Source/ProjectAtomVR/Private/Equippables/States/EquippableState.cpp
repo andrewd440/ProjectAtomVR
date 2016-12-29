@@ -25,12 +25,9 @@ void UEquippableState::OnEnteredState()
 
 void UEquippableState::OnExitedState()
 {
-	if (Equippable->GetHeroOwner()->IsLocallyControlled())
+	if (UInputComponent* const InputComponent = Equippable->InputComponent) // May not be controlled any longer, so check InputComponent
 	{
 		// Remove all action bindings placed by this object.
-		UInputComponent* const InputComponent = Equippable->InputComponent;
-		check(InputComponent && "InputComponent should always be valid on locally controlled Equippables.");
-
 		for (int i = InputComponent->GetNumActionBindings() - 1; i >= 0; --i)
 		{
 			FInputActionBinding& InputBinding = InputComponent->GetActionBinding(i);

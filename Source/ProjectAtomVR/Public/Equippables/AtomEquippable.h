@@ -14,22 +14,27 @@ enum class EEquipType : uint8
 	Deferred
 };
 
+UENUM()
+enum class EEquipState : uint8
+{
+	Unequipped,
+	Equipped,
+	Dropped
+};
+
 /**
- * Information describing the current equip status of HeroEquippable.
+ * Information describing the current equip status of a AtomEquippable.
  */
 USTRUCT()
 struct FEquipStatus
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	EEquipType EquipType;
+	UPROPERTY(BlueprintReadOnly)
+	EHand Hand;
 
 	UPROPERTY(BlueprintReadOnly)
-	EHand EquippedHand;
-
-	UPROPERTY(BlueprintReadOnly)
-	uint32 bIsEquipped : 1;
+	EEquipState State;
 
 	void ForceReplication()
 	{
@@ -68,6 +73,8 @@ public:
 	virtual bool CanEquip(const EHand Hand) const;
 
 	virtual void Unequip(const EEquipType EquipType = EEquipType::Normal);
+
+	virtual void Drop();
 
 	/**
 	* Control the behavior of this Equippable on Unequip. If true the Equippable will be returned to the
@@ -134,6 +141,9 @@ private:
 	void ServerUnequip();
 
 	UFUNCTION(Server, WithValidation, Reliable)
+	void ServerDrop();
+
+	UFUNCTION(Server, WithValidation, Reliable)
 	void ServerPushState(UEquippableState* State);
 
 	UFUNCTION(Server, WithValidation, Reliable)
@@ -182,8 +192,11 @@ protected:
 
 	TArray<UEquippableState*> StateStack;
 
-	UPROPERTY(ReplicatedUsing=OnRep_EquipStatus, BlueprintReadOnly, Category = Equippable)
+	UPROPERTY(BlueprintReadOnly, Category = Equippable)
 	FEquipStatus EquipStatus;
+
+	UPROPERTY(ReplicatedUsing=OnRep_EquipStatus)
+	FEquipStatus ReplicatedEquipStatus;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
 	TSubclassOf<class AEquippableUIActor> EquippableUI;
@@ -230,6 +243,8 @@ private:
 
 	uint32 bReplicatesAttachment : 1;
 
+	uint32 bIsSimulatingReplication : 1;
+
 public:
 	AAtomCharacter* GetHeroOwner() const;
 
@@ -248,6 +263,6 @@ protected:
 FORCEINLINE AAtomCharacter* AAtomEquippable::GetHeroOwner() const { return HeroOwner; }
 FORCEINLINE UEquippableState* AAtomEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AAtomEquippable::GetActiveState() const { return ActiveState; }
-FORCEINLINE EHand AAtomEquippable::GetEquippedHand() const { return EquipStatus.EquippedHand; }
-FORCEINLINE bool AAtomEquippable::IsEquipped() const { return EquipStatus.bIsEquipped; }
+FORCEINLINE EHand AAtomEquippable::GetEquippedHand() const { return EquipStatus.Hand; }
+FORCEINLINE bool AAtomEquippable::IsEquipped() const { return EquipStatus.State == EEquipState::Equipped; }
 FORCEINLINE bool AAtomEquippable::IsSecondaryHandAttached() const { return bIsSecondaryHandAttached; }

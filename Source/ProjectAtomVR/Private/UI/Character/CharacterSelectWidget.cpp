@@ -48,7 +48,7 @@ FText UCharacterSelectWidget::GetClassEnumText(ECharacterClass CharacterClass) c
 	switch (CharacterClass)
 	{
 	case ECharacterClass::Assault:
-		return FText::FromName(TEXT("Assualt"));
+		return FText::FromName(TEXT("Assault"));
 	case ECharacterClass::Defense:
 		return FText::FromName(TEXT("Defense"));
 	case ECharacterClass::Support:

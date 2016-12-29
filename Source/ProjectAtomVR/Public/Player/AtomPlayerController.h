@@ -38,6 +38,9 @@ public:
 	*/
 	TSubclassOf<AAtomCharacter> GetRequestedCharacter() const;	
 
+	/** Handle respawn */
+	virtual void UnFreeze() override;
+
 protected:
 	void CreateUISystem();
 

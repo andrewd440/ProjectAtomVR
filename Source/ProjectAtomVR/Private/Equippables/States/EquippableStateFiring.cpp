@@ -17,13 +17,13 @@ void UEquippableStateFiring::OnEnteredState()
 
 void UEquippableStateFiring::OnExitedState()
 {	
-	GetEquippable<AAtomFirearm>()->StopFiringSequence();
-
 	if (FireTimer.IsValid())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(FireTimer);
 	}
 
+	GetEquippable<AAtomFirearm>()->StopFiringSequence();
+	
 	Super::OnExitedState();
 }
 
@@ -87,7 +87,7 @@ void UEquippableStateFiring::OnFireShot()
 	{
 		++ServerShotCounter;
 	}
-	
+
 	UE_LOG(LogFirearm, Log, TEXT("OnFireShot by %s"), Firearm->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
 
 	if (!Firearm->CanFire())
@@ -101,18 +101,22 @@ void UEquippableStateFiring::OnFireShot()
 		LastShotTimestamp = GetWorld()->GetTimeSeconds();
 
 		++ShotsFired;
-		if (BurstCount > 0 && ShotsFired >= BurstCount)
+
+		// Guard against the shot killing us and dropping the firearm, which pops all states.
+		if (Firearm->GetCurrentState() == this)
 		{
-			GetEquippable()->PopState(this);
-		}
-		else if (!Firearm->CanFire())
-		{
-			// This will be the last shot, so stop the sequence. Don't pop state to allow
-			// dry fire.
-			Firearm->StopFiringSequence();
+			if (BurstCount > 0 && ShotsFired >= BurstCount)
+			{
+				GetEquippable()->PopState(this);
+			}
+			else if (!Firearm->CanFire())
+			{
+				// This will be the last shot, so stop the sequence. Don't pop state to allow
+				// dry fire.
+				Firearm->StopFiringSequence();
+			}
 		}
 	}
-
 }
 
 void UEquippableStateFiring::OnFalseFire()

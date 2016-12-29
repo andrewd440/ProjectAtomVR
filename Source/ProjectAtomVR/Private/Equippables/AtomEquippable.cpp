@@ -26,6 +26,7 @@ AAtomEquippable::AAtomEquippable(const FObjectInitializer& ObjectInitializer/* =
 {
 	bReplicates = true;
 	bReplicatesAttachment = false;
+	bIsSimulatingReplication = false;
 
 	LoadoutType = ELoadoutType::Item;
 
@@ -42,9 +43,9 @@ AAtomEquippable::AAtomEquippable(const FObjectInitializer& ObjectInitializer/* =
 	SecondaryHandGripTrigger->SetupAttachment(Mesh);
 
 	// Overlap only Hero hand
-	SecondaryHandGripTrigger->SetCollisionObjectType(CollisionChannelAliases::HandTrigger);
+	SecondaryHandGripTrigger->SetCollisionObjectType(AtomCollisionChannels::HandTrigger);
 	SecondaryHandGripTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	SecondaryHandGripTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::HeroHand, ECollisionResponse::ECR_Overlap);
+	SecondaryHandGripTrigger->SetCollisionResponseToChannel(AtomCollisionChannels::HeroHand, ECollisionResponse::ECR_Overlap);
 
 	SecondaryHandGripTrigger->OnComponentBeginOverlap.AddDynamic(this, &AAtomEquippable::OnBeginOverlapSecondaryHandTrigger);
 	SecondaryHandGripTrigger->OnComponentEndOverlap.AddDynamic(this, &AAtomEquippable::OnEndOverlapSecondaryHandTrigger);
@@ -63,7 +64,7 @@ void AAtomEquippable::BeginPlay()
 
 	// May already be equipped through replication. Call OnRep now since a call 
 	// prior to BeginPlay will be ignored.
-	if (EquipStatus.bIsEquipped)
+	if (EquipStatus.State != EEquipState::Unequipped)
 	{
 		OnRep_EquipStatus();
 	}
@@ -83,10 +84,8 @@ void AAtomEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 {
 	check(StateStack.Num() > 0 && StateStack.Top() == InactiveState && "StateStack should only have the InactiveState when equipping.");
 	
-	EquipStatus.EquippedHand = Hand;
-	EquipStatus.EquipType = EquipType;
-	EquipStatus.bIsEquipped = true;
-	EquipStatus.ForceReplication(); // Make sure the equip update is sent to clients
+	EquipStatus.Hand = Hand;
+	EquipStatus.State = EEquipState::Equipped;
 	
 	if (HeroOwner->IsLocallyControlled())
 	{
@@ -95,9 +94,20 @@ void AAtomEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 		SetupInputComponent(InputComponent);
 	}
 
-	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
+	if (!bIsSimulatingReplication)
 	{
-		ServerEquip(Hand);
+		if (EquipType == EEquipType::Normal)
+		{
+			if (HeroOwner->HasAuthority())
+			{
+				ReplicatedEquipStatus = EquipStatus;
+				ReplicatedEquipStatus.ForceReplication();
+			}
+			else
+			{
+				ServerEquip(Hand);
+			}
+		}
 	}
 
 	StateStack.Top()->OnExitedState();
@@ -112,21 +122,29 @@ bool AAtomEquippable::CanEquip(const EHand Hand) const
 
 void AAtomEquippable::Unequip(const EEquipType EquipType)
 {
-	ensure(EquipStatus.bIsEquipped);
-	EquipStatus.bIsEquipped = false;
-	EquipStatus.EquipType = EquipType;
+	ensure(EquipStatus.State == EEquipState::Equipped);
+	EquipStatus.State = EEquipState::Unequipped;
 
-	// Make sure the equip update is sent to clients
-	EquipStatus.ForceReplication();
-
-	if (EquipType == EEquipType::Normal && !HeroOwner->HasAuthority())
+	if (!bIsSimulatingReplication)
 	{
-		ServerUnequip();
+		if (EquipType == EEquipType::Normal)
+		{
+			if (HeroOwner->HasAuthority())
+			{
+				ReplicatedEquipStatus = EquipStatus;
+				ReplicatedEquipStatus.ForceReplication();
+			}
+			else
+			{
+				ServerUnequip();
+			}
+		}
 	}
 
 	while (StateStack.Num() > 1)
 	{		
 		UEquippableState* PoppedState = StateStack.Pop(false);
+		UE_LOG(LogEquippable, Log, TEXT("Popped State: %s"), *PoppedState->GetName());
 		PoppedState->OnStatePopped();
 	}
 
@@ -142,6 +160,33 @@ void AAtomEquippable::Unequip(const EEquipType EquipType)
 		InputComponent->DestroyComponent();
 		InputComponent = nullptr;
 	}
+}
+
+void AAtomEquippable::Drop()
+{
+	SetCanReturnToLoadout(false);
+	Unequip(EEquipType::Deferred);
+
+	EquipStatus.State = EEquipState::Dropped;
+
+	if (!bIsSimulatingReplication)
+	{
+		if (HeroOwner->HasAuthority())
+		{
+			ReplicatedEquipStatus = EquipStatus;
+			ReplicatedEquipStatus.ForceReplication();
+		}
+		else
+		{
+			ServerDrop();
+		}
+	}
+
+	Mesh->SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+	SetActorEnableCollision(true);
+
+	Mesh->SetSimulatePhysics(true);
+	SetLifeSpan(10.f);
 }
 
 void AAtomEquippable::SetCanReturnToLoadout(bool bCanReturn)
@@ -169,7 +214,7 @@ void AAtomEquippable::PushState(UEquippableState* InPushState)
 	ensure(StateStack.Find(InPushState) == INDEX_NONE);
 	check(InPushState);
 
-	//UE_LOG(LogEquippable, Log, TEXT("Pushed State: %s"), *InPushState->GetName());
+	UE_LOG(LogEquippable, Log, TEXT("Pushed State: %s"), *InPushState->GetName());
 
 	if (!HeroOwner->HasAuthority() && HeroOwner->IsLocallyControlled())
 	{
@@ -207,7 +252,7 @@ void AAtomEquippable::PopState(UEquippableState* InPopState)
 	ensure(StateStack.Num() > 0);
 	check(InPopState);
 
-	//UE_LOG(LogEquippable, Log, TEXT("Popped State: %s"), *InPopState->GetName());
+	UE_LOG(LogEquippable, Log, TEXT("Popped State: %s"), *InPopState->GetName());
 
 	if (!HeroOwner->HasAuthority() && HeroOwner->IsLocallyControlled())
 	{
@@ -233,28 +278,38 @@ bool AAtomEquippable::ServerPopState_Validate(UEquippableState* InPopState)
 	return true;
 }
 
+void AAtomEquippable::ServerDrop_Implementation()
+{
+	Drop();
+}
+
+bool AAtomEquippable::ServerDrop_Validate()
+{
+	return true;
+}
+
 void AAtomEquippable::OnRep_EquipStatus()
 {
-	if (EquipStatus.EquipType == EEquipType::Normal && HasActorBegunPlay())
+	if (HasActorBegunPlay())
 	{
-		if (EquipStatus.bIsEquipped)
+		bIsSimulatingReplication = true;
+
+		if (ReplicatedEquipStatus.State == EEquipState::Equipped)
 		{
 			ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
 
-			PushState(ActiveState);
+			Equip(ReplicatedEquipStatus.Hand);
+		}
+		else if (ReplicatedEquipStatus.State == EEquipState::Unequipped)
+		{
+			Unequip();
 		}
 		else
 		{
-			while (StateStack.Num() > 1)
-			{
-				UEquippableState* PoppedState = StateStack.Pop(false);
-				PoppedState->OnStatePopped();
-			}
-
-			// Notify inactive state of entered event
-			check(StateStack.Num() > 0 && StateStack.Top() == InactiveState);
-			StateStack.Top()->OnEnteredState();
+			Drop();
 		}
+
+		bIsSimulatingReplication = false;
 	}
 }
 
@@ -269,14 +324,14 @@ void AAtomEquippable::OnRep_Owner()
 
 void AAtomEquippable::OnEquipped()
 {		
-	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.EquippedHand);
+	USkeletalMeshComponent* const AttachHand = HeroOwner->GetHandAttachmentComponent(EquipStatus.Hand);
 
 	FString AttachSocket;
 	PrimaryHandAttachSocket.ToString(AttachSocket);
-	AttachSocket += (EquipStatus.EquippedHand == EHand::Left) ? TEXT("_l") : TEXT("_r");
+	AttachSocket += (EquipStatus.Hand == EHand::Left) ? TEXT("_l") : TEXT("_r");
 	AttachToComponent(AttachHand, FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName{ *AttachSocket });
 
-	HeroOwner->PlayHandAnimation(EquipStatus.EquippedHand, AnimHandEquip);
+	HeroOwner->PlayHandAnimation(EquipStatus.Hand, AnimHandEquip);
 
 	if (EquipSound)
 	{
@@ -288,7 +343,7 @@ void AAtomEquippable::OnEquipped()
 		SecondaryHandGripTrigger->bGenerateOverlapEvents = true;
 	}	
 
-	HeroOwner->OnEquipped(this, EquipStatus.EquippedHand);
+	HeroOwner->OnEquipped(this, EquipStatus.Hand);
 
 	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
@@ -313,8 +368,8 @@ void AAtomEquippable::OnUnequipped()
 
 	SecondaryHandGripTrigger->bGenerateOverlapEvents = false;
 
-	HeroOwner->StopHandAnimation(EquipStatus.EquippedHand, AnimHandEquip);
-	HeroOwner->OnUnequipped(this, EquipStatus.EquippedHand);
+	HeroOwner->StopHandAnimation(EquipStatus.Hand, AnimHandEquip);
+	HeroOwner->OnUnequipped(this, EquipStatus.Hand);
 
 	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
@@ -341,19 +396,19 @@ void AAtomEquippable::SetupInputComponent(UInputComponent* InInputComponent)
 
 USceneComponent* AAtomEquippable::GetOffsetTarget() const
 {
-	return HeroOwner->GetHandMeshTarget(EquipStatus.EquippedHand);
+	return HeroOwner->GetHandMeshTarget(EquipStatus.Hand);
 }
 
 void AAtomEquippable::GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const
 {
-	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.EquippedHand, LocationOut, RotationOut);
+	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.Hand, LocationOut, RotationOut);
 }
 
 void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	const EHand SecondaryHand = !EquipStatus.EquippedHand;
+	const EHand SecondaryHand = !EquipStatus.Hand;
 
-	if (EquipStatus.bIsEquipped &&
+	if (EquipStatus.State == EEquipState::Equipped &&
 		HeroOwner->GetHandTrigger(SecondaryHand) == OtherComp && // Is it the other hand and is it empty	
 		HeroOwner->GetEquippable(SecondaryHand) == nullptr)
 	{
@@ -362,24 +417,25 @@ void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 
 		bIsSecondaryHandAttached = true;
 
-		HeroOwner->PlayHandAnimation(!EquipStatus.EquippedHand, AnimSecondaryHandEquip);
+		HeroOwner->PlayHandAnimation(!EquipStatus.Hand, AnimSecondaryHandEquip);
 		HeroOwner->OnEquipped(this, SecondaryHand);
 	}
 }
 
 void AAtomEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	const EHand SecondaryHand = !EquipStatus.EquippedHand;
+	const EHand SecondaryHand = !EquipStatus.Hand;
 
 	ensure(!bIsSecondaryHandAttached || HeroOwner->GetHandTrigger(SecondaryHand) != OtherComp || HeroOwner->GetEquippable(SecondaryHand) == this);
 
-	if (bIsSecondaryHandAttached && EquipStatus.bIsEquipped &&
+	if (bIsSecondaryHandAttached && 
+		EquipStatus.State == EEquipState::Equipped &&
 		HeroOwner->GetHandTrigger(SecondaryHand) == OtherComp && // Is it the other hand and is it holding this	
 		HeroOwner->GetEquippable(SecondaryHand) == this)
 	{
 		bIsSecondaryHandAttached = false;
-		HeroOwner->StopHandAnimation(!EquipStatus.EquippedHand, AnimSecondaryHandEquip);
-		HeroOwner->OnUnequipped(this, !EquipStatus.EquippedHand);
+		HeroOwner->StopHandAnimation(!EquipStatus.Hand, AnimSecondaryHandEquip);
+		HeroOwner->OnUnequipped(this, !EquipStatus.Hand);
 	}
 }
 
@@ -434,7 +490,7 @@ void AAtomEquippable::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AAtomEquippable, EquipStatus, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAtomEquippable, ReplicatedEquipStatus, COND_SkipOwner);
 }
 
 void AAtomEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)

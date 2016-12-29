@@ -25,9 +25,9 @@ UMagazineAmmoLoader::UMagazineAmmoLoader(const FObjectInitializer& ObjectInitial
 	ReloadTrigger->SetIsReplicated(false);
 	ReloadTrigger->SetSphereRadius(2.f);
 	ReloadTrigger->bGenerateOverlapEvents = false;
-	ReloadTrigger->SetCollisionObjectType(CollisionChannelAliases::FirearmReloadTrigger);
+	ReloadTrigger->SetCollisionObjectType(AtomCollisionChannels::FirearmReloadTrigger);
 	ReloadTrigger->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	ReloadTrigger->SetCollisionResponseToChannel(CollisionChannelAliases::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
+	ReloadTrigger->SetCollisionResponseToChannel(AtomCollisionChannels::ClipLoadTrigger, ECollisionResponse::ECR_Overlap);
 
 	ReloadTrigger->OnComponentBeginOverlap.AddDynamic(this, &UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger);		
 }
