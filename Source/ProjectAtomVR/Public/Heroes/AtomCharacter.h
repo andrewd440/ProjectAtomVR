@@ -117,8 +117,6 @@ protected:
 	void OnEquipPressed();
 	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
-	void UpdateMeshVisibility();
-
 	virtual void Die(AController* Killer);
 
 	virtual void OnDeath();

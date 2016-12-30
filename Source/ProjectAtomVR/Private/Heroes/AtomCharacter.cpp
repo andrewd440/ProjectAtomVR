@@ -35,10 +35,10 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	bReplicateMovement = true;
 	bIsDying = false;
 
-	GetCapsuleComponent()->SetCollisionResponseToChannel(AtomCollisionChannels::InstantShot, ECollisionResponse::ECR_Ignore);
-
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bReceivesDecals = false;
+	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Setup camera
 	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));
@@ -76,6 +76,7 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	LeftHandMesh->SetIsReplicated(false);
 	LeftHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	LeftHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	LeftHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
 	// Setup right hand
 	RightHandController = CreateDefaultSubobject<UNetMotionControllerComponent>(TEXT("RightHandController"));
@@ -99,6 +100,7 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	RightHandMesh->SetIsReplicated(false);
 	RightHandMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	RightHandMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	RightHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 
 	// Setup loadout
 	Loadout = CreateDefaultSubobject<UAtomLoadout>(TEXT("Loadout"));
@@ -334,8 +336,6 @@ void AAtomCharacter::Die(AController* Killer)
 void AAtomCharacter::OnDeath()
 {
 	Loadout->OnCharacterControllerChanged();
-
-	UpdateMeshVisibility();
 
 	// Stop any existing montages
 	StopAnimMontage();
@@ -656,29 +656,6 @@ void AAtomCharacter::FinishTeleport(FVector DestLocation, FRotator DestRotation)
 	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
 	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
 	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
-}
-
-void AAtomCharacter::UpdateMeshVisibility()
-{
-	const bool bIsLocallyControlled = IsLocallyControlled();
-
-	GetMesh()->SetOwnerNoSee(bIsLocallyControlled);
-	GetMesh()->MeshComponentUpdateFlag = bIsLocallyControlled ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-
-	BodyMesh->SetOwnerNoSee(!bIsLocallyControlled);
-	LeftHandMesh->SetOwnerNoSee(!bIsLocallyControlled);
-	RightHandMesh->SetOwnerNoSee(!bIsLocallyControlled);
-
-	if (bIsLocallyControlled)
-	{
-		LeftHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-		RightHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	}
-	else
-	{
-		LeftHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-		RightHandMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-	}
 }
 
 FVector AAtomCharacter::GetPawnViewLocation() const

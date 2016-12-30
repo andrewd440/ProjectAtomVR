@@ -13,7 +13,26 @@ AAtomGameMode::AAtomGameMode()
 
 void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* Victim)
 {
+	const bool bIsSuicide = (Killer == Victim);
 
+	check(GetGameState<AAtomGameState>());
+
+	AAtomGameState* AtomGameState = static_cast<AAtomGameState*>(GameState);	
+
+	// Score kill
+	if (Killer != Victim)
+	{
+		if (AAtomPlayerState* KillerState = Cast<AAtomPlayerState>(Killer->PlayerState))
+		{
+			AtomGameState->ScoreKill(KillerState, KillScore);
+		}
+	}
+
+	// Score death/suicide
+	if (AAtomPlayerState* VictimState = Cast<AAtomPlayerState>(Victim->PlayerState))
+	{
+		AtomGameState->ScoreDeath(VictimState, DeathScore);
+	}
 }
 
 bool AAtomGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerController*) const
@@ -27,7 +46,7 @@ bool AAtomGameMode::ReadyToEndMatch_Implementation()
 	{
 		return true;
 	}
-	else if (TimeLimit > 0)
+	else if (TimeLimit > 0 || ScoreLimit > 0)
 	{
 		if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
 		{

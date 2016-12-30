@@ -15,9 +15,6 @@ class PROJECTATOMVR_API AAtomPlayerState : public APlayerState
 	
 public:
 
-	void AssignTeam(int32 Id);
-	int32 GetAssignedTeam() const;
-
 	/** APlayerState Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	/** APlayerState Interface End */	
@@ -26,7 +23,13 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_TeamId();
 
-protected:
+public:
+	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)
+	int32 Kills = 0;
+
+	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)
+	int32 Deaths = 0;
+
 	UPROPERTY(Transient, ReplicatedUsing=OnRep_TeamId, BlueprintReadWrite, Category = AtomPlayerState)
 	int32 TeamId = -1;
 };

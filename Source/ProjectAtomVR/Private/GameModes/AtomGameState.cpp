@@ -11,11 +11,22 @@ AAtomGameState::AAtomGameState()
 
 }
 
-void AAtomGameState::AddTeamScore(int TeamId, int Score)
+void AAtomGameState::ScoreKill(AAtomPlayerState* Player, int32 Score)
 {
-	check(TeamId < 2 && TeamId >= 0);
+	++Player->Kills;
+	Player->Score += Score;
 
-	Teams[TeamId].Score += Score;
+	check(Player->TeamId >= 0);
+	Teams[Player->TeamId].Score += Score;
+}
+
+void AAtomGameState::ScoreDeath(AAtomPlayerState* Player, int32 Score)
+{
+	++Player->Deaths;
+	Player->Score += Score;
+
+	check(Player->TeamId >= 0);
+	Teams[Player->TeamId].Score += Score;
 }
 
 void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
@@ -25,12 +36,12 @@ void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
 	// Assign team and add to list
 	if (AAtomPlayerState* const AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
 	{
-		if (AtomPlayerState->GetAssignedTeam() < 0)
+		if (AtomPlayerState->TeamId < 0)
 		{
-			AtomPlayerState->AssignTeam(Teams[0].Players.Num() < Teams[1].Players.Num() ? 0 : 1);
+			AtomPlayerState->TeamId = (Teams[0].Players.Num() < Teams[1].Players.Num()) ? 0 : 1;
 		}
 
-		Teams[AtomPlayerState->GetAssignedTeam()].Players.AddUnique(AtomPlayerState);
+		Teams[AtomPlayerState->TeamId].Players.AddUnique(AtomPlayerState);
 	}
 }
 
@@ -41,12 +52,17 @@ void AAtomGameState::RemovePlayerState(APlayerState* PlayerState)
 	// Remove from assigned team
 	if (AAtomPlayerState* const AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
 	{
-		const int32 AssignedTeam = AtomPlayerState->GetAssignedTeam();
-
-		if (AssignedTeam >= 0)
+		if (AtomPlayerState->TeamId >= 0)
 		{
-			Teams[AtomPlayerState->GetAssignedTeam()].Players.Remove(AtomPlayerState);
+			Teams[AtomPlayerState->TeamId].Players.Remove(AtomPlayerState);
 			// Keep assigned team in player state while it persists in InactivePlayerArray in GameMode			
 		}
 	}
+}
+
+void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AAtomGameState, Teams);
 }

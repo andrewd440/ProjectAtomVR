@@ -4,6 +4,7 @@
 #include "ShotTypeInstant.h"
 #include "AtomFirearm.h"
 #include "Effects/AtomImpactEffect.h"
+#include "IConsoleManager.h"
 
 namespace
 {
@@ -123,6 +124,12 @@ void UShotTypeInstant::PlayImpactEffects(const FHitResult& Hit) const
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarDebugInstantShot(
+	TEXT("s.DebugInstantShot"),
+	0,
+	TEXT("Debug instant shot traces"),
+	ECVF_Default);
+
 FHitResult UShotTypeInstant::WeaponTrace(const FVector& Start, const FVector& End) const
 {
 	FHitResult Impact;
@@ -142,6 +149,16 @@ FHitResult UShotTypeInstant::WeaponTrace(const FVector& Start, const FVector& En
 		{
 			Impact.ImpactPoint = Impact.TraceEnd;
 		}
+	}
+
+	if (CVarDebugInstantShot.GetValueOnGameThread() != 0)
+	{	
+		DrawDebugLine(GetWorld(), Impact.TraceStart, Impact.ImpactPoint, FColor::Red, false, 5.f, 0, .25f);
+
+		if (Impact.bBlockingHit)
+		{
+			DrawDebugSphere(GetWorld(), Impact.ImpactPoint, 5.f, 6, FColor::Yellow, false, 5.f, 0, .25f);
+		}		
 	}
 
 	return Impact;

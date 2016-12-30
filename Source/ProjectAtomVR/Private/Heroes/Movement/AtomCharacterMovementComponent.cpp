@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogHeroMovement, Log, All);
 UAtomCharacterMovementComponent::UAtomCharacterMovementComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
+	MaxStepHeight = 55.f;
 	MaxAcceleration = 256.f;
 	MaxWalkSpeed = 240.f;
 

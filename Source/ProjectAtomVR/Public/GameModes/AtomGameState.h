@@ -5,10 +5,17 @@
 #include "GameFramework/GameState.h"
 #include "AtomGameState.generated.h"
 
+class AAtomPlayerState;
+
+USTRUCT()
 struct FAtomTeam
 {
-	TArray<class AAtomPlayerState*> Players;
-	int Score;
+	GENERATED_USTRUCT_BODY()
+
+	TArray<AAtomPlayerState*> Players;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 Score;
 };
 
 /**
@@ -22,13 +29,17 @@ class PROJECTATOMVR_API AAtomGameState : public AGameState
 public:
 	AAtomGameState();
 	
-	void AddTeamScore(int TeamId, int Score);
+	void ScoreKill(AAtomPlayerState* Player, int32 Score);
+
+	void ScoreDeath(AAtomPlayerState* Player, int32 Score);
 
 	/** AGameStateBase Interface Begin */
 	virtual void AddPlayerState(APlayerState* PlayerState) override;
 	virtual void RemovePlayerState(APlayerState* PlayerState) override;
-	/** AGameStateBase Interface End */	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** AGameStateBase Interface End */
 
-public:
+protected:
+	UPROPERTY(Replicated)
 	FAtomTeam Teams[2];
 };

@@ -16,6 +16,13 @@ class PROJECTATOMVR_API AAtomGameMode : public AAtomBaseGameMode
 public:
 	AAtomGameMode();
 	
+	/**
+	* Scores a kill within the game.
+	* 
+	* @param Killer	The killer controller. If null, will only be treated as a death to the victim. If suicided, 
+	*				should be the same as victim.
+	* @param Victim The victim controller.
+	*/
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	void ScoreKill(AController* Killer, AController* Victim);
 
@@ -47,4 +54,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	int32 MaxPlayers;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
+	int32 KillScore = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
+	int32 DeathScore = 0;
 };
