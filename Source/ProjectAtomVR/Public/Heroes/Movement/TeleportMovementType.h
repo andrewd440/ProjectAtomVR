@@ -30,6 +30,9 @@ protected:
 
 	virtual void OnTeleportReleased();
 
+	void OnGripPressed();
+	void OnGripReleased();
+
 	/**
 	* Traces out the current teleportation arc.
 	* 
@@ -71,19 +74,21 @@ protected:
 	UPROPERTY(EditAnywhere, Category = HeroTeleport)
 	UStaticMesh* ArcMesh = nullptr;
 
-	/** If the teleport destination is valid */
-	uint32 bIsTargetValid : 1;
-
 	/** Spline meshes used to render the teleport arc each frame. */
 	TArray<class USplineMeshComponent*> SplineMeshes;
 
-private:
-	uint32 bIsTeleportActive : 1;
-
+private:	
 	// Used to show arc trajectory of teleport
 	UPROPERTY()
 	class USplineComponent* ArcSpline = nullptr;
 
 	// Actor used represent the end position of a teleport
 	AActor* TeleportActor = nullptr;
+
+	/** If the teleport destination is valid */
+	uint32 bIsTargetValid : 1;
+
+	uint32 bIsTeleportActive : 1;
+
+	uint32 bIsGripPressed: 1;
 };

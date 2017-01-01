@@ -15,6 +15,7 @@ UTeleportMovementType::UTeleportMovementType(const FObjectInitializer& ObjectIni
 	PrimaryComponentTick.bCanEverTick = true;
 	bIsTeleportActive = false;
 	bIsTargetValid = false;
+	bIsGripPressed = false;
 
 	ArcSpline = CreateDefaultSubobject<USplineComponent>(TEXT("ArcSpline"));
 }
@@ -23,7 +24,21 @@ void UTeleportMovementType::SetupPlayerInputComponent(class UInputComponent* Inp
 {
 	Super::SetupPlayerInputComponent(InputComponent);
 
-	const FName TeleportInput = (GetCharacter()->IsRightHanded()) ? TEXT("TeleportLeft") : TEXT("TeleportRight");
+	FName TeleportInput, GripInput;
+	if (GetCharacter()->IsRightHanded())
+	{
+		TeleportInput = TEXT("TeleportLeft");
+		GripInput = TEXT("GripLeft");
+	}
+	else
+	{
+		TeleportInput = TEXT("TeleportRight");
+		GripInput = TEXT("GripRight");
+	}
+
+	InputComponent->BindAction(GripInput, IE_Pressed, this, &UTeleportMovementType::OnGripPressed);
+	InputComponent->BindAction(GripInput, IE_Released, this, &UTeleportMovementType::OnGripReleased);
+
 	InputComponent->BindAction(TeleportInput, IE_Pressed, this, &UTeleportMovementType::OnTeleportPressed);
 	InputComponent->BindAction(TeleportInput, IE_Released, this, &UTeleportMovementType::OnTeleportReleased);
 }
@@ -204,23 +219,26 @@ void UTeleportMovementType::DestroyComponent(bool bPromoteChildren /*= false*/)
 void UTeleportMovementType::OnTeleportPressed()
 {
 	// Create and/or show the teleport actor
-	if (TeleportActor == nullptr)
+	if (!bIsGripPressed)
 	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Name = TEXT("TeleportActor");
-		SpawnParams.Owner = GetOwner();
-		TeleportActor = GetWorld()->SpawnActor<AActor>(TeleportActorTemplate ? TeleportActorTemplate : AActor::StaticClass(), SpawnParams);
+		if (TeleportActor == nullptr)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Name = TEXT("TeleportActor");
+			SpawnParams.Owner = GetOwner();
+			TeleportActor = GetWorld()->SpawnActor<AActor>(TeleportActorTemplate ? TeleportActorTemplate : AActor::StaticClass(), SpawnParams);
+		}
+
+		// Attach the teleport arc to non-dominate hand
+		ArcSpline->AttachToComponent(GetCharacter()->GetHandController<EHandType::Nondominate>(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+
+		bIsTeleportActive = true;
 	}
-
-	// Attach the teleport arc to non-dominate hand
-	ArcSpline->AttachToComponent(GetCharacter()->GetHandController<EHandType::Nondominate>(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-
-	bIsTeleportActive = true;
 }
 
 void UTeleportMovementType::OnTeleportReleased()
 {
-	if (bIsTargetValid)
+	if (bIsTargetValid && !bIsGripPressed)
 	{
 		GetCharacter()->MovementTeleport(TeleportActor->GetActorLocation(), TeleportActor->GetActorRotation());
 	}
@@ -244,4 +262,14 @@ void UTeleportMovementType::OnTeleportReleased()
 	}
 
 	SplineMeshes.Empty();
+}
+
+void UTeleportMovementType::OnGripPressed()
+{
+	bIsGripPressed = true;
+}
+
+void UTeleportMovementType::OnGripReleased()
+{
+	bIsGripPressed = false;
 }

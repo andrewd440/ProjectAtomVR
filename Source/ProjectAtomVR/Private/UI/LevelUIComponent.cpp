@@ -30,6 +30,7 @@ void ULevelUIComponent::SpawnUIActor(AAtomUISystem* OwningSystem)
 	}
 }
 
+#if WITH_EDITOR
 void ULevelUIComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
@@ -41,6 +42,7 @@ void ULevelUIComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+#endif
 
 void ULevelUIComponent::OnComponentCreated()
 {

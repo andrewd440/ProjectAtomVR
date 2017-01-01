@@ -10,7 +10,7 @@ UCartridgeAmmoLoader::UCartridgeAmmoLoader(const FObjectInitializer& ObjectIniti
 	LoadTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("CartridgeReloadTrigger"));		
 	LoadTrigger->SetIsReplicated(false);
 	LoadTrigger->SetSphereRadius(2.f);
-	LoadTrigger->SetHiddenInGame(false);
+	//LoadTrigger->SetHiddenInGame(false);
 	LoadTrigger->bGenerateOverlapEvents = false;
 	LoadTrigger->SetCollisionProfileName(AtomCollisionProfiles::HandTrigger);
 

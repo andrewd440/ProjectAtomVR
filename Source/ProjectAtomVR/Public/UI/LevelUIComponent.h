@@ -27,7 +27,9 @@ public:
 	void SpawnUIActor(class AAtomUISystem* OwningSystem);
 
 	/** USceneComponent Interface Begin */
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	virtual void OnComponentCreated() override;
 	virtual void OnRegister() override;
 	/** USceneComponent Interface End */
