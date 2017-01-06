@@ -348,6 +348,7 @@ void UAtomLoadout::OnReturnToLoadoutChanged(AAtomEquippable* Item, int32 Loadout
 
 				Slot.Item = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
 				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
+				Slot.Item->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
 
 				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UAtomLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
 
