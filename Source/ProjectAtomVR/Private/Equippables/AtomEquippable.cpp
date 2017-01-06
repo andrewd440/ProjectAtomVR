@@ -368,6 +368,15 @@ void AAtomEquippable::OnUnequipped()
 		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	}
 
+	if (bIsSecondaryHandAttached)
+	{
+		check(HeroOwner->GetEquippable(!EquipStatus.Hand) == this && "Other hand should have this equipped if second hand is attached.");
+
+		bIsSecondaryHandAttached = false;
+		HeroOwner->StopHandAnimation(!EquipStatus.Hand, AnimSecondaryHandEquip);
+		HeroOwner->OnUnequipped(this, !EquipStatus.Hand);
+	}
+
 	if (EquipSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(EquipSound, Mesh);
