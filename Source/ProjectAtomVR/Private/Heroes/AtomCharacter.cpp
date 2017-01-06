@@ -48,6 +48,7 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	Camera->OnPostNetTransformUpdate.BindUObject(this, &AAtomCharacter::UpdateMeshLocation);
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
+	BodyMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	BodyMesh->SetOnlyOwnerSee(true);
 	BodyMesh->SetCastShadow(false);
 	BodyMesh->bAbsoluteLocation = true;
