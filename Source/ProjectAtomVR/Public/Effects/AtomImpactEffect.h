@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Object.h"
+#include "AtomTypes.h"
 #include "AtomImpactEffect.generated.h"
 
 /**
@@ -14,11 +15,14 @@ struct FMaterialEffect
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditDefaultsOnly)
+	UPROPERTY(EditDefaultsOnly)
 	class USoundBase* Sound = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* Particles = nullptr;
+
+	UPROPERTY(EditDefaultsOnly)
+	FDecalInfo Decal;
 };
 
 /**
@@ -52,10 +56,6 @@ public:
 	//-----------------------------------------------------------------
 
 protected:
-	/** Decal information used to spawn impact decals */
-	UPROPERTY(EditDefaultsOnly, Category = Impact)
-	FDecalInfo DecalInfo;
-
 	/** Effects play for specific physical materials */
 	UPROPERTY(EditDefaultsOnly, Category = Impact)
 	FMaterialEffect SurfaceEffects[SurfaceType_Max];

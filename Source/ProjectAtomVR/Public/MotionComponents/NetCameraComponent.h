@@ -43,7 +43,7 @@ public:
 protected:
 	/** Times per second transform updates are sent to the server */
 	UPROPERTY(EditDefaultsOnly, Category = NetCamera)
-	float NetUpdateFrequency = 30.f;
+	float NetUpdateFrequency = 50.f;
 
 	float LastNetUpdate = 0.f;
 };

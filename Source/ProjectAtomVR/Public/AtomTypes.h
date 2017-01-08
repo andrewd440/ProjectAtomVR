@@ -54,7 +54,7 @@ struct PROJECTATOMVR_API FDecalInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(EditDefaultsOnly)
-	class UMaterial* Material = nullptr;
+	class UMaterialInterface* Material = nullptr;
 
 	UPROPERTY(EditDefaultsOnly)
 	FVector DecalSize = FVector{ 20.0f, 20.0f, 20.0f };

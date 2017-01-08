@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "AtomEquippable.h"
+#include "AtomEquippableStatic.h"
 #include "FirearmMagazine.generated.h"
 
 UCLASS()
-class PROJECTATOMVR_API AFirearmMagazine : public AAtomEquippable
+class PROJECTATOMVR_API AFirearmMagazine : public AAtomEquippableStatic
 {
 	GENERATED_BODY()
 	

@@ -12,7 +12,7 @@ AFirearmMagazine::AFirearmMagazine(const FObjectInitializer& ObjectInitializer /
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	UMeshComponent* const MyMesh = GetMesh();
+	UStaticMeshComponent* MyMesh = GetMesh<UStaticMeshComponent>();
 	MyMesh->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	
 	MyMesh->SetCanEverAffectNavigation(false);

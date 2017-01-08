@@ -9,5 +9,5 @@
 AAtomEquippableStatic::AAtomEquippableStatic(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AAtomEquippable::MeshComponentName))
 {
-
+	GetMesh()->SetCastShadow(false);
 }

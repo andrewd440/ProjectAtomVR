@@ -14,10 +14,12 @@ AAtomCharacterSelect::AAtomCharacterSelect()
 	bReplicates = false;
 
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	Mesh->bCastDynamicShadow = false;
 	RootComponent = Mesh;
 
 	SelectionWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("SelectionWidgetComponent"));
 	SelectionWidgetComponent->SetupAttachment(Mesh);
+	SelectionWidgetComponent->bCastDynamicShadow = false;
 }
 
 TSubclassOf<AAtomCharacter> AAtomCharacterSelect::GetCharacterClass() const

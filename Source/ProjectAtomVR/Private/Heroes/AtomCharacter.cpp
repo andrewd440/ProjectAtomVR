@@ -39,6 +39,7 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	GetMesh()->bReceivesDecals = false;
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCastShadow(false);
 
 	// Setup camera
 	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));

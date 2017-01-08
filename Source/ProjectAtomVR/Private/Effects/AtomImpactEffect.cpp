@@ -11,7 +11,8 @@ void UAtomImpactEffect::SpawnEffect(UWorld* World, const FHitResult& Hit) const
 {
 	if (!World)
 	{
-		UE_LOG(LogImpactEffect, Warning, TEXT("AtomImpactEffect::SpawnEffect World parameter is invalid."));
+		UE_LOG(LogImpactEffect, Warning, 
+			TEXT("AtomImpactEffect::SpawnEffect World parameter is invalid."));
 	}
 	else
 	{
@@ -31,13 +32,13 @@ void UAtomImpactEffect::SpawnEffect(UWorld* World, const FHitResult& Hit) const
 			UGameplayStatics::SpawnSoundAtLocation(World, Effect.Sound, Hit.ImpactPoint, Rotation);
 		}
 
-		if (DecalInfo.Material)
+		if (Effect.Decal.Material)
 		{
 			const FRotator DecalRotation = Rotation;
 
 			// #bstodo Apply random rotation to decal
-			UGameplayStatics::SpawnDecalAttached(DecalInfo.Material, DecalInfo.DecalSize, Hit.Component.Get(), Hit.BoneName,
-				Hit.ImpactPoint, DecalRotation, EAttachLocation::KeepWorldPosition, DecalInfo.LifeSpan);
+			UGameplayStatics::SpawnDecalAttached(Effect.Decal.Material, Effect.Decal.DecalSize, Hit.Component.Get(), Hit.BoneName,
+				Hit.ImpactPoint, DecalRotation, EAttachLocation::KeepWorldPosition, Effect.Decal.LifeSpan);
 		}
 	}
 }
@@ -54,7 +55,8 @@ void UAtomImpactEffect::BeginDestroy()
 				*FString::Printf(TEXT("AtomImpactEffect should not be spawned. Use SpawnEffect on default class. %s"), *GetName()));
 		}
 
-		UE_LOG(LogImpactEffect, Warning, TEXT("AtomImpactEffect should not be instanced. Use DefaultObject instead."));
+		UE_LOG(LogImpactEffect, Warning, 
+			TEXT("AtomImpactEffect should not be instanced. Use DefaultObject instead."));
 	}
 }
 

@@ -55,6 +55,7 @@ AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	bIsHoldingChamberHandle = false;
 
 	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	GetMesh()->SetCastShadow(false);
 
 	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
 
@@ -62,6 +63,7 @@ AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 	CartridgeMeshComponent->SetupAttachment(GetMesh(), CartridgeAttachSocket);
 	CartridgeMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	CartridgeMeshComponent->SetIsReplicated(false);
+	CartridgeMeshComponent->SetCastShadow(false);
 }
 
 
@@ -251,8 +253,11 @@ bool AAtomFirearm::IsMuzzleInGeometry() const
 	const FVector WorldLocation = GetTransform().TransformPosition(BlockFireVolume.RelativePosition);
 	const FQuat WorldRotation = GetTransform().GetRotation() * BlockFireVolume.RelativeRotation;
 
-	//DrawDebugCapsule(GetWorld(), WorldLocation, BlockFireVolume.CapsuleHalfHeight, BlockFireVolume.CapsuleRadius, WorldRotation, FColor::Blue, false, 1.f, 0, .2f);
-	return GetWorld()->OverlapAnyTestByObjectType(WorldLocation, WorldRotation, ObjectParams, FCollisionShape::MakeCapsule(BlockFireVolume.CapsuleRadius, BlockFireVolume.CapsuleHalfHeight), QueryParams);
+	//DrawDebugCapsule(GetWorld(), WorldLocation, BlockFireVolume.CapsuleHalfHeight, BlockFireVolume.CapsuleRadius, 
+	// WorldRotation, FColor::Blue, false, 1.f, 0, .2f);
+
+	const FCollisionShape MuzzleCollision = FCollisionShape::MakeCapsule(BlockFireVolume.CapsuleRadius, BlockFireVolume.CapsuleHalfHeight);
+	return GetWorld()->OverlapAnyTestByObjectType(WorldLocation, WorldRotation, ObjectParams, MuzzleCollision, QueryParams);
 }
 
 void AAtomFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
@@ -430,8 +435,9 @@ bool AAtomFirearm::CanGripChamberingHandle() const
 {
 	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.Hand) == nullptr)
 	{		
-		FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand)->GetComponentLocation();
-		if (FVector::DistSquared(GripLocation, GetMesh()->GetSocketLocation(ChamberingHandleSocket)) <= ChamberingHandleRadius * ChamberingHandleRadius)
+		const FVector HandleLocation = GetMesh()->GetSocketLocation(ChamberingHandleSocket);
+		const FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand)->GetComponentLocation();
+		if (FVector::DistSquared(GripLocation, HandleLocation) <= ChamberingHandleRadius * ChamberingHandleRadius)
 		{
 			return true;
 		}
@@ -531,8 +537,8 @@ void AAtomFirearm::GenerateShotRecoil(uint8 Seed)
 		RecoilVelocity.Angular *= Stats.RecoilDampening;
 	}
 
-
-	RecoilVelocity.Directional = FVector{ Stats.RecoilDirectionalPush.X, 0.f, Stats.RecoilDirectionalPush.Y } * FMath::FRandRange(0.5f, 1.f);
+	RecoilVelocity.Directional = FVector{ Stats.RecoilDirectionalPush.X, 0.f, Stats.RecoilDirectionalPush.Y };
+	RecoilVelocity.Directional *= FMath::FRandRange(0.5f, 1.f);
 
 	bIsRecoilActive = true;
 }
@@ -570,10 +576,12 @@ void AAtomFirearm::ReloadChamber(bool bIsFired)
 		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);
 	}	
 
-	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
+	UE_LOG(LogFirearm, Log, TEXT("ReloadChamber by %s with IsChamberEmpty = %d and ammo count = %d"), 
+		HasAuthority() ? TEXT("Authority") : TEXT("Client"), bIsChamberEmpty, AmmoLoader->GetAmmoCount());
 }
 
-void AAtomFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
+void AAtomFirearm::OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, 
+	FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat)
 {
 	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), CartridgeCollideSound, Location);
 }
@@ -710,7 +718,9 @@ void AAtomFirearm::PostInitializeComponents()
 
 	if (CartridgeEjectTemplate && GetNetMode() != ENetMode::NM_DedicatedServer)
 	{
-		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeAttachSocket, FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+		CartridgeEjectComponent = UGameplayStatics::SpawnEmitterAttached(CartridgeEjectTemplate, GetMesh(), CartridgeAttachSocket, 
+			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+
 		CartridgeEjectComponent->bAutoActivate = false;
 		CartridgeEjectComponent->bAllowRecycling = true;
 
