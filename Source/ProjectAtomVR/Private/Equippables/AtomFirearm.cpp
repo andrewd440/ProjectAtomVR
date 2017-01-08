@@ -25,6 +25,9 @@ namespace
 	static const FName ChamberingHandleSocket{ TEXT("ChamberingHandle") };
 	static const FName MuzzleSocket{ TEXT("Muzzle") };
 	static const FName SlideLockSection{ TEXT("SlideLock") };
+
+	constexpr float ActiveRecoilRotationTolerance = 0.001f;
+	constexpr float ActiveReciolOffsetTolerance = 0.1f;
 }
 
 AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -94,7 +97,8 @@ void AAtomFirearm::UpdateChamberingHandle()
 			// Get the current movement progress based on the project of the hand delta on the chamber movement vector
 			const FVector& RequiredChamberMovement = ChamberHandleMovement[ChamberingIndex];
 			const FVector HandDelta = HandLocation - ChamberingHandStartLocation;
-			float NewProgress = FVector::DotProduct(RequiredChamberMovement, HandDelta.ProjectOnTo(RequiredChamberMovement)) / FMath::Square(RequiredChamberMovement.Size());
+			float NewProgress = FVector::DotProduct(RequiredChamberMovement, 
+				HandDelta.ProjectOnTo(RequiredChamberMovement)) / FMath::Square(RequiredChamberMovement.Size());
 
 			if (NewProgress >= 1.f)
 			{
@@ -192,7 +196,8 @@ void AAtomFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	FVector ToOriginalLocation = OffsetTargetRelativeToMeshRotation.RotateVector(OriginalRelativeLocation - OffsetTargetRelativeTransform.GetTranslation());
 	const float DistanceToOriginalLocation = ToOriginalLocation.Size();
 
-	if (ToOriginalAngle < 0.01f && DistanceToOriginalLocation < 0.1f)
+	if (ToOriginalAngle < ActiveRecoilRotationTolerance && 
+		DistanceToOriginalLocation < ActiveReciolOffsetTolerance)
 	{
 		// If close enough to original, set it back
 		OffsetTarget->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
@@ -208,7 +213,8 @@ void AAtomFirearm::UpdateRecoilOffset(float DeltaSeconds)
 
 		// Apply directional velocity to move to original location
 		RecoilVelocity.Directional *= Stats.RecoilDampening;
-		RecoilVelocity.Directional += ToOriginalLocation.GetSafeNormal() * FMath::Min(DistanceToOriginalLocation, Stats.Stability * DeltaSeconds);
+		RecoilVelocity.Directional += ToOriginalLocation.GetSafeNormal() * 
+			FMath::Min(DistanceToOriginalLocation, Stats.Stability * DeltaSeconds);
 	}
 }
 
