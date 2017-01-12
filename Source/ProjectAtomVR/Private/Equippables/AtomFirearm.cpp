@@ -27,8 +27,8 @@ namespace
 	static const FName SlideLockSection{ TEXT("SlideLock") };
 
 	// Tolerances for snapping back to original location once the recoil has returned.
-	constexpr float ActiveRecoilRotationTolerance = 0.001f;
-	constexpr float ActiveReciolOffsetTolerance = 0.1f;
+	constexpr float ActiveRecoilRotationTolerance = 0.002f;
+	constexpr float ActiveRecoilOffsetTolerance = 0.1f;
 }
 
 AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -198,7 +198,7 @@ void AAtomFirearm::UpdateRecoilOffset(float DeltaSeconds)
 	const float DistanceToOriginalLocation = ToOriginalLocation.Size();
 
 	if (ToOriginalAngle < ActiveRecoilRotationTolerance && 
-		DistanceToOriginalLocation < ActiveReciolOffsetTolerance)
+		DistanceToOriginalLocation < ActiveRecoilOffsetTolerance)
 	{
 		// If close enough to original, set it back
 		OffsetTarget->SetRelativeLocationAndRotation(OriginalRelativeLocation, OriginalRelativeRotation);
