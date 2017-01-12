@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+#include "AtomPlayerSettings.h"
 #include "AtomPlayerController.generated.h"
 
 class AAtomCharacter;
@@ -20,10 +21,7 @@ public:
 
 	AAtomCharacter* GetCharacter() const;
 
-	/**
-	* Checks if the player is right handed.
-	*/
-	bool IsRightHanded() const;
+	const FAtomPlayerSettings& GetPlayerSettings() const;
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerRequestCharacterChange(TSubclassOf<AAtomCharacter> CharacterClass);
@@ -41,11 +39,10 @@ public:
 	/** Handle respawn */
 	virtual void UnFreeze() override;
 
+	void CreateCharacterUI();
+
 protected:
 	void CreateUISystem();
-
-	UFUNCTION(Exec)
-	void execRequestCharacterChange(FString Name);
 
 	void OnMenuButtonPressed();
 
@@ -54,7 +51,7 @@ protected:
 
 private:
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerSetIsRightHanded(bool InbIsRightHanded);
+	void ServerSetPlayerSettings(FAtomPlayerSettings InPlayerSettings);
 
 	/** APlayerController Interface Begin */
 public:
@@ -70,18 +67,16 @@ protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */
 
-protected:
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	uint32 bIsRightHanded : 1;
-
 private:
 	UPROPERTY()
 	class AAtomUISystem* UISystem = nullptr;
 
 	AAtomCharacter* AtomCharacter = nullptr;
 
+	FAtomPlayerSettings PlayerSettings;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
-	class UWidgetInteractionComponent* WidgetInteraction;
+	class UWidgetInteractionComponent* WidgetInteraction = nullptr;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomPlayerController, meta = ( AllowPrivateAccess = "True" ))
 	TSubclassOf<AAtomCharacter> RequestedCharacter = nullptr;

@@ -26,6 +26,7 @@ namespace
 	static const FName MuzzleSocket{ TEXT("Muzzle") };
 	static const FName SlideLockSection{ TEXT("SlideLock") };
 
+	// Tolerances for snapping back to original location once the recoil has returned.
 	constexpr float ActiveRecoilRotationTolerance = 0.001f;
 	constexpr float ActiveReciolOffsetTolerance = 0.1f;
 }

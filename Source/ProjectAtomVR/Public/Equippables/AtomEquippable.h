@@ -82,17 +82,12 @@ public:
 	* Control the behavior of this Equippable on Unequip. If true the Equippable will be returned to the
 	* loadout when unequipped. If false, the Equippable will just be detached from the attached parent.
 	*/
-	void SetCanReturnToLoadout(bool bCanReturn);
+	void SetUnequipToLoadout(bool bGoesToLoadout);
 
 	/**
 	 * If this will be returned to the loadout on Unequip.
 	 */
-	bool CanReturnToLoadout() const;
-
-	/**
-	 * Sets the component to attach to on Unequip. Usually assigned by the HeroLoadout.
-	 */
-	void SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket);
+	bool DoesUnequipToLoadout() const;
 
 	bool IsEquipped() const;
 
@@ -234,7 +229,7 @@ private:
 
 	/** True the Equippable should be returned to the loadout when unequipped. If false,
 	* the Equippable will just be detached from the attached parent. */
-	uint32 bReturnToLoadout : 1;
+	uint32 bUnequipToLoadout : 1;
 
 	uint32 bIsSecondaryHandAttached : 1;
 

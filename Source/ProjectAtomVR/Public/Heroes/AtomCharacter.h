@@ -30,9 +30,9 @@ public:
 
 	class UHMDCapsuleComponent* GetHMDCapsuleComponent() const;
 
-	bool IsRightHanded() const { return bIsRightHanded; }
+	virtual void ApplyPlayerSettings(const struct FAtomPlayerSettings& PlayerSettings);
 
-	void SetIsRightHanded(bool InbIsRightHanded);
+	bool IsRightHanded() const { return bIsRightHanded; }
 
 	virtual void Equip(AAtomEquippable* Item, const EHand Hand);
 
@@ -123,7 +123,10 @@ protected:
 	virtual void OnReceivedDamage();
 
 	UFUNCTION()
-	virtual void OnRep_IsDying();
+	void OnRep_IsDying();
+
+	UFUNCTION()
+	void OnRep_IsRightHanded();
 
 private:
 	void UpdateMeshLocation(float DeltaTime);
@@ -189,6 +192,7 @@ private:
 	FDefaultHandTransform DefaultRightHandTransform;
 
 	/** If the player is right hand dominant. */
+	UPROPERTY(BlueprintReadOnly, Transient, ReplicatedUsing = OnRep_IsRightHanded, meta = (AllowPrivateAccess = "true"))
 	uint32 bIsRightHanded : 1;
 
 	UPROPERTY(BlueprintReadOnly, Transient, ReplicatedUsing=OnRep_IsDying, meta = (AllowPrivateAccess = "true"))

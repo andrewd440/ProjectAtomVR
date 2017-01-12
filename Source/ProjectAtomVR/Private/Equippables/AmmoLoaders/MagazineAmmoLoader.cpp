@@ -171,11 +171,13 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	Magazine = static_cast<AFirearmMagazine*>(LoadObject);
 
 	ensureMsgf(Magazine->IsA(MagazineTemplate),
-		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineTemplate is %s"), Magazine->StaticClass()->GetName(), MagazineTemplate->StaticClass()->GetName());
+		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineTemplate is %s"), 
+		Magazine->StaticClass()->GetName(), MagazineTemplate->StaticClass()->GetName());
 
-	ReloadTrigger->bGenerateOverlapEvents = false; // Disable immediately to prevent newly spawned loadout items from trying to load ammo.
+	// Disable immediately to prevent newly spawned loadout items from trying to load ammo.
+	ReloadTrigger->bGenerateOverlapEvents = false; 
 
-	Magazine->SetCanReturnToLoadout(false);
+	Magazine->SetUnequipToLoadout(false);
 
 	if (Magazine->IsEquipped())
 	{
@@ -185,14 +187,15 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	Magazine->SetActorEnableCollision(false);
 	Magazine->GetMesh()->SetSimulatePhysics(false);	
 
+	UMeshComponent* FirearmMesh = GetFirearm()->GetMesh();
 	if (bHasInitialMagazine)
 	{
-		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::KeepWorldTransform, MagazineAttachSocket);
+		Magazine->AttachToComponent(FirearmMesh, FAttachmentTransformRules::KeepWorldTransform, MagazineAttachSocket);
 		bIsLoadingMagazine = true;
 	}
 	else
 	{
-		Magazine->AttachToComponent(GetFirearm()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, MagazineAttachSocket);
+		Magazine->AttachToComponent(FirearmMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, MagazineAttachSocket);
 		AmmoCount = Magazine->GetCapacity();
 		bHasInitialMagazine = true;
 

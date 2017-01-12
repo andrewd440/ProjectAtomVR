@@ -95,20 +95,14 @@ void AEquippableUIActor::UpdateWidgetAttachments()
 			// Attach to item
 			AttachParent = Equippable->GetMesh();
 			AttachSocket = WidgetComponent->GetEquippableAttachSocket();
+
+			WidgetComponent->AttachToComponent(AttachParent, FAttachmentTransformRules::KeepRelativeTransform, AttachSocket);
 		}
 		else
 		{
 			// Attach to item loadout slot
-			const UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
-			const FAtomLoadoutSlot& LoadoutSlot = Loadout->GetItemSlot(Equippable.Get());
-
-			AttachParent = Equippable->GetHeroOwner()->GetBodyMesh();
-			AttachSocket = LoadoutSlot.UISocket;
-		}
-
-		if (AttachParent)
-		{
-			WidgetComponent->AttachToComponent(AttachParent, FAttachmentTransformRules::KeepRelativeTransform, AttachSocket);
+			UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
+			Loadout->SetItemUIRoot(Equippable.Get(), WidgetComponent);
 		}
 	}
 }

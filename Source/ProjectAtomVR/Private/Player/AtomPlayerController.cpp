@@ -6,6 +6,7 @@
 #include "UI/AtomUISystem.h"
 #include "AtomLocalPlayer.h"
 #include "GameModes/AtomBaseGameMode.h"
+#include "AtomGameUserSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
@@ -64,18 +65,13 @@ void AAtomPlayerController::SetPawn(APawn* aPawn)
 
 	if (IsNewPawn && AtomCharacter)
 	{
-		AtomCharacter->SetIsRightHanded(bIsRightHanded);
+		AtomCharacter->ApplyPlayerSettings(PlayerSettings);
 
 		if (WidgetInteraction)
 		{
-			USceneComponent* Attachment = AtomCharacter->GetHandController(bIsRightHanded ? EHand::Right : EHand::Right);
+			USceneComponent* Attachment = AtomCharacter->GetHandController(PlayerSettings.bIsRightHanded ? EHand::Right : EHand::Left);
 			WidgetInteraction->AttachToComponent(Attachment, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
-		}
-
-		if (UISystem)
-		{
-			UISystem->CreateCharacterUI();
 		}
 	}
 }
@@ -85,23 +81,32 @@ void AAtomPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AAtomPlayerController, RequestedCharacter, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AAtomPlayerController, bIsRightHanded, COND_SkipOwner);
 }
 
 void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 {
-	// Set handedness before Super::SetPlayer to setup input correctly
+	// Set player settings before Super::SetPlayer to setup input correctly
 	if (UAtomLocalPlayer* AtomPlayer = Cast<UAtomLocalPlayer>(InPlayer))
 	{
-		bIsRightHanded = AtomPlayer->GetIsRightHanded();
+		check(Cast<UAtomGameUserSettings>(GEngine->GameUserSettings));
+		UAtomGameUserSettings* GameUserSettings = static_cast<UAtomGameUserSettings*>(GEngine->GameUserSettings);
+
+		PlayerSettings = GameUserSettings->GetPlayerSettings();
 
 		Super::SetPlayer(InPlayer);
-		ServerSetIsRightHanded(bIsRightHanded);
+
+		ServerSetPlayerSettings(PlayerSettings);
+		
+		if (AtomCharacter && !HasAuthority())
+		{
+			// Needed for local only settings
+			AtomCharacter->ApplyPlayerSettings(PlayerSettings);
+		}
 	}
 	else
 	{
 		Super::SetPlayer(InPlayer);
-	}
+	}	
 
 	// Create widget interaction for local controllers
 	if (IsLocalController())
@@ -112,7 +117,7 @@ void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 		WidgetInteraction->Deactivate();
 		WidgetInteraction->bShowDebug = true;
 	}
-	else if (WidgetInteraction != nullptr)
+	else if (WidgetInteraction)
 	{
 		WidgetInteraction->DestroyComponent();
 		WidgetInteraction = nullptr;
@@ -126,7 +131,7 @@ void AAtomPlayerController::SetupInputComponent()
 	FName MenuAction;
 	FName MenuClickAction;
 
-	if (bIsRightHanded)
+	if (PlayerSettings.bIsRightHanded)
 	{
 		MenuAction = TEXT("Menu_Right");
 		MenuClickAction = TEXT("MenuClick_Right");
@@ -152,16 +157,6 @@ void AAtomPlayerController::CreateUISystem()
 		SpawnParams.Owner = this;
 		SpawnParams.ObjectFlags |= RF_Transient;
 		UISystem = GetWorld()->SpawnActor<AAtomUISystem>(AAtomUISystem::StaticClass(), SpawnParams);
-	}
-}
-
-void AAtomPlayerController::execRequestCharacterChange(FString Name)
-{
-	UClass* Class = FindObjectFast<UClass>(nullptr, *Name, false, true);
-
-	if (Class && Class->IsChildOf(AAtomCharacter::StaticClass()))
-	{
-		ServerRequestCharacterChange(Class);
 	}
 }
 
@@ -195,12 +190,17 @@ void AAtomPlayerController::OnMenuClickReleased()
 	}
 }
 
-void AAtomPlayerController::ServerSetIsRightHanded_Implementation(bool InbIsRightHanded)
+void AAtomPlayerController::ServerSetPlayerSettings_Implementation(FAtomPlayerSettings InPlayerSettings)
 {
-	bIsRightHanded = InbIsRightHanded;
+	PlayerSettings = InPlayerSettings;
+
+	if (AtomCharacter)
+	{
+		AtomCharacter->ApplyPlayerSettings(PlayerSettings);
+	}
 }
 
-bool AAtomPlayerController::ServerSetIsRightHanded_Validate(bool InbIsRightHanded)
+bool AAtomPlayerController::ServerSetPlayerSettings_Validate(FAtomPlayerSettings)
 {
 	return true;
 }
@@ -223,6 +223,11 @@ AAtomCharacter* AAtomPlayerController::GetCharacter() const
 	return AtomCharacter;
 }
 
+const FAtomPlayerSettings& AAtomPlayerController::GetPlayerSettings() const
+{
+	return PlayerSettings;
+}
+
 void AAtomPlayerController::SetRequestedCharacter(TSubclassOf<AAtomCharacter> CharacterClass)
 {
 	RequestedCharacter = CharacterClass;
@@ -238,6 +243,13 @@ void AAtomPlayerController::UnFreeze()
 	ServerRestartPlayer();
 }
 
+void AAtomPlayerController::CreateCharacterUI()
+{
+	check(UISystem);
+
+	UISystem->CreateCharacterUI();
+}
+
 void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest)
 {
 	Super::NotifyLoadedWorld(WorldPackageName, bFinalDest);
@@ -246,11 +258,6 @@ void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFina
 	{
 		UISystem->CreateLevelUI();
 	}
-}
-
-bool AAtomPlayerController::IsRightHanded() const
-{
-	return bIsRightHanded;
 }
 
 void AAtomPlayerController::ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass)

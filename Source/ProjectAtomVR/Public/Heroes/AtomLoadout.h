@@ -5,6 +5,9 @@
 #include "Object.h"
 #include "AtomLoadout.generated.h"
 
+class AAtomEquippable;
+struct FAtomLoadoutTemplateSlot;
+
 UENUM(BlueprintType, meta = (Bitflags))
 enum class ELoadoutSlotChangeType : uint8
 {
@@ -26,17 +29,13 @@ struct FAtomLoadoutSlot
 	FItemChanged OnSlotChanged;
 
 	UPROPERTY(BlueprintReadOnly)
-	class AAtomEquippable* Item = nullptr;
+	AAtomEquippable* Item = nullptr;
+
+	TWeakObjectPtr<USceneComponent> UIRoot;
 
 	// Remaining items for this slot
 	UPROPERTY(BlueprintReadOnly)
 	int32 Count = 0;
-
-	// Socket the item is attached to when in storage
-	FName StorageSocket;
-
-	// Socket the item UI is attached to
-	FName UISocket;
 
 	// The trigger volume for the item's storage location
 	class USphereComponent* StorageTrigger = nullptr;
@@ -55,8 +54,8 @@ public:
 
 public:
 	/**
-	 * Initializes loadout slots. Does not spawn any loadout items.
-	 * Should be called by the owning hero on PostInitializeComponents.
+	 * Initializes loadout slots. Does not spawn any loadout items. Should be called by the owning hero on 
+	 * PostInitializeComponents.
 	 */
 	void InitializeLoadout(class AAtomCharacter* Owner);	
 
@@ -71,18 +70,16 @@ public:
 	void DestroyLoadout();
 
 	/**
-	* Requests an equip from the loadout. OverlapComponent will be used to check for
-	* overlaps with loadout slots to see if the component is within the bounds of a loadout
-	* item. If successful, the AHeroBase::Equip will be called on the owning hero with the 
-	* corresponding loadout item.
+	* Requests an equip from the loadout. OverlapComponent will be used to check for overlaps with loadout slots to see if 
+	* the component is within the bounds of a loadout item. If successful, the AHeroBase::Equip will be called on the owning 
+	* hero with the corresponding loadout item.
 	**/
 	bool RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand);
 
 	/**
-	 * Requests an unequip from the loadout. OverlapComponent will be used to check for
-	 * overlaps with loadout slots to see if the component is in the correct location to
-	 * unequip the specified item. If successful, the AHeroBase::Unequip will be called on
-	 * the owning hero.
+	 * Requests an unequip from the loadout. OverlapComponent will be used to check for overlaps with loadout slots to see 
+	 * if the component is in the correct location to unequip the specified item. If successful, the AHeroBase::Unequip 
+	 * will be called on the owning hero.
 	 **/
 	bool RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEquippable* Item);
 
@@ -91,6 +88,22 @@ public:
 	* Updates loadout attachments and related components.
 	*/
 	void OnCharacterControllerChanged();
+
+	/**
+	* Sets the offset of loadout slots when attached to the loadout. Should only be called on locally controlled characters.
+	*/
+	void SetLoadoutOffset(float Offset);
+
+	/**
+	* Returns an item to the loadout. This should be the active item within a slot in the loadout. Does not work with a discarded
+	* item.
+	*/
+	void ReturnToLoadout(const AAtomEquippable* Item);
+
+	/**
+	* Removes an item from the loadout. If the loadout slot for the item has more items, a new item will be spawn for the slot.
+	*/
+	void DiscardFromLoadout(const AAtomEquippable* Item);
 
 	/** Gets the loadout slots. */
 	const TArray<FAtomLoadoutSlot>& GetLoadoutSlots() const;
@@ -102,7 +115,9 @@ public:
 	const TSubclassOf<class UAtomLoadoutTemplate> GetLoadoutTemplate() const;
 
 	UFUNCTION(BlueprintCallable, Category = Loadout)
-	const FAtomLoadoutSlot& GetItemSlot(const class AAtomEquippable* Item) const;
+	const FAtomLoadoutSlot& GetItemSlot(const AAtomEquippable* Item) const;
+
+	void SetItemUIRoot(const AAtomEquippable* Item, USceneComponent* UIRoot);
 
 	USceneComponent* GetAttachParent() const;
 
@@ -111,22 +126,29 @@ public:
 	/** UObject Interface End */	
 
 protected:
+	int32 GetItemIndex(const AAtomEquippable* Item) const;
 
 	/**
-	* Only bound on the server. Called when a loadout item changes it's return to loadout
-	* property.
+	* Updates all the slot offsets. Should only be called on locally controlled characters.
 	*/
-	void OnReturnToLoadoutChanged(class AAtomEquippable* Item, int32 LoadoutIndex);
+	void UpdateAllSlotOffsets();
+
+	/**
+	* Updates all the slot offsets. Should only be called on locally controlled characters.
+	*/
+	void UpdateSlotOffset(const FAtomLoadoutSlot& Slot, const FAtomLoadoutTemplateSlot& TemplateSlot);
+
+	const TArray<FAtomLoadoutTemplateSlot>& GetTemplateSlots() const;
 
 	UFUNCTION()
 	void OnRep_Loadout();
 
 private:
 	/** Creates all loadout weapons. Should only be called on server. */
-	void CreateLoadoutEquippables(const TArray<struct FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
+	void CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
 
 	/** Creates all loadout item triggers. Should only be called on controlling players. */
-	void CreateLoadoutTriggers(const TArray<struct FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
+	void CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots);
 	
 	/** UObject Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;
@@ -139,7 +161,8 @@ private:
 	 * Called when the player's hand overlaps one of the loadout triggers. 
 	 */
 	UFUNCTION()
-	void OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnLoadoutTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = HeroLoadout)
@@ -148,6 +171,8 @@ protected:
 	/** Haptic played when the players' hand overlaps an equippable item. */
 	UPROPERTY(EditDefaultsOnly, Category = HeroLoadout)
 	class UHapticFeedbackEffect_Base* TriggerFeedback;
+
+	float LoadoutSlotOffset = 0.f; // Local offset for each item in XY direction from body. Only on local controlled characters.
 
 private:
 	UPROPERTY(ReplicatedUsing=OnRep_Loadout, VisibleAnywhere, Category = HeroLoadout)

@@ -14,13 +14,16 @@
 #include "Animation/AnimSequence.h"
 #include "WidgetInteractionComponent.h"
 #include "Components/SkinnedMeshComponent.h"
+#include "AtomPlayerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
 namespace
 {
-	static constexpr float HeadOrientationFactor = 0.35f; // Influence that the head orientation has on the body mesh
-	static constexpr float HandsOrientationFactor = 1.f - HeadOrientationFactor; // Influence that the direction of hands has on the body mesh.
+	constexpr float HeadOrientationFactor = 0.35f; // Influence that the head orientation has on the body mesh
+	constexpr float HandsOrientationFactor = 1.f - HeadOrientationFactor; // Influence that the direction of hands has on the body mesh.
+
+	constexpr float MeshScaleHeight = 175.f; // Average male height cm. All meshes should be created with this height.
 }
 
 // Sets default values
@@ -114,13 +117,21 @@ void AAtomCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocallyControlled() && GEngine->HMDDevice.IsValid())
-	{
-		GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
-		GEngine->HMDDevice->ResetOrientation();
-	}		
-
 	Loadout->SpawnLoadout();
+
+	if (IsLocallyControlled())
+	{
+		if (GEngine->HMDDevice.IsValid())
+		{
+			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
+			GEngine->HMDDevice->ResetOrientation();
+		}
+
+		if (auto PlayerController = Cast<AAtomPlayerController>(GetController()))
+		{
+			PlayerController->CreateCharacterUI();
+		}
+	}	
 }
 
 void AAtomCharacter::Tick( float DeltaTime )
@@ -380,6 +391,11 @@ void AAtomCharacter::OnRep_IsDying()
 	OnDeath();
 }
 
+void AAtomCharacter::OnRep_IsRightHanded()
+{
+
+}
+
 void AAtomCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
@@ -419,6 +435,7 @@ void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AAtomCharacter, bIsDying);
+	DOREPLIFETIME_CONDITION(AAtomCharacter, bIsRightHanded, COND_SkipOwner);
 }
 
 void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
@@ -453,14 +470,29 @@ UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const
 	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
 }
 
+void AAtomCharacter::ApplyPlayerSettings(const FAtomPlayerSettings& PlayerSettings)
+{
+	bIsRightHanded = PlayerSettings.bIsRightHanded;
+
+	const FVector MeshScale{ 1.f, 1.f, PlayerSettings.PlayerHeight / MeshScaleHeight };
+	GetMesh()->SetWorldScale3D(MeshScale);
+	BodyMesh->SetWorldScale3D(MeshScale);
+
+	const FAtomCharacterSettings* CharacterSettings = PlayerSettings.CharacterSettings.FindByPredicate(
+		[this](const FAtomCharacterSettings& Settings) 
+	{
+		return this->GetClass() == Settings.Character;
+	});
+
+	if (CharacterSettings)
+	{
+		Loadout->SetLoadoutOffset(CharacterSettings->LoadoutOffset);
+	}	
+}
+
 USceneComponent* AAtomCharacter::GetHandMeshTarget(const EHand Hand) const
 {
 	return (Hand == EHand::Left) ? LeftHandMesh : RightHandMesh;
-}
-
-void AAtomCharacter::SetIsRightHanded(bool InbIsRightHanded)
-{
-	bIsRightHanded = InbIsRightHanded;
 }
 
 void AAtomCharacter::Equip(AAtomEquippable* Item, const EHand Hand)
@@ -519,6 +551,19 @@ void AAtomCharacter::OnUnequipped(AAtomEquippable* Item, const EHand Hand)
 		
 		RightHandMesh->AttachToComponent(RightHandController, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 		RightHandMesh->SetRelativeLocationAndRotation(DefaultRightHandTransform.Location, DefaultRightHandTransform.Rotation);
+	}
+
+	// Only if primary equipped hand
+	if (Item->GetEquippedHand() == Hand)
+	{		
+		if (Item->DoesUnequipToLoadout())
+		{
+			Loadout->ReturnToLoadout(Item);
+		}
+		else
+		{
+			Loadout->DiscardFromLoadout(Item);
+		}
 	}
 }
 

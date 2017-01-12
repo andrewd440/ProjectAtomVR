@@ -6,6 +6,7 @@
 #include "AtomLoadoutTemplate.h"
 #include "Equippables/AtomEquippable.h"
 #include "Haptics/HapticFeedbackEffect_Curve.h"
+#include "Components/StaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLoadout, Log, All);
 
@@ -36,6 +37,8 @@ const FAtomLoadoutSlot UAtomLoadout::NullLoadoutSlot;
 
 void UAtomLoadout::CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots)
 {
+	check(CharacterOwner->IsLocallyControlled());
+
 	for (int32 i = 0; i < LoadoutTemplateSlots.Num(); ++i)
 	{
 		USphereComponent* Trigger = NewObject<USphereComponent>(CharacterOwner);
@@ -51,7 +54,8 @@ void UAtomLoadout::CreateLoadoutTriggers(const TArray<FAtomLoadoutTemplateSlot>&
 
 		Trigger->OnComponentBeginOverlap.AddDynamic(this, &UAtomLoadout::OnLoadoutTriggerOverlap);		
 
-		Trigger->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutTemplateSlots[i].StorageSocket);
+		Trigger->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, 
+			LoadoutTemplateSlots[i].StorageSocket);
 
 		Loadout[i].StorageTrigger = Trigger;
 	}
@@ -63,19 +67,7 @@ void UAtomLoadout::InitializeLoadout(class AAtomCharacter* Owner)
 
 	if (LoadoutTemplate)
 	{
-		const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
-		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
-
-		const int32 LoadoutSlotCount = LoadoutTemplateSlots.Num();
-
-		Loadout.SetNum(LoadoutSlotCount);
-
-		// Assign sockets
-		for (int32 i = 0; i < LoadoutSlotCount; ++i)
-		{
-			Loadout[i].StorageSocket = LoadoutTemplateSlots[i].StorageSocket;
-			Loadout[i].UISocket = LoadoutTemplateSlots[i].UISocket;
-		}
+		Loadout.SetNum(GetTemplateSlots().Num());
 	}
 }
 
@@ -85,12 +77,13 @@ void UAtomLoadout::SpawnLoadout()
 
 	if (LoadoutTemplate)
 	{
-		const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
-		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
+		const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = GetTemplateSlots();
 
 		if (CharacterOwner->IsLocallyControlled())
 		{
-			UE_LOG(LogLoadout, Log, TEXT("Loadout triggers created on %s for %s"), *CharacterOwner->GetController()->GetName(), *CharacterOwner->GetName());
+			UE_LOG(LogLoadout, Log, TEXT("Loadout triggers created on %s for %s"), 
+				*CharacterOwner->GetController()->GetName(), *CharacterOwner->GetName());
+
 			CreateLoadoutTriggers(LoadoutTemplateSlots);
 		}
 
@@ -124,6 +117,8 @@ void UAtomLoadout::DestroyLoadout()
 
 bool UAtomLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHand Hand)
 {
+	check(CharacterOwner->IsLocallyControlled());
+
 	for (FAtomLoadoutSlot& Slot : Loadout)
 	{
 		if (Slot.Item && Slot.Item->CanEquip(Hand) &&
@@ -139,11 +134,13 @@ bool UAtomLoadout::RequestEquip(UPrimitiveComponent* OverlapComponent, const EHa
 
 bool UAtomLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEquippable* Item)
 {
+	check(CharacterOwner->IsLocallyControlled());
+
 	const FAtomLoadoutSlot* Slot = Loadout.FindByPredicate([Item](const FAtomLoadoutSlot& Slot) { return Slot.Item == Item; });
 
 	if (Slot && OverlapComponent->IsOverlappingComponent(Slot->StorageTrigger))
 	{
-		CharacterOwner->Unequip(Item, Item->GetEquippedHand());
+		CharacterOwner->Unequip(Slot->Item, Slot->Item->GetEquippedHand());
 		return true;
 	}
 
@@ -152,55 +149,131 @@ bool UAtomLoadout::RequestUnequip(UPrimitiveComponent* OverlapComponent, AAtomEq
 
 void UAtomLoadout::OnCharacterControllerChanged()
 {
-	if (Loadout.Num() > 0)
+	if (Loadout.Num() <= 0)
+		return;
+	
+	const auto& TemplateSlots = GetTemplateSlots();
+
+	if (CharacterOwner->IsLocallyControlled())
 	{
-		if (CharacterOwner->IsLocallyControlled())
+		// Only if BeginPlay has fired.
+		if (CharacterOwner->HasActorBegunPlay())
 		{
-			// Only if BeginPlay has fired.
-			if (CharacterOwner->HasActorBegunPlay())
+			UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), 
+				CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));			
+
+			// Create triggers if needed
+			if (!Loadout[0].StorageTrigger)
 			{
-				UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
-
-				// Create triggers if needed
-				if (Loadout[0].StorageTrigger == nullptr)
-				{
-					const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
-					const TArray<FAtomLoadoutTemplateSlot>& LoadoutTemplateSlots = LoadoutTemplateCDO->GetLoadoutSlots();
-
-					CreateLoadoutTriggers(LoadoutTemplateSlots);
-				}
-
-				// Update all attachments
-				for (auto& Slot : Loadout)
-				{
-					if (Slot.Item)
-					{
-						Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
-						Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
-					}
-				}
+				CreateLoadoutTriggers(TemplateSlots);
 			}
-		}
-		else
-		{			
-			UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
 
-			for (auto& Slot : Loadout)
+			// Update all attachments
+			for (int32 i = 0; i < Loadout.Num(); ++i)
 			{
-				// Any triggers should be deleted
-				if (Slot.StorageTrigger)
-				{
-					Slot.StorageTrigger->DestroyComponent();
-					Slot.StorageTrigger = nullptr;
-				}				
+				const FAtomLoadoutTemplateSlot& TemplateSlot = TemplateSlots[i];
+				FAtomLoadoutSlot& Slot = Loadout[i];
 
 				if (Slot.Item)
 				{
-					Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Slot.StorageSocket);
-					Slot.Item->SetLoadoutAttachment(GetAttachParent(), Slot.StorageSocket);
+					Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, 
+						TemplateSlot.StorageSocket);
 				}
+
+				UpdateSlotOffset(Slot, TemplateSlot);
 			}
 		}
+	}
+	else
+	{			
+		UE_LOG(LogLoadout, Log, TEXT("OnCharacterControllerChanged() updating loadout for %s controller."), 
+			CharacterOwner->GetController() ? *CharacterOwner->GetController()->GetName() : TEXT("nullptr"));
+
+		for (int32 i = 0; i < Loadout.Num(); ++i)
+		{
+			FAtomLoadoutSlot& Slot = Loadout[i];
+
+			// Any triggers should be deleted
+			if (Slot.StorageTrigger)
+			{
+				Slot.StorageTrigger->DestroyComponent();
+				Slot.StorageTrigger = nullptr;
+			}				
+
+			if (Slot.Item)
+			{
+				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, 
+					TemplateSlots[i].StorageSocket);
+			}
+		}
+	}
+	
+}
+
+void UAtomLoadout::SetLoadoutOffset(float Offset)
+{
+	LoadoutSlotOffset = Offset;
+
+	UpdateAllSlotOffsets();
+}
+
+void UAtomLoadout::ReturnToLoadout(const AAtomEquippable* Item)
+{
+	const int32 Index = GetItemIndex(Item);
+
+	check(Index != INDEX_NONE);
+
+	const auto& TemplateSlot = GetTemplateSlots()[Index];
+	const auto& Slot = Loadout[Index];
+
+	Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		TemplateSlot.StorageSocket);
+
+	if (CharacterOwner->IsLocallyControlled())
+	{
+		UpdateSlotOffset(Slot, TemplateSlot);
+	}
+}
+
+void UAtomLoadout::DiscardFromLoadout(const AAtomEquippable* Item)
+{
+	const int32 Index = GetItemIndex(Item);
+	check(Index != INDEX_NONE);
+	check(Loadout[Index].Item == Item);
+	ensureMsgf(CharacterOwner->HasAuthority(), 
+		TEXT("Non-Authority removing an item from loadout. This should only happen on server."));
+
+	FAtomLoadoutSlot& Slot = Loadout[Index];
+	const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[Index];
+
+	if (Slot.Count > 1)
+	{
+		// We have more, spawn one
+		--Slot.Count;
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Instigator = CharacterOwner;
+		SpawnParams.Owner = CharacterOwner;
+
+		Slot.Item = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
+		Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
+		
+		if (CharacterOwner->IsLocallyControlled())
+		{
+			// Offset if locally controlled
+			const UStaticMeshComponent* BodyMesh = CharacterOwner->GetBodyMesh();
+			FVector ItemSocketOffset = BodyMesh->GetSocketTransform(TemplateSlot.StorageSocket, RTS_Component).GetLocation();
+			ItemSocketOffset = ItemSocketOffset.GetSafeNormal2D() * LoadoutSlotOffset;
+			Slot.Item->SetActorRelativeLocation(ItemSocketOffset);
+		}		
+
+		Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
+	}
+	else
+	{
+		Slot.Item = nullptr;
+
+		Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item);
 	}
 }
 
@@ -221,7 +294,12 @@ const TSubclassOf<class UAtomLoadoutTemplate> UAtomLoadout::GetLoadoutTemplate()
 
 const FAtomLoadoutSlot& UAtomLoadout::GetItemSlot(const class AAtomEquippable* Item) const
 {
-	if (const FAtomLoadoutSlot* FoundSlot = Loadout.FindByPredicate([Item](const FAtomLoadoutSlot& Slot) { return Slot.Item == Item; }))
+	const FAtomLoadoutSlot* FoundSlot = Loadout.FindByPredicate([Item](const FAtomLoadoutSlot& Slot)
+	{
+		return Slot.Item == Item;
+	});
+
+	if (FoundSlot)
 	{
 		return *FoundSlot;
 	}
@@ -229,6 +307,34 @@ const FAtomLoadoutSlot& UAtomLoadout::GetItemSlot(const class AAtomEquippable* I
 	{
 		return NullLoadoutSlot;
 	}
+}
+
+int32 UAtomLoadout::GetItemIndex(const AAtomEquippable* Item) const
+{
+	return Loadout.IndexOfByPredicate([Item](const FAtomLoadoutSlot& Slot) { return Slot.Item == Item; });
+}
+
+void UAtomLoadout::SetItemUIRoot(const AAtomEquippable* Item, USceneComponent* UIRoot)
+{
+	const int32 Index = GetItemIndex(Item);
+
+	check(Index != INDEX_NONE);
+
+	FAtomLoadoutSlot& Slot = Loadout[Index];
+	const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[Index];
+
+	Slot.UIRoot = UIRoot;
+
+	// Set offset and update attachment
+	UStaticMeshComponent* BodyMesh = CharacterOwner->GetBodyMesh();
+	
+	UIRoot->AttachToComponent(BodyMesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.UISocket);
+
+	const FTransform SocketTransform = BodyMesh->GetSocketTransform(TemplateSlot.UISocket, RTS_Component);
+	FVector SocketOffset = SocketTransform.GetLocation().GetSafeNormal2D() * LoadoutSlotOffset;
+	SocketOffset = SocketTransform.GetRotation().UnrotateVector(SocketOffset);
+
+	UIRoot->SetRelativeLocation(SocketOffset);
 }
 
 USceneComponent* UAtomLoadout::GetAttachParent() const
@@ -306,62 +412,71 @@ void UAtomLoadout::CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlo
 			if (TemplateSlot.ItemClass)
 			{
 				AAtomEquippable* const Equippable = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
-				Equippable->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
+				Equippable->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);			
 
 				CurrentSlot.Item = Equippable;
-				CurrentSlot.Count = TemplateSlot.Count;
-
-				Equippable->OnCanReturnToLoadoutChanged.AddUObject(this, &UAtomLoadout::OnReturnToLoadoutChanged, Equippable, i);				
+				CurrentSlot.Count = TemplateSlot.Count;			
 
 				CurrentSlot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item | ELoadoutSlotChangeType::Count);
 			}
 			else
 			{
-				UE_LOG(LogLoadout, Warning, TEXT("FHeroLoadoutTemplateSlot item was null. No item will be created from this slot."));
+				UE_LOG(LogLoadout, Warning, 
+					TEXT("FHeroLoadoutTemplateSlot item was null. No item will be created from this slot."));
 			}
 		}
+
+		if (CharacterOwner->IsLocallyControlled())
+		{
+			UpdateAllSlotOffsets();
+		}		
 	}
 }
 
-void UAtomLoadout::OnReturnToLoadoutChanged(AAtomEquippable* Item, int32 LoadoutIndex)
+void UAtomLoadout::UpdateAllSlotOffsets()
 {
-	if (!Item->CanReturnToLoadout())
+	const auto& TemplateSlots = GetTemplateSlots();
+	for (int32 i = 0; i < Loadout.Num(); ++i)
 	{
-		check(LoadoutIndex < Loadout.Num());
-
-		FAtomLoadoutSlot& Slot = Loadout[LoadoutIndex];
-
-		if (Slot.Item == Item) // Make sure this is the current item
-		{
-			const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
-			const FAtomLoadoutTemplateSlot& TemplateSlot = LoadoutTemplateCDO->GetLoadoutSlots()[LoadoutIndex];
-			
-			if (Slot.Count > 1)
-			{
-				// We have more, spawn one
-				--Slot.Count;
-
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.Instigator = CharacterOwner;
-				SpawnParams.Owner = CharacterOwner;
-
-				Slot.Item = GetWorld()->SpawnActor<AAtomEquippable>(TemplateSlot.ItemClass, FTransform::Identity, SpawnParams);
-				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, TemplateSlot.StorageSocket);
-				Slot.Item->SetLoadoutAttachment(GetAttachParent(), TemplateSlot.StorageSocket);
-
-				Slot.Item->OnCanReturnToLoadoutChanged.AddUObject(this, &UAtomLoadout::OnReturnToLoadoutChanged, Slot.Item, LoadoutIndex);		
-
-				Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
-			}
-			else
-			{
-				Slot.Item = nullptr;
-
-				Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item);
-			}
-		}
+		UpdateSlotOffset(Loadout[i], TemplateSlots[i]);
 	}
+}
+
+void UAtomLoadout::UpdateSlotOffset(const FAtomLoadoutSlot& Slot, const FAtomLoadoutTemplateSlot& TemplateSlot)
+{
+	// Only happens on local controllers
+	UStaticMeshComponent* BodyMesh = CharacterOwner->GetBodyMesh();
+
+	{
+		const FTransform SocketTransform = BodyMesh->GetSocketTransform(TemplateSlot.StorageSocket, RTS_Component);
+		FVector SocketOffset = SocketTransform.GetLocation().GetSafeNormal2D() * LoadoutSlotOffset;
+		SocketOffset = SocketTransform.GetRotation().UnrotateVector(SocketOffset);
+
+		if (Slot.Item && !Slot.Item->IsEquipped())
+		{
+			Slot.Item->SetActorRelativeLocation(SocketOffset);
+		}
+
+		if (Slot.StorageTrigger)
+		{
+			Slot.StorageTrigger->SetRelativeLocation(SocketOffset);
+		}		
+	}
+
+	if (Slot.UIRoot.IsValid())
+	{
+		const FTransform SocketTransform = BodyMesh->GetSocketTransform(TemplateSlot.UISocket, RTS_Component);
+		FVector SocketOffset = SocketTransform.GetLocation().GetSafeNormal2D() * LoadoutSlotOffset;
+		SocketOffset = SocketTransform.GetRotation().UnrotateVector(SocketOffset);
+
+		Slot.UIRoot->SetRelativeLocation(SocketOffset);
+	}
+}
+
+const TArray<FAtomLoadoutTemplateSlot>& UAtomLoadout::GetTemplateSlots() const
+{
+	const UAtomLoadoutTemplate* const LoadoutTemplateCDO = LoadoutTemplate->GetDefaultObject<UAtomLoadoutTemplate>();
+	return LoadoutTemplateCDO->GetLoadoutSlots();
 }
 
 void UAtomLoadout::OnRep_Loadout()
@@ -370,30 +485,33 @@ void UAtomLoadout::OnRep_Loadout()
 	{
 		ELoadoutSlotChangeType Change = ELoadoutSlotChangeType::None;
 
-		if (SavedLoadout[i].Item != Loadout[i].Item)
+		FAtomLoadoutSlot& Slot = Loadout[i];
+
+		if (SavedLoadout[i].Item != Slot.Item)
 		{
 			Change |= ELoadoutSlotChangeType::Item;
 
-			AAtomEquippable* Item = Loadout[i].Item;
+			const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[i];
 
 			// Update local attachment only if not equipped. It may be equipped for late joining remotes.
-			if (Item != nullptr)
+			if (Slot.Item && !Slot.Item->IsEquipped())
 			{
-				if (!Item->IsEquipped())
-				{
-					Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, Loadout[i].StorageSocket);
-				}
-
-				Item->SetLoadoutAttachment(GetAttachParent(), Loadout[i].StorageSocket);
+				Slot.Item->AttachToComponent(GetAttachParent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+					TemplateSlot.StorageSocket);				
 			}			
+
+			if (CharacterOwner->IsLocallyControlled())
+			{
+				UpdateSlotOffset(Slot, TemplateSlot);
+			}
 		}			
 
-		if (SavedLoadout[i].Count != Loadout[i].Count)
+		if (SavedLoadout[i].Count != Slot.Count)
 			Change |= ELoadoutSlotChangeType::Count;
 
 		if (Change != ELoadoutSlotChangeType::None)
 		{
-			Loadout[i].OnSlotChanged.ExecuteIfBound(Change);
+			Slot.OnSlotChanged.ExecuteIfBound(Change);
 		}
 	}
 }

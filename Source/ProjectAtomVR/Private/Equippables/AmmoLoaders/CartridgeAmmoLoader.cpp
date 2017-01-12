@@ -27,10 +27,11 @@ void UCartridgeAmmoLoader::LoadAmmo(UObject* LoadObject)
 	{
 		AAtomEquippable* Cartridge = static_cast<AAtomEquippable*>(LoadObject);		
 
-		Cartridge->SetCanReturnToLoadout(false);
+		Cartridge->SetUnequipToLoadout(false);
 		if (Cartridge->IsEquipped())
 		{
-			Cartridge->Unequip(GetFirearm()->HasAuthority() ? EEquipType::Normal : EEquipType::Deferred); // On defer unequip when not authority. Let authority unequip all remotes.
+			// On defer unequip when not authority. Let authority unequip all remotes.
+			Cartridge->Unequip(GetFirearm()->HasAuthority() ? EEquipType::Normal : EEquipType::Deferred);
 		}		
 
 		Cartridge->SetActorHiddenInGame(true);
@@ -96,7 +97,8 @@ void UCartridgeAmmoLoader::InitializeLoader()
 	OnAmmoCountChanged.ExecuteIfBound();
 }
 
-void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	check(Cast<AAtomCharacter>(OtherActor) && "HeroBase should be the only response to this trigger.");
 	check(GetFirearm()->IsEquipped() && "Overlap events should be unbound when not the HeroFirearm is not equipped.");

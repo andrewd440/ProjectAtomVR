@@ -51,7 +51,7 @@ AAtomEquippable::AAtomEquippable(const FObjectInitializer& ObjectInitializer/* =
 	SecondaryHandGripTrigger->OnComponentEndOverlap.AddDynamic(this, &AAtomEquippable::OnEndOverlapSecondaryHandTrigger);
 
 	bIsSecondaryHandAttachmentAllowed = true;
-	bReturnToLoadout = true;
+	bUnequipToLoadout = true;
 }
 
 void AAtomEquippable::BeginPlay()
@@ -164,7 +164,7 @@ void AAtomEquippable::Unequip(const EEquipType EquipType)
 
 void AAtomEquippable::Drop()
 {
-	SetCanReturnToLoadout(false);
+	SetUnequipToLoadout(false);
 	Unequip(EEquipType::Deferred);
 
 	EquipStatus.State = EEquipState::Dropped;
@@ -203,24 +203,14 @@ void AAtomEquippable::UpdateCharacterAttachment()
 	HeroOwner->PlayHandAnimation(EquipStatus.Hand, AnimHandEquip);
 }
 
-void AAtomEquippable::SetCanReturnToLoadout(bool bCanReturn)
+void AAtomEquippable::SetUnequipToLoadout(bool bCanReturn)
 {
-	if (bCanReturn != bReturnToLoadout)
-	{
-		bReturnToLoadout = bCanReturn;
-		OnCanReturnToLoadoutChanged.Broadcast();
-	}
+	bUnequipToLoadout = bCanReturn;
 }
 
-bool AAtomEquippable::CanReturnToLoadout() const
+bool AAtomEquippable::DoesUnequipToLoadout() const
 {
-	return bReturnToLoadout;
-}
-
-void AAtomEquippable::SetLoadoutAttachment(USceneComponent* AttachComponent, FName AttachSocket)
-{
-	LoadoutAttachComponent = AttachComponent;
-	LoadoutAttachSocket = AttachSocket;
+	return bUnequipToLoadout;
 }
 
 void AAtomEquippable::PushState(UEquippableState* InPushState)
@@ -359,14 +349,7 @@ void AAtomEquippable::OnUnequipped()
 {
 	UnequipTimeStamp = GetWorld()->GetTimeSeconds();
 
-	if (LoadoutAttachComponent && bReturnToLoadout)
-	{
-		AttachToComponent(LoadoutAttachComponent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, LoadoutAttachSocket);
-	}
-	else
-	{
-		DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	}
+	DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
 	if (bIsSecondaryHandAttached)
 	{
@@ -420,7 +403,8 @@ void AAtomEquippable::GetOriginalOffsetTargetLocationAndRotation(FVector& Locati
 	HeroOwner->GetDefaultHandMeshLocationAndRotation(EquipStatus.Hand, LocationOut, RotationOut);
 }
 
-void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	const EHand SecondaryHand = !EquipStatus.Hand;
 
@@ -429,7 +413,8 @@ void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 		HeroOwner->GetEquippable(SecondaryHand) == nullptr)
 	{
 		USceneComponent* const HandTarget = HeroOwner->GetHandMeshTarget(SecondaryHand);
-		HandTarget->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, (SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
+		HandTarget->AttachToComponent(Mesh, FAttachmentTransformRules::SnapToTargetNotIncludingScale, 
+			(SecondaryHand == EHand::Left) ? SecondaryHandAttachLeftSocket : SecondaryHandAttachRightSocket);
 
 		bIsSecondaryHandAttached = true;
 
@@ -438,11 +423,14 @@ void AAtomEquippable::OnBeginOverlapSecondaryHandTrigger(UPrimitiveComponent* Ov
 	}
 }
 
-void AAtomEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AAtomEquippable::OnEndOverlapSecondaryHandTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	const EHand SecondaryHand = !EquipStatus.Hand;
 
-	ensure(!bIsSecondaryHandAttached || HeroOwner->GetHandTrigger(SecondaryHand) != OtherComp || HeroOwner->GetEquippable(SecondaryHand) == this);
+	ensure(!bIsSecondaryHandAttached || 
+		HeroOwner->GetHandTrigger(SecondaryHand) != OtherComp || 
+		HeroOwner->GetEquippable(SecondaryHand) == this);
 
 	if (bIsSecondaryHandAttached && 
 		EquipStatus.State == EEquipState::Equipped &&
