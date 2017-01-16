@@ -126,11 +126,6 @@ void AAtomCharacter::BeginPlay()
 			GEngine->HMDDevice->SetTrackingOrigin(EHMDTrackingOrigin::Floor); // SteamVR and Rift origin is floor
 			GEngine->HMDDevice->ResetOrientation();
 		}
-
-		if (auto PlayerController = Cast<AAtomPlayerController>(GetController()))
-		{
-			PlayerController->CreateCharacterUI();
-		}
 	}	
 }
 
@@ -200,6 +195,7 @@ void AAtomCharacter::UpdateMeshLocation(float DeltaTime)
 	}
 
 	// Use rotation to get body location by pivoting on neck socket location
+	const FVector NeckBaseSocketOffset = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation() * BodyMesh->GetComponentScale().Z;
 	const FVector WorldNeckOffset = BodyRotation.RotateVector(NeckBaseSocketOffset);
 	FVector BodyLocation = NeckBaseLocation - WorldNeckOffset;
 
@@ -239,9 +235,7 @@ void AAtomCharacter::SetupPlayerInputComponent(class UInputComponent* InInputCom
 
 void AAtomCharacter::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();		
-
-	NeckBaseSocketOffset = BodyMesh->GetSocketTransform(NeckBaseSocket, RTS_Component).GetTranslation();
+	Super::PostInitializeComponents();			
 
 	DefaultLeftHandTransform.Location = LeftHandMesh->RelativeLocation;
 	DefaultLeftHandTransform.Rotation = LeftHandMesh->RelativeRotation;
@@ -286,6 +280,18 @@ bool AAtomCharacter::ReplicateSubobjects(UActorChannel *Channel, FOutBunch *Bunc
 void AAtomCharacter::Destroyed()
 {
 	Loadout->DestroyLoadout();
+
+	if (RightHandEquippable)
+	{
+		RightHandEquippable->Destroy();
+		RightHandEquippable = nullptr;
+	}
+
+	if (LeftHandEquippable)
+	{
+		LeftHandEquippable->Destroy();
+		LeftHandEquippable = nullptr;
+	}
 
 	Super::Destroyed();
 }
@@ -419,12 +425,12 @@ void AAtomCharacter::UnPossessed()
 
 	Loadout->OnCharacterControllerChanged();
 
-	if (RightHandEquippable != nullptr)
+	if (RightHandEquippable)
 	{
 		RightHandEquippable->UpdateCharacterAttachment();
 	}
 
-	if (LeftHandEquippable != nullptr)
+	if (LeftHandEquippable)
 	{
 		LeftHandEquippable->UpdateCharacterAttachment();
 	}
@@ -445,24 +451,8 @@ void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotato
 	DestinationOffset.Z = 0.f;
 	const FVector CapsuleDestination = DestLocation + DestinationOffset;
 
-	if (IsLocallyControlled())
-	{
-		// Set camera fade if local
-		APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
-
-		// Fade camera
-		PlayerCameraManager->StartCameraFade(0.f, 1.f, 0.1f, FLinearColor::Black, false, true);
-
-		// Set delegate to finish the teleport
-		FTimerDelegate FinishTeleportDelegate = FTimerDelegate::CreateUObject(this, &AAtomCharacter::FinishTeleport, CapsuleDestination, GetActorRotation());
-		FTimerHandle TimerHandle;
-		GetWorldTimerManager().SetTimer(TimerHandle, FinishTeleportDelegate, 0.1f, false);
-	}
-	else
-	{
-		// Just teleport if server call and not locally controlled
-		GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
-	}
+	// Just teleport if server call and not locally controlled
+	GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
 }
 
 UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const
@@ -474,7 +464,7 @@ void AAtomCharacter::ApplyPlayerSettings(const FAtomPlayerSettings& PlayerSettin
 {
 	bIsRightHanded = PlayerSettings.bIsRightHanded;
 
-	const FVector MeshScale{ 1.f, 1.f, PlayerSettings.PlayerHeight / MeshScaleHeight };
+	const FVector MeshScale{ PlayerSettings.PlayerHeight / MeshScaleHeight };
 	GetMesh()->SetWorldScale3D(MeshScale);
 	BodyMesh->SetWorldScale3D(MeshScale);
 
@@ -554,16 +544,19 @@ void AAtomCharacter::OnUnequipped(AAtomEquippable* Item, const EHand Hand)
 	}
 
 	// Only if primary equipped hand
-	if (Item->GetEquippedHand() == Hand)
+	if (Item->GetEquippedHand() == Hand && Loadout->IsInLoadout(Item))
 	{		
-		if (Item->DoesUnequipToLoadout())
-		{
-			Loadout->ReturnToLoadout(Item);
-		}
-		else
-		{
-			Loadout->DiscardFromLoadout(Item);
-		}
+		Loadout->ReturnToLoadout(Item);		
+	}
+}
+
+void AAtomCharacter::DiscardFromLoadout(AAtomEquippable* Item)
+{
+	check(HasAuthority());
+
+	if (Loadout->IsInLoadout(Item))
+	{
+		Loadout->DiscardFromLoadout(Item);
 	}
 }
 
@@ -694,15 +687,6 @@ void AAtomCharacter::OnEquipPressed()
 			Loadout->RequestUnequip(RightHandTrigger, RightHandEquippable);
 		}
 	}	
-}
-
-void AAtomCharacter::FinishTeleport(FVector DestLocation, FRotator DestRotation)
-{	
-	GetHeroMovementComponent()->TeleportMove(DestLocation);
-
-	check(IsLocallyControlled() && "Should only be called on locally controlled Heroes.");
-	APlayerCameraManager* const PlayerCameraManager = static_cast<APlayerController*>(GetController())->PlayerCameraManager;
-	PlayerCameraManager->StartCameraFade(1.f, 0.f, 0.2f, FLinearColor::Black);
 }
 
 FVector AAtomCharacter::GetPawnViewLocation() const

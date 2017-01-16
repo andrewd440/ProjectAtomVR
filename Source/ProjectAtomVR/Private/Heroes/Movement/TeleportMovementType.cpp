@@ -125,7 +125,7 @@ void UTeleportMovementType::UpdateArcSpline(const TArray<FVector>& ArcPath)
 	}
 	else if (SplineMeshNum > SplineMeshesNeeded)
 	{	
-		constexpr int32 MeshBuffer = 2;
+		constexpr int32 MeshBuffer = 4;
 		if (SplineMeshNum > SplineMeshesNeeded + MeshBuffer)
 		{
 			// Delete unneeded meshes if beyond buffer
@@ -227,6 +227,7 @@ void UTeleportMovementType::OnTeleportPressed()
 			SpawnParams.Name = TEXT("TeleportActor");
 			SpawnParams.Owner = GetOwner();
 			TeleportActor = GetWorld()->SpawnActor<AActor>(TeleportActorTemplate ? TeleportActorTemplate : AActor::StaticClass(), SpawnParams);
+			TeleportActor->SetReplicates(false);
 		}
 
 		// Attach the teleport arc to non-dominate hand

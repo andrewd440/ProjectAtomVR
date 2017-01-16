@@ -8,6 +8,7 @@ public class ProjectAtomVRTarget : TargetRules
 	public ProjectAtomVRTarget(TargetInfo Target)
 	{
 		Type = TargetType.Game;
+		bUsesSteam = true;
 	}
 
 	//

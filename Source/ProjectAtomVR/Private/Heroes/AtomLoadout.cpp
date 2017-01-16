@@ -217,6 +217,11 @@ void UAtomLoadout::SetLoadoutOffset(float Offset)
 	UpdateAllSlotOffsets();
 }
 
+bool UAtomLoadout::IsInLoadout(const AAtomEquippable* Item) const
+{
+	return GetItemIndex(Item) != INDEX_NONE;
+}
+
 void UAtomLoadout::ReturnToLoadout(const AAtomEquippable* Item)
 {
 	const int32 Index = GetItemIndex(Item);
@@ -237,11 +242,13 @@ void UAtomLoadout::ReturnToLoadout(const AAtomEquippable* Item)
 
 void UAtomLoadout::DiscardFromLoadout(const AAtomEquippable* Item)
 {
+	// Discards only happen on server
+	if (!CharacterOwner->HasAuthority())
+		return;
+
 	const int32 Index = GetItemIndex(Item);
 	check(Index != INDEX_NONE);
 	check(Loadout[Index].Item == Item);
-	ensureMsgf(CharacterOwner->HasAuthority(), 
-		TEXT("Non-Authority removing an item from loadout. This should only happen on server."));
 
 	FAtomLoadoutSlot& Slot = Loadout[Index];
 	const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[Index];

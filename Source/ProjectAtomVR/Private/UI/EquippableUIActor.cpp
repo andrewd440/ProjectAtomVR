@@ -101,7 +101,7 @@ void AEquippableUIActor::UpdateWidgetAttachments()
 		else
 		{
 			// Attach to item loadout slot
-			UAtomLoadout* Loadout = Equippable->GetHeroOwner()->GetLoadout();
+			UAtomLoadout* Loadout = Equippable->GetCharacterOwner()->GetLoadout();
 			Loadout->SetItemUIRoot(Equippable.Get(), WidgetComponent);
 		}
 	}

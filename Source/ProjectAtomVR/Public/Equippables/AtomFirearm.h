@@ -123,6 +123,8 @@ public:
 
 	UAmmoLoader* GetAmmoLoader() const;
 
+	void ActivateSlideLock();
+
 protected:
 	void UpdateChamberingHandle();
 	void UpdateRecoilOffset(float DeltaSeconds);
@@ -136,7 +138,7 @@ protected:
 	void OnChamberingHandleGrabbed();
 	void OnChamberingHandleReleased();
 	void OnSlideLockPressed();
-	void ActivateSlideLock();
+
 	void ReleaseSlideLock();
 
 	void GenerateShotRecoil(uint8 Seed);
@@ -312,6 +314,7 @@ private:
 	/** Current index in ChamberHandleMovement we are at. Only valid when chambering handle is held. */
 	uint8 ChamberingIndex = 0;
 
+	UPROPERTY(Replicated)
 	uint32 bIsChamberEmpty : 1;
 
 	UPROPERTY(ReplicatedUsing=OnRep_IsHoldingChamberHandle)

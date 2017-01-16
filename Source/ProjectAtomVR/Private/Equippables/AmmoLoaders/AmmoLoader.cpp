@@ -69,7 +69,7 @@ class UWorld* UAmmoLoader::GetWorld() const
 	return GetFirearm()->GetWorld();
 }
 
-void UAmmoLoader::ReplicateAmmoCount(TArray<class FLifetimeProperty> & OutLifetimeProps) const
+void UAmmoLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
 {
 	DOREPLIFETIME_CONDITION(UAmmoLoader, AmmoCount, COND_SkipOwner);
 }

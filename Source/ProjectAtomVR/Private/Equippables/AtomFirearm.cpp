@@ -27,7 +27,7 @@ namespace
 	static const FName SlideLockSection{ TEXT("SlideLock") };
 
 	// Tolerances for snapping back to original location once the recoil has returned.
-	constexpr float ActiveRecoilRotationTolerance = 0.002f;
+	constexpr float ActiveRecoilRotationTolerance = 0.003f;
 	constexpr float ActiveRecoilOffsetTolerance = 0.1f;
 }
 
@@ -60,6 +60,7 @@ AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObje
 
 	GetMesh<USkeletalMeshComponent>()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	GetMesh()->SetCastShadow(false);
+	GetMesh()->bAbsoluteScale = true;
 
 	FiringState = CreateDefaultSubobject<UEquippableStateFiring>(TEXT("FiringState"));
 
@@ -92,7 +93,7 @@ void AAtomFirearm::UpdateChamberingHandle()
 		{
 			check(ChamberingIndex < ChamberHandleMovement.Num());
 
-			const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand);
+			const USceneComponent* const Hand = GetCharacterOwner()->GetHandTrigger(!EquipStatus.Hand);
 			const FVector HandLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 
 			// Get the current movement progress based on the project of the hand delta on the chamber movement vector
@@ -271,8 +272,8 @@ void AAtomFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 {
 	if (!bForceLocalOnly && 
 		!HasAuthority() && 
-		GetHeroOwner() && // Player will not be able to reload quicker than owner is replicated, so guard here.
-		GetHeroOwner()->IsLocallyControlled())
+		GetCharacterOwner() && // Player will not be able to reload quicker than owner is replicated, so guard here.
+		GetCharacterOwner()->IsLocallyControlled())
 	{
 		ServerLoadAmmo(LoadObject);
 	}
@@ -290,7 +291,7 @@ void AAtomFirearm::DiscardAmmo()
 	if (AmmoLoader->DiscardAmmo())
 	{
 		// Only replicate if successful
-		if (GetHeroOwner() && GetHeroOwner()->IsLocallyControlled() && !HasAuthority())
+		if (GetCharacterOwner() && GetCharacterOwner()->IsLocallyControlled() && !HasAuthority())
 		{
 			ServerDiscardAmmo();
 		}
@@ -333,7 +334,7 @@ void AAtomFirearm::FireShot()
 	// proxies to simulate fire. Autonomous will simulate and call ServerFire. Authority
 	// will only fire here if it is locally controlled. Otherwise, it will wait on the controlling
 	// client to sent a fire event through ServerFireShot.
-	if (GetHeroOwner()->IsLocallyControlled())
+	if (GetCharacterOwner()->IsLocallyControlled())
 	{
 		// Get shot data before applying recoil
 		const FShotData ShotData = ShotType->GetShotData();
@@ -440,10 +441,10 @@ void AAtomFirearm::OnOppositeHandTriggerReleased()
 
 bool AAtomFirearm::CanGripChamberingHandle() const
 {
-	if (!bIsSlideLockActive && GetHeroOwner()->GetEquippable(!EquipStatus.Hand) == nullptr)
+	if (!bIsSlideLockActive && GetCharacterOwner()->GetEquippable(!EquipStatus.Hand) == nullptr)
 	{		
 		const FVector HandleLocation = GetMesh()->GetSocketLocation(ChamberingHandleSocket);
-		const FVector GripLocation = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand)->GetComponentLocation();
+		const FVector GripLocation = GetCharacterOwner()->GetHandTrigger(!EquipStatus.Hand)->GetComponentLocation();
 		if (FVector::DistSquared(GripLocation, HandleLocation) <= ChamberingHandleRadius * ChamberingHandleRadius)
 		{
 			return true;
@@ -460,7 +461,7 @@ void AAtomFirearm::OnChamberingHandleGrabbed()
 	LastChamberState = EChamberState::Set;
 
 	// Assign relative hand location
-	const USceneComponent* const Hand = GetHeroOwner()->GetHandTrigger(!EquipStatus.Hand);
+	const USceneComponent* const Hand = GetCharacterOwner()->GetHandTrigger(!EquipStatus.Hand);
 	ChamberingHandStartLocation = ActorToWorld().InverseTransformPosition(Hand->GetComponentLocation());
 }
 
@@ -567,7 +568,7 @@ void AAtomFirearm::ReloadChamber(bool bIsFired)
 
 		CartridgeMeshComponent->SetVisibility(false);
 
-		if (Stats.bHasSlideLock)
+		if (Stats.bHasSlideLock && (GetCharacterOwner()->IsLocallyControlled() || HasAuthority()))
 		{
 			ActivateSlideLock();
 		}
@@ -611,13 +612,9 @@ void AAtomFirearm::OnRep_IsSlideLockActive()
 	{
 		ReleaseSlideLock();
 	}
-	else if(!HasActorBegunPlay()) // Only activate on initial rep, otherwise will be automatically activated on remotes.
-	{
-		ActivateSlideLock();
-	}
 	else
 	{
-		bIsSlideLockActive = false; // During play, only allow rep to set this for releases
+		ActivateSlideLock();
 	}
 }
 
@@ -684,6 +681,7 @@ void AAtomFirearm::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 
 	DOREPLIFETIME_CONDITION(AAtomFirearm, bIsHoldingChamberHandle, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AAtomFirearm, bIsSlideLockActive, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AAtomFirearm, bIsChamberEmpty, COND_SkipOwner);
 }
 
 void AAtomFirearm::StartFiringSequence()

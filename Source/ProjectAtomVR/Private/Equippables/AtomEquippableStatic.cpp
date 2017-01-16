@@ -10,4 +10,5 @@ AAtomEquippableStatic::AAtomEquippableStatic(const FObjectInitializer& ObjectIni
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UStaticMeshComponent>(AAtomEquippable::MeshComponentName))
 {
 	GetMesh()->SetCastShadow(false);
+	GetMesh()->bAbsoluteScale = true;
 }

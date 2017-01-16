@@ -24,10 +24,6 @@ public:
 	virtual void InitializeLoader() override;
 	/** UAmmoLoader Interface End */
 
-	/** UObject Interface Begin */
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;
-	/** UObject Interface End */
-
 protected:
 	UFUNCTION()
 	void OnHandEnteredReloadTrigger(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

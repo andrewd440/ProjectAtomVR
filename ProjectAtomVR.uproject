@@ -20,5 +20,11 @@
 	"TargetPlatforms": [
 		"PS4",
 		"WindowsNoEditor"
+	],
+	"Plugins":[
+		{
+			"Name": "OnlineSubsystemSteam",
+			"Enabled": true
+		},
 	]
 }

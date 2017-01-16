@@ -34,7 +34,7 @@ UMagazineAmmoLoader::UMagazineAmmoLoader(const FObjectInitializer& ObjectInitial
 
 void UMagazineAmmoLoader::OnEquipped()
 {
-	if (Magazine == nullptr && GetFirearm()->GetHeroOwner()->IsLocallyControlled())
+	if (Magazine == nullptr && GetFirearm()->GetCharacterOwner()->IsLocallyControlled())
 	{
 		ReloadTrigger->bGenerateOverlapEvents = true;
 	}	
@@ -117,7 +117,7 @@ void UMagazineAmmoLoader::InitializeLoader()
 	if (GetFirearm()->HasAuthority() && MagazineTemplate)
 	{
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = GetFirearm()->GetHeroOwner();
+		SpawnParams.Owner = GetFirearm()->GetCharacterOwner();
 		
 		const FTransform Transform = GetFirearm()->GetMesh()->GetSocketTransform(MagazineAttachSocket); // Spawn at attach location
 		RemoteConnectionMagazine = GetWorld()->SpawnActor<AFirearmMagazine>(MagazineTemplate, Transform, SpawnParams);
@@ -177,7 +177,10 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	// Disable immediately to prevent newly spawned loadout items from trying to load ammo.
 	ReloadTrigger->bGenerateOverlapEvents = false; 
 
-	Magazine->SetUnequipToLoadout(false);
+	if (GetFirearm()->HasAuthority())
+	{
+		GetFirearm()->GetCharacterOwner()->DiscardFromLoadout(Magazine);
+	}
 
 	if (Magazine->IsEquipped())
 	{
@@ -219,7 +222,7 @@ void UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger(UPrimitiveComponent* Ov
 	AFirearmMagazine* OverlapMagazine = static_cast<AFirearmMagazine*>(OtherActor);
 	AAtomFirearm* MyFirearm = GetFirearm();
 
-	if (OverlapMagazine->GetHeroOwner() == MyFirearm->GetHeroOwner() &&
+	if (OverlapMagazine->GetCharacterOwner() == MyFirearm->GetCharacterOwner() &&
 		(!bRequiresEquippedClip || OverlapMagazine->IsEquipped()) &&
 		OverlapMagazine->IsA(MagazineTemplate))
 	{

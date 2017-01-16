@@ -27,6 +27,8 @@ public:
 	void ScoreKill(AController* Killer, AController* Victim);
 
 protected:
+	virtual bool IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart);
+
 	/** AAtomBaseGameMode Interface Begin */
 	virtual bool IsCharacterChangeAllowed_Implementation(class AAtomPlayerController* Controller) const override;
 	/** AAtomBaseGameMode Interface End */
@@ -38,6 +40,7 @@ protected:
 
 	/** AGameModeBase Interface Begin */
 	virtual bool ShouldSpawnAtStartSpot(AController* Player) override;
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 	/** AGameModeBase Interface End */
 
 protected:

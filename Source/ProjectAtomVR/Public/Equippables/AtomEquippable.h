@@ -57,10 +57,6 @@ protected:
 	static const FName ActiveStateName;	
 
 public:
-	/** Broadcasted when the return to loadout flag is changed for this Equippable. */
-	DECLARE_EVENT(AAtomEquippable, FCanReturnToLoadoutChanged)
-	FCanReturnToLoadoutChanged OnCanReturnToLoadoutChanged;
-
 	DECLARE_DELEGATE(FEquippedStatusChangedUI)
 	FEquippedStatusChangedUI OnEquippedStatusChangedUI;	
 
@@ -82,12 +78,7 @@ public:
 	* Control the behavior of this Equippable on Unequip. If true the Equippable will be returned to the
 	* loadout when unequipped. If false, the Equippable will just be detached from the attached parent.
 	*/
-	void SetUnequipToLoadout(bool bGoesToLoadout);
-
-	/**
-	 * If this will be returned to the loadout on Unequip.
-	 */
-	bool DoesUnequipToLoadout() const;
+	void Remove();
 
 	bool IsEquipped() const;
 
@@ -216,20 +207,10 @@ private:
 	class UMeshComponent* Mesh;
 
 	UPROPERTY(BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
-	class AAtomCharacter* HeroOwner = nullptr;
+	class AAtomCharacter* CharacterOwner = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Equippable, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* SecondaryHandGripTrigger;
-
-	/** Component that is attached to when unequipped */
-	USceneComponent* LoadoutAttachComponent = nullptr;
-
-	/** Socket that is attached to when unequipped */
-	FName LoadoutAttachSocket = NAME_None;
-
-	/** True the Equippable should be returned to the loadout when unequipped. If false,
-	* the Equippable will just be detached from the attached parent. */
-	uint32 bUnequipToLoadout : 1;
 
 	uint32 bIsSecondaryHandAttached : 1;
 
@@ -243,7 +224,7 @@ private:
 	uint32 bIsSimulatingReplication : 1;
 
 public:
-	AAtomCharacter* GetHeroOwner() const;
+	AAtomCharacter* GetCharacterOwner() const;
 
 	template <typename MeshType = UMeshComponent>
 	MeshType* GetMesh() const
@@ -257,7 +238,7 @@ protected:
 	UEquippableState* GetActiveState() const;
 };
 
-FORCEINLINE AAtomCharacter* AAtomEquippable::GetHeroOwner() const { return HeroOwner; }
+FORCEINLINE AAtomCharacter* AAtomEquippable::GetCharacterOwner() const { return CharacterOwner; }
 FORCEINLINE UEquippableState* AAtomEquippable::GetInactiveState() const { return InactiveState; }
 FORCEINLINE UEquippableState* AAtomEquippable::GetActiveState() const { return ActiveState; }
 FORCEINLINE EHand AAtomEquippable::GetEquippedHand() const { return EquipStatus.Hand; }

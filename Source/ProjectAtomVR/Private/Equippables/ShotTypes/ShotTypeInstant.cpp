@@ -91,7 +91,7 @@ void UShotTypeInstant::ProcessFiredShotImpact(const FHitResult& Impact)
 		const float BaseDamage = Firearm->GetFirearmStats().Damage;
 		const FPointDamageEvent DamageEvent{ BaseDamage, Impact, (Impact.TraceStart - Impact.TraceEnd).GetSafeNormal(), DamageType };
 
-		HitActor.TakeDamage(BaseDamage, DamageEvent, Firearm->GetInstigatorController(), Firearm->GetHeroOwner());
+		HitActor.TakeDamage(BaseDamage, DamageEvent, Firearm->GetInstigatorController(), Firearm->GetCharacterOwner());
 	}
 
 	// Play local effects

@@ -40,7 +40,10 @@ void AAtomPlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	CreateUISystem();
+	if (IsLocalController())
+	{
+		CreateUISystem();
+	}		
 }
 
 void AAtomPlayerController::SetPawn(APawn* aPawn)
@@ -72,6 +75,11 @@ void AAtomPlayerController::SetPawn(APawn* aPawn)
 			USceneComponent* Attachment = AtomCharacter->GetHandController(PlayerSettings.bIsRightHanded ? EHand::Right : EHand::Left);
 			WidgetInteraction->AttachToComponent(Attachment, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 			WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
+		}
+
+		if (UISystem)
+		{
+			UISystem->CreateCharacterUI();
 		}
 	}
 }
@@ -149,15 +157,14 @@ void AAtomPlayerController::SetupInputComponent()
 
 void AAtomPlayerController::CreateUISystem()
 {
-	if (IsLocalController())
-	{
-		UE_LOG(LogAtomPlayerController, Log, TEXT("Spawned UISystem"));
+	check(IsLocalController());
 
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.ObjectFlags |= RF_Transient;
-		UISystem = GetWorld()->SpawnActor<AAtomUISystem>(AAtomUISystem::StaticClass(), SpawnParams);
-	}
+	UE_LOG(LogAtomPlayerController, Log, TEXT("Spawned UISystem"));
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.ObjectFlags |= RF_Transient;
+	UISystem = GetWorld()->SpawnActor<AAtomUISystem>(AAtomUISystem::StaticClass(), SpawnParams);
 }
 
 void AAtomPlayerController::OnMenuButtonPressed()
@@ -253,6 +260,11 @@ void AAtomPlayerController::CreateCharacterUI()
 void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest)
 {
 	Super::NotifyLoadedWorld(WorldPackageName, bFinalDest);
+
+	if (!UISystem && IsLocalController())
+	{
+		CreateUISystem();
+	}
 
 	if (UISystem != nullptr)
 	{

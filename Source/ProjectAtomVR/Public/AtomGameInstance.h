@@ -20,7 +20,7 @@ public:
 	/**
 	* Creates an online session and loads the online lobby map.
 	*/
-	UFUNCTION(BlueprintCallable, Category = AtomGameInstance)
+	UFUNCTION(Exec, BlueprintCallable, Category = AtomGameInstance)
 	virtual bool CreateSession();
 
 	class UAtomPlaylistManager* GetPlaylistManager() const;
@@ -38,6 +38,11 @@ protected:
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 
 	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+private:
+	/** Exec function for finding session. Useful for debugging session results. */
+	UFUNCTION(Exec)
+	void execFindSession();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameInstance)

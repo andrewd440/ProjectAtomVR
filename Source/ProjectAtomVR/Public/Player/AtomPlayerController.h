@@ -75,7 +75,7 @@ private:
 
 	FAtomPlayerSettings PlayerSettings;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
 	class UWidgetInteractionComponent* WidgetInteraction = nullptr;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomPlayerController, meta = ( AllowPrivateAccess = "True" ))

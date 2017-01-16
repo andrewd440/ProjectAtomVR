@@ -27,7 +27,11 @@ void UCartridgeAmmoLoader::LoadAmmo(UObject* LoadObject)
 	{
 		AAtomEquippable* Cartridge = static_cast<AAtomEquippable*>(LoadObject);		
 
-		Cartridge->SetUnequipToLoadout(false);
+		if (GetFirearm()->HasAuthority())
+		{
+			GetFirearm()->GetCharacterOwner()->DiscardFromLoadout(Cartridge);
+		}
+
 		if (Cartridge->IsEquipped())
 		{
 			// On defer unequip when not authority. Let authority unequip all remotes.
@@ -53,7 +57,7 @@ void UCartridgeAmmoLoader::OnEquipped()
 {
 	Super::OnEquipped();
 
-	if (AmmoCount < Capacity && GetFirearm()->GetHeroOwner()->IsLocallyControlled())
+	if (AmmoCount < Capacity && GetFirearm()->GetCharacterOwner()->IsLocallyControlled())
 	{
 		LoadTrigger->bGenerateOverlapEvents = true;
 	}	
@@ -70,17 +74,10 @@ void UCartridgeAmmoLoader::ConsumeAmmo()
 {
 	Super::ConsumeAmmo();
 
-	if (AmmoCount < Capacity && GetFirearm()->GetHeroOwner()->IsLocallyControlled())
+	if (AmmoCount < Capacity && GetFirearm()->GetCharacterOwner()->IsLocallyControlled())
 	{
 		LoadTrigger->bGenerateOverlapEvents = true;
 	}
-}
-
-void UCartridgeAmmoLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	ReplicateAmmoCount(OutLifetimeProps);
 }
 
 void UCartridgeAmmoLoader::InitializeLoader()
@@ -106,7 +103,7 @@ void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* Overl
 	AAtomCharacter* OverlapHero = static_cast<AAtomCharacter*>(OtherActor);
 	AAtomFirearm* MyFirearm = GetFirearm();	
 
-	if (OverlapHero == MyFirearm->GetHeroOwner()) // This is our hero
+	if (OverlapHero == MyFirearm->GetCharacterOwner()) // This is our hero
 	{
 		AAtomEquippable* OtherEquippable = OverlapHero->GetEquippable(!MyFirearm->GetEquippedHand());
 

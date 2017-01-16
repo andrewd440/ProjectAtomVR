@@ -11,7 +11,16 @@ void UEquippableStateFiring::OnEnteredState()
 {
 	Super::OnEnteredState();
 
-	StartFireShotTimer();
+	if (GetEquippable()->GetCharacterOwner()->IsLocallyControlled() || 
+		GetEquippable()->HasAuthority())
+	{
+		StartFireShotTimer();
+	}
+	else
+	{
+		StartSimulatedShotTimer();
+	}
+	
 	GetEquippable<AAtomFirearm>()->StartFiringSequence();
 }
 
@@ -32,6 +41,7 @@ void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimePr
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(UEquippableStateFiring, ServerShotCounter, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(UEquippableStateFiring, bDryFireNotify, COND_SkipOwner);
 }
 
 void UEquippableStateFiring::OnTriggerReleased()
@@ -68,7 +78,7 @@ void UEquippableStateFiring::StartFireShotTimer()
 	if (ShotDelay > 0.f || HeroFirearm->IsMuzzleInGeometry())
 	{
 		// Entered firing state faster than firing rate or muzzle is blocked
-		OnFalseFire();
+		OnDryFire();
 	}
 	else
 	{
@@ -78,21 +88,53 @@ void UEquippableStateFiring::StartFireShotTimer()
 	ShotsFired = 0;
 }
 
-void UEquippableStateFiring::OnFireShot()
+void UEquippableStateFiring::StartSimulatedShotTimer()
+{
+	const AAtomFirearm* const HeroFirearm = GetEquippable<AAtomFirearm>();
+	const FFirearmStats& FirearmStats = HeroFirearm->GetFirearmStats();
+
+	GetWorld()->GetTimerManager().SetTimer(FireTimer, this, &UEquippableStateFiring::OnFireSimulatedShot, FirearmStats.FireRate, true, 0.f);
+
+	ShotsFired = 0;
+}
+
+void UEquippableStateFiring::OnFireSimulatedShot()
 {
 	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
 
-	// Used to update remotes with shot count. Should always increment.
-	if (Firearm->HasAuthority())
+	UE_LOG(LogFirearm, Verbose, TEXT("OnFireSimulatedShot by %s"), Firearm->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
+
+	Firearm->FireShot();
+
+	LastShotTimestamp = GetWorld()->GetTimeSeconds();
+
+	++ShotsFired;
+
+	// Guard against the shot killing us and dropping the firearm, which pops all states.
+	if (Firearm->GetCurrentState() == this)
 	{
-		++ServerShotCounter;
+		if (BurstCount > 0 && ShotsFired >= BurstCount)
+		{
+			// Slide lock may have replicated before shots and gotten overrided, reactivate if needed.
+			if (Firearm->IsSlideLockActive())
+			{
+				Firearm->ActivateSlideLock();
+			}
+
+			GetEquippable()->PopState(this);
+		}
 	}
+}
+
+void UEquippableStateFiring::OnFireShot()
+{
+	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
 
 	UE_LOG(LogFirearm, Log, TEXT("OnFireShot by %s"), Firearm->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
 
 	if (!Firearm->CanFire())
 	{
-		OnFalseFire();
+		OnDryFire();
 	}
 	else
 	{
@@ -101,6 +143,9 @@ void UEquippableStateFiring::OnFireShot()
 		LastShotTimestamp = GetWorld()->GetTimeSeconds();
 
 		++ShotsFired;
+
+		// Used to update remotes with shot count.
+		++ServerShotCounter;
 
 		// Guard against the shot killing us and dropping the firearm, which pops all states.
 		if (Firearm->GetCurrentState() == this)
@@ -119,10 +164,11 @@ void UEquippableStateFiring::OnFireShot()
 	}
 }
 
-void UEquippableStateFiring::OnFalseFire()
+void UEquippableStateFiring::OnDryFire()
 {
 	UE_LOG(LogFirearm, Log, TEXT("OnFalseFire by %s"), GetEquippable<AAtomFirearm>()->HasAuthority() ? TEXT("Authority") : TEXT("Client"));
 	AAtomFirearm* const Firearm = GetEquippable<AAtomFirearm>();
+	bDryFireNotify = !bDryFireNotify;
 	Firearm->DryFire();
 	Firearm->PopState(this);
 }
@@ -156,4 +202,9 @@ void UEquippableStateFiring::OnRep_TotalShotCounter()
 			Firearm->PopState(this);
 		}
 	}
+}
+
+void UEquippableStateFiring::OnRep_DryFireNotify()
+{
+	GetEquippable<AAtomFirearm>()->DryFire();
 }

@@ -70,6 +70,7 @@ public:
 	/** UObject Interface Begin */
 	virtual bool IsSupportedForNetworking() const override;
 	virtual class UWorld* GetWorld() const override final;	
+	void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const;
 	/** UObject Interface End */
 
 protected:
@@ -78,6 +79,7 @@ protected:
 	void ReplicateAmmoCount(TArray<class FLifetimeProperty> & OutLifetimeProps) const;
 
 protected:
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = AmmoLoader)
 	int32 AmmoCount = 0;
 
 private:

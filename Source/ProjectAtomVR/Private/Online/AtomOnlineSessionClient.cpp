@@ -5,7 +5,7 @@
 
 namespace
 {
-	constexpr int32 MaxSearchResults = 10;
+	constexpr int32 MaxSearchResults = 100;
 }
 
 UAtomOnlineSessionClient::UAtomOnlineSessionClient()

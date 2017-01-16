@@ -95,6 +95,11 @@ public:
 	void SetLoadoutOffset(float Offset);
 
 	/**
+	* Checks if an item is a part of this loadout.
+	*/
+	bool IsInLoadout(const AAtomEquippable* Item) const;
+
+	/**
 	* Returns an item to the loadout. This should be the active item within a slot in the loadout. Does not work with a discarded
 	* item.
 	*/

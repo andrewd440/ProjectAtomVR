@@ -41,6 +41,7 @@ bool UAtomGameInstance::CreateSession()
 		Settings.bAllowInvites = true;
 		Settings.bAllowJoinInProgress = true;
 		Settings.NumPublicConnections = MaxSessionConnections;
+		Settings.bUsesPresence = true;
 		Settings.bAllowJoinViaPresence = true;
 		Settings.bShouldAdvertise = true;
 
@@ -149,4 +150,12 @@ void UAtomGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionC
 			}
 		}		
 	}	
+}
+
+void UAtomGameInstance::execFindSession()
+{
+	if (UAtomOnlineSessionClient* AtomSession = Cast<UAtomOnlineSessionClient>(OnlineSession))
+	{
+		AtomSession->StartOnlineSessionSearch();
+	}
 }

@@ -5,6 +5,9 @@
 #include "AtomPlayerController.h"
 #include "AtomCharacter.h"
 #include "AtomGameInstance.h"
+#include "AtomTeamStart.h"
+#include "Engine/World.h"
+#include "AtomPlayerState.h"
 
 AAtomGameMode::AAtomGameMode()
 {
@@ -73,5 +76,62 @@ void AAtomGameMode::HandleMatchHasEnded()
 bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
 {
 	return false;
+}
+
+bool AAtomGameMode::IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart)
+{
+	AAtomPlayerState* AtomPlayerState = Cast<AAtomPlayerState>(Player->PlayerState);
+	AAtomTeamStart* AtomTeamStart = Cast<AAtomTeamStart>(PlayerStart);
+
+	return !AtomPlayerState || (AtomTeamStart && (AtomPlayerState->TeamId == AtomTeamStart->TeamId));
+}
+
+AActor* AAtomGameMode::ChoosePlayerStart_Implementation(AController* Player)
+{
+	// Choose a player start
+	APlayerStart* FoundPlayerStart = nullptr;
+	UClass* PawnClass = GetDefaultPawnClassForController(Player);
+	APawn* PawnToFit = PawnClass ? PawnClass->GetDefaultObject<APawn>() : nullptr;
+
+	TArray<APlayerStart*> UnOccupiedStartPoints;
+	TArray<APlayerStart*> OccupiedStartPoints;
+	
+	for (TActorIterator<APlayerStart> It(GetWorld()); It; ++It)
+	{
+		APlayerStart* PlayerStart = *It;
+
+		if (PlayerStart->IsA<APlayerStartPIE>())
+		{
+			// Always prefer the first "Play from Here" PlayerStart, if we find one while in PIE mode
+			FoundPlayerStart = PlayerStart;
+			break;
+		}
+		else if(IsValidPlayerStart(Player, PlayerStart))
+		{
+			FVector ActorLocation = PlayerStart->GetActorLocation();
+			const FRotator ActorRotation = PlayerStart->GetActorRotation();
+			if (!GetWorld()->EncroachingBlockingGeometry(PawnToFit, ActorLocation, ActorRotation))
+			{
+				UnOccupiedStartPoints.Add(PlayerStart);
+			}
+			else if (GetWorld()->FindTeleportSpot(PawnToFit, ActorLocation, ActorRotation))
+			{
+				OccupiedStartPoints.Add(PlayerStart);
+			}
+		}
+	}
+	if (FoundPlayerStart == nullptr)
+	{
+		if (UnOccupiedStartPoints.Num() > 0)
+		{
+			FoundPlayerStart = UnOccupiedStartPoints[FMath::RandRange(0, UnOccupiedStartPoints.Num() - 1)];
+		}
+		else if (OccupiedStartPoints.Num() > 0)
+		{
+			FoundPlayerStart = OccupiedStartPoints[FMath::RandRange(0, OccupiedStartPoints.Num() - 1)];
+		}
+	}
+
+	return FoundPlayerStart != nullptr ? FoundPlayerStart : Super::ChoosePlayerStart_Implementation(Player);
 }
 

@@ -15,7 +15,7 @@ UEquippableState::UEquippableState(const FObjectInitializer& ObjectInitializer /
 
 void UEquippableState::OnEnteredState()
 {
-	if (Equippable->GetHeroOwner()->IsLocallyControlled())
+	if (Equippable->GetCharacterOwner()->IsLocallyControlled())
 	{
 		UInputComponent* const InputComponent = Equippable->InputComponent;
 		check(InputComponent && "InputComponent should always be valid on locally controlled Equippables.");

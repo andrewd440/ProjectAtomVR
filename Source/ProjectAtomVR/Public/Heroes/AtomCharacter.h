@@ -44,6 +44,8 @@ public:
 	/** Called by Equippable when the unequipping process is complete. */
 	virtual void OnUnequipped(AAtomEquippable* Item, const EHand Hand);
 
+	void DiscardFromLoadout(AAtomEquippable* Item);
+
 	/**
 	* Gets the component that controls the target location and rotation for the hand mesh.
 	* This is always the detached hand mesh for the respective hands, which is only rendered
@@ -115,7 +117,6 @@ public:
 protected:
 	template <EHand Hand>
 	void OnEquipPressed();
-	virtual void FinishTeleport(FVector DestLocation, FRotator DestRotation);
 
 	virtual void Die(AController* Killer);
 
@@ -147,8 +148,6 @@ protected:
 	FVector RoomScaleVelocity = FVector::ZeroVector;
 
 private:
-	FVector NeckBaseSocketOffset = FVector::ZeroVector;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))
 	class UHMDCameraComponent* Camera;
 
