@@ -39,11 +39,11 @@ public:
 	/** Handle respawn */
 	virtual void UnFreeze() override;
 
-	void CreateCharacterUI();
+	/** Set the client's class of VRHUD and spawns a new instance of it. If there was already a VRHUD active, it is destroyed. */
+	UFUNCTION(BlueprintCallable, Category = "HUD", Reliable, Client)
+	void ClientSetVRHUD(TSubclassOf<class AVRHUD> NewHUDClass);
 
 protected:
-	void CreateUISystem();
-
 	void OnMenuButtonPressed();
 
 	void OnMenuClickPressed();
@@ -55,21 +55,19 @@ private:
 
 	/** APlayerController Interface Begin */
 public:
-	virtual void BeginPlay() override;
-	virtual void PostInitializeComponents() override;
 	virtual void SetPawn(APawn* aPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetPlayer(UPlayer* InPlayer) override;
-	virtual void ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass) override;
-	virtual void NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest) override;
 	virtual void Destroyed() override;
+	virtual void SpawnDefaultHUD() override;
+	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList) override;
 protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */
 
 private:
 	UPROPERTY()
-	class AAtomUISystem* UISystem = nullptr;
+	class AVRHUD* VRHUD = nullptr;
 
 	AAtomCharacter* AtomCharacter = nullptr;
 
@@ -78,6 +76,6 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Transient, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
 	class UWidgetInteractionComponent* WidgetInteraction = nullptr;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomPlayerController, meta = ( AllowPrivateAccess = "True" ))
+	UPROPERTY(Replicated, BlueprintReadOnly, Transient, Category = AtomPlayerController, meta = ( AllowPrivateAccess = "True" ))
 	TSubclassOf<AAtomCharacter> RequestedCharacter = nullptr;
 };

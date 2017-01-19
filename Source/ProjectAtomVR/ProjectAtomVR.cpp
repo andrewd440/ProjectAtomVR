@@ -4,5 +4,5 @@
 
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, ProjectAtomVR, "ProjectAtomVR" );
 
-DEFINE_LOG_CATEGORY(AtomLog);
+DEFINE_LOG_CATEGORY(LogAtom);
 DEFINE_LOG_CATEGORY(LogAtomOnlineSession);

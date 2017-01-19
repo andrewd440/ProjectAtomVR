@@ -3,25 +3,22 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-#include "AtomUIActor.generated.h"
+#include "AtomHUDActor.generated.h"
 
 class UUserWidget;
-class AAtomUISystem;
+class AVRHUD;
 
 UCLASS()
-class PROJECTATOMVR_API AAtomUIActor : public AActor
+class PROJECTATOMVR_API AAtomHUDActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AAtomUIActor();
+	AAtomHUDActor();
 
 	/** Gets the UI system. May be null in editor. */
-	AAtomUISystem* GetUISystem() const;
-
-	/** Sets the UI system. */
-	void SetUISystem(AAtomUISystem* UISystem);
+	AVRHUD* GetHUD() const;
 
 	const TArray<UUserWidget*> GetWidgets() const;
 
@@ -31,8 +28,6 @@ public:
 	/** AActor Interface End */
 
 private:
-	AAtomUISystem* UISystem = nullptr;
-
 	/** All widgets contained within any widget components. */
 	TArray<UUserWidget*> Widgets;
 };

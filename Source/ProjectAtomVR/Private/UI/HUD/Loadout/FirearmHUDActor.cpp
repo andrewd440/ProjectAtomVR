@@ -1,18 +1,17 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "FirearmUIActor.h"
-#include "../UMG/Public/Components/WidgetComponent.h"
+#include "FirearmHUDActor.h"
+#include "FirearmWidget.h"
 #include "AtomFirearm.h"
-#include "Firearms/FirearmWidget.h"
 
-AFirearmUIActor::AFirearmUIActor()
+AFirearmHUDActor::AFirearmHUDActor()
 	: Super()
 {
 
 }
 
-void AFirearmUIActor::PostInitializeComponents()
+void AFirearmHUDActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
@@ -25,22 +24,22 @@ void AFirearmUIActor::PostInitializeComponents()
 	}
 }
 
-void AFirearmUIActor::BeginPlay()
+void AFirearmHUDActor::BeginPlay()
 {
 	Super::BeginPlay();
 
 	AAtomFirearm* Firearm = GetFirearm();
-	Firearm->GetAmmoLoader()->OnAmmoCountChanged.BindUObject(this, &AFirearmUIActor::OnAmmoCountChanged);
+	Firearm->GetAmmoLoader()->OnAmmoCountChanged.BindUObject(this, &AFirearmHUDActor::OnAmmoCountChanged);
 }
 
-AAtomFirearm* AFirearmUIActor::GetFirearm() const
+AAtomFirearm* AFirearmHUDActor::GetFirearm() const
 {
 	check(!GetEquippable() || Cast<AAtomFirearm>(GetEquippable())); // Might be null in editor
 
 	return static_cast<AAtomFirearm*>(GetEquippable());
 }
 
-void AFirearmUIActor::OnAmmoCountChanged()
+void AFirearmHUDActor::OnAmmoCountChanged()
 {
 	for (auto* FirearmWidget : FirearmWidgets)
 	{

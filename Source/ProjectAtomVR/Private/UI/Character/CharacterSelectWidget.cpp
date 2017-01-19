@@ -36,7 +36,8 @@ void UCharacterSelectWidget::OnCharacterSelected()
 
 	if (TSubclassOf<AAtomCharacter> Character = Owner->GetCharacterClass())
 	{
-		if (AAtomPlayerController* Controller = Cast<AAtomPlayerController>(GetOwningPlayer()))
+		UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+		if (AAtomPlayerController* Controller = Cast<AAtomPlayerController>(GameInstance->GetFirstLocalPlayerController()))
 		{
 			Controller->ServerRequestCharacterChange(Character);
 		}

@@ -48,7 +48,7 @@ void UMainMenuWidget::OnOnlineSessionSearchComplete(bool bWasSuccessful)
 		TSharedPtr<FOnlineSessionSearch> SearchResult = OnlineSession->GetSearchSettings();
 		if (SearchResult->SearchResults.Num() > 0)
 		{
-			GameInstance->JoinSession(GetOwningLocalPlayer(), 0);
+			GameInstance->JoinSession(GameInstance->GetLocalPlayerByIndex(0), 0);
 		}
 		else
 		{

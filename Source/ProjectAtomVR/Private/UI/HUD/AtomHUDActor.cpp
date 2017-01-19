@@ -1,35 +1,32 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "AtomUIActor.h"
-#include "AtomUISystem.h"
+#include "AtomHUDActor.h"
 #include "WidgetComponent.h"
 #include "UserWidget.h"
 #include "WidgetTree.h"
+#include "VRHUD.h"
 
 
 // Sets default values
-AAtomUIActor::AAtomUIActor()
+AAtomHUDActor::AAtomHUDActor()
 {
 	bNetLoadOnClient = false;
 }
 
-class AAtomUISystem* AAtomUIActor::GetUISystem() const
+class AVRHUD* AAtomHUDActor::GetHUD() const
 {
-	return UISystem;
+	check(GetOwner() == nullptr || Cast<AVRHUD>(GetOwner()));
+
+	return Cast<AVRHUD>(GetOwner());
 }
 
-void AAtomUIActor::SetUISystem(AAtomUISystem* InUISystem)
-{
-	UISystem = InUISystem;
-}
-
-const TArray<UUserWidget*> AAtomUIActor::GetWidgets() const
+const TArray<UUserWidget*> AAtomHUDActor::GetWidgets() const
 {
 	return Widgets;
 }
 
-void AAtomUIActor::PostInitializeComponents()
+void AAtomHUDActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
@@ -58,16 +55,16 @@ void AAtomUIActor::PostInitializeComponents()
 	}
 
 	// Set player context for all widgets
-	if (UISystem != nullptr)
+	if (AVRHUD* HUD = GetHUD())
 	{
 		for (UUserWidget* Widget : Widgets)
 		{
-			Widget->SetPlayerContext(UISystem->GetPlayerController());
+			Widget->SetPlayerContext(HUD->GetPlayerController());
 		}
 	}
 }
 
-void AAtomUIActor::Destroyed()
+void AAtomHUDActor::Destroyed()
 {
 	Widgets.Empty();
 

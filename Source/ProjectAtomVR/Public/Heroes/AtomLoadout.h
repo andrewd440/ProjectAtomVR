@@ -25,7 +25,7 @@ struct FAtomLoadoutSlot
 
 	/** Called when the loadout slot item or count is changed. Should only be bound by
 	 ** the slot UI actor. */
-	DECLARE_DELEGATE_OneParam(FItemChanged, ELoadoutSlotChangeType)
+	DECLARE_MULTICAST_DELEGATE_OneParam(FItemChanged, ELoadoutSlotChangeType)
 	FItemChanged OnSlotChanged;
 
 	UPROPERTY(BlueprintReadOnly)
@@ -119,6 +119,8 @@ public:
 	/** Gets the loadout template. Template items and loadout slots map one-to-one. */
 	const TSubclassOf<class UAtomLoadoutTemplate> GetLoadoutTemplate() const;
 
+	const TArray<FAtomLoadoutTemplateSlot>& GetTemplateSlots() const;
+
 	UFUNCTION(BlueprintCallable, Category = Loadout)
 	const FAtomLoadoutSlot& GetItemSlot(const AAtomEquippable* Item) const;
 
@@ -142,8 +144,6 @@ protected:
 	* Updates all the slot offsets. Should only be called on locally controlled characters.
 	*/
 	void UpdateSlotOffset(const FAtomLoadoutSlot& Slot, const FAtomLoadoutTemplateSlot& TemplateSlot);
-
-	const TArray<FAtomLoadoutTemplateSlot>& GetTemplateSlots() const;
 
 	UFUNCTION()
 	void OnRep_Loadout();

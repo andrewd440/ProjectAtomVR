@@ -19,10 +19,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = AtomBaseGameMode)
 	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
 
-	TSubclassOf<class UGameModeUISubsystem> GetUIClass() const;
+	TSubclassOf<class AVRHUD> GetVRHUDClass() const;
 	
 	/** AGameModeBase Interface Begin */
-	UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+	virtual void InitializeHUDForPlayer_Implementation(APlayerController* NewPlayer) override;
 	/** AGameModeBase Interface End */
 
 protected:
@@ -30,6 +31,6 @@ protected:
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
-	TSubclassOf<UGameModeUISubsystem> UIClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = Classes, meta = (DisplayName="VR HUD Class"))
+	TSubclassOf<class AVRHUD> VRHUDClass;
 };

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AtomUIActor.h"
+#include "GameFramework/Actor.h"
 #include "AtomCharacterSelect.generated.h"
 
 class AAtomCharacter;
@@ -11,7 +11,7 @@ class AAtomCharacter;
  * UI Actor that allows the player to selected a specified character.
  */
 UCLASS()
-class PROJECTATOMVR_API AAtomCharacterSelect : public AAtomUIActor
+class PROJECTATOMVR_API AAtomCharacterSelect : public AActor
 {
 	GENERATED_BODY()
 	

@@ -111,7 +111,7 @@ void UAtomLoadout::DestroyLoadout()
 			Slot.Item = nullptr;
 		}
 
-		Slot.OnSlotChanged.Unbind();
+		Slot.OnSlotChanged.Clear();
 	}
 }
 
@@ -274,13 +274,13 @@ void UAtomLoadout::DiscardFromLoadout(const AAtomEquippable* Item)
 			Slot.Item->SetActorRelativeLocation(ItemSocketOffset);
 		}		
 
-		Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
+		Slot.OnSlotChanged.Broadcast(ELoadoutSlotChangeType::Count | ELoadoutSlotChangeType::Item);
 	}
 	else
 	{
 		Slot.Item = nullptr;
 
-		Slot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item);
+		Slot.OnSlotChanged.Broadcast(ELoadoutSlotChangeType::Item);
 	}
 }
 
@@ -424,7 +424,7 @@ void UAtomLoadout::CreateLoadoutEquippables(const TArray<FAtomLoadoutTemplateSlo
 				CurrentSlot.Item = Equippable;
 				CurrentSlot.Count = TemplateSlot.Count;			
 
-				CurrentSlot.OnSlotChanged.ExecuteIfBound(ELoadoutSlotChangeType::Item | ELoadoutSlotChangeType::Count);
+				CurrentSlot.OnSlotChanged.Broadcast(ELoadoutSlotChangeType::Item | ELoadoutSlotChangeType::Count);
 			}
 			else
 			{
@@ -518,7 +518,7 @@ void UAtomLoadout::OnRep_Loadout()
 
 		if (Change != ELoadoutSlotChangeType::None)
 		{
-			Slot.OnSlotChanged.ExecuteIfBound(Change);
+			Slot.OnSlotChanged.Broadcast(Change);
 		}
 	}
 }

@@ -5,7 +5,7 @@
 #include "Components/WidgetComponent.h"
 #include "AtomWidgetComponent.generated.h"
 
-class AAtomUIActor;
+class AAtomHUDActor;
 
 /**
  * 

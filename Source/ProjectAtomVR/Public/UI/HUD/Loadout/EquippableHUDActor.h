@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "UI/AtomUIActor.h"
-#include "EquippableUIActor.generated.h"
+#include "AtomHUDActor.h"
+#include "EquippableHUDActor.generated.h"
 
 class AAtomEquippable;
 class UEquippableWidget;
@@ -15,12 +15,12 @@ class AAtomEquippable;
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API AEquippableUIActor : public AAtomUIActor
+class PROJECTATOMVR_API AEquippableHUDActor : public AAtomHUDActor
 {
 	GENERATED_BODY()
 	
 public:
-	AEquippableUIActor();
+	AEquippableHUDActor();
 
 	/**
 	* Called when the loadout slot for the owning equippable has changed. Type 
@@ -56,4 +56,4 @@ private:
 	TWeakObjectPtr<AAtomEquippable> Equippable = nullptr;
 };
 
-FORCEINLINE const TArray<UEquippableWidget*>& AEquippableUIActor::GetEquippableWidgets() const { return EquippableWidgets; }
+FORCEINLINE const TArray<UEquippableWidget*>& AEquippableHUDActor::GetEquippableWidgets() const { return EquippableWidgets; }

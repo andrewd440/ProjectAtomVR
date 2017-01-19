@@ -20,7 +20,7 @@
 #include "AtomGameState.h"
 
 /** Logging */
-DECLARE_LOG_CATEGORY_EXTERN(AtomLog, Log, All); // A general log for your general needs
+DECLARE_LOG_CATEGORY_EXTERN(LogAtom, Log, All); // A general log for your general needs
 DECLARE_LOG_CATEGORY_EXTERN(LogAtomOnlineSession, Log, All);
 
 namespace AtomCollisionProfiles

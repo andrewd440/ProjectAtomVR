@@ -177,9 +177,10 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	// Disable immediately to prevent newly spawned loadout items from trying to load ammo.
 	ReloadTrigger->bGenerateOverlapEvents = false; 
 
-	if (GetFirearm()->HasAuthority())
+	AAtomCharacter* const CharacterOwner = GetFirearm()->GetCharacterOwner();
+	if (CharacterOwner && CharacterOwner->HasAuthority())
 	{
-		GetFirearm()->GetCharacterOwner()->DiscardFromLoadout(Magazine);
+		CharacterOwner->DiscardFromLoadout(Magazine);
 	}
 
 	if (Magazine->IsEquipped())

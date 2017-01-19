@@ -102,7 +102,7 @@ public:
 
 	bool IsSecondaryHandAttached() const;
 
-	virtual TSubclassOf<class AEquippableUIActor> GetUIActor() const;
+	virtual TSubclassOf<class AEquippableHUDActor> GetHUDActor() const;
 
 	void SetReplicatesAttachment(bool bShouldReplicate);
 
@@ -187,7 +187,7 @@ protected:
 	FEquipStatus ReplicatedEquipStatus;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
-	TSubclassOf<class AEquippableUIActor> EquippableUI;
+	TSubclassOf<class AEquippableHUDActor> HUDActor;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Equippable)
 	ELoadoutType LoadoutType;

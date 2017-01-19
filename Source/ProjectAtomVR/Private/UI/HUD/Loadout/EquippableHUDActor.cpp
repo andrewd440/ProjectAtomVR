@@ -1,20 +1,19 @@
 // Copyright 2016 Epic Wolf Productions, Inc. All Rights Reserved.
 
 #include "ProjectAtomVR.h"
-#include "EquippableUIActor.h"
-
-#include "UI/EquippableWidget.h"
-#include "UI/EquippableWidgetComponent.h"
-#include "AtomLoadout.h"
+#include "EquippableHUDActor.h"
 #include "UserWidget.h"
+#include "EquippableWidget.h"
+#include "EquippableWidgetComponent.h"
+#include "AtomLoadout.h"
 
 
-AEquippableUIActor::AEquippableUIActor()
+AEquippableHUDActor::AEquippableHUDActor()
 {
 
 }
 
-void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FAtomLoadoutSlot& LoadoutSlot)
+void AEquippableHUDActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FAtomLoadoutSlot& LoadoutSlot)
 {
 	for (UEquippableWidget* Widget : EquippableWidgets)
 	{
@@ -22,24 +21,24 @@ void AEquippableUIActor::OnLoadoutChanged(ELoadoutSlotChangeType Type, const FAt
 	}
 }
 
-class AAtomEquippable* AEquippableUIActor::GetEquippable() const
+class AAtomEquippable* AEquippableHUDActor::GetEquippable() const
 {
 	return Equippable.Get();
 }
 
-void AEquippableUIActor::SetEquippable(AAtomEquippable* NewEquippable)
+void AEquippableHUDActor::SetEquippable(AAtomEquippable* NewEquippable)
 {
 	Equippable = NewEquippable;
 
 	if (NewEquippable)
 	{
-		Equippable->OnEquippedStatusChangedUI.BindUObject(this, &AEquippableUIActor::OnEquippedStatusChanged);
+		Equippable->OnEquippedStatusChangedUI.BindUObject(this, &AEquippableHUDActor::OnEquippedStatusChanged);
 
 		UpdateWidgetAttachments();				
 	}	
 }
 
-void AEquippableUIActor::PostInitializeComponents()
+void AEquippableHUDActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
@@ -59,7 +58,7 @@ void AEquippableUIActor::PostInitializeComponents()
 	}
 }
 
-void AEquippableUIActor::SetOwner(AActor* NewOwner)
+void AEquippableHUDActor::SetOwner(AActor* NewOwner)
 {
 	Super::SetOwner(NewOwner);
 
@@ -69,14 +68,14 @@ void AEquippableUIActor::SetOwner(AActor* NewOwner)
 	}
 }
 
-void AEquippableUIActor::Destroyed()
+void AEquippableHUDActor::Destroyed()
 {
 	EquippableWidgets.Empty();
 
 	Super::Destroyed();
 }
 
-void AEquippableUIActor::UpdateWidgetAttachments()
+void AEquippableHUDActor::UpdateWidgetAttachments()
 {
 	check(Equippable.IsValid());
 
@@ -107,7 +106,7 @@ void AEquippableUIActor::UpdateWidgetAttachments()
 	}
 }
 
-void AEquippableUIActor::OnEquippedStatusChanged()
+void AEquippableHUDActor::OnEquippedStatusChanged()
 {
 	check(Equippable.IsValid());
 

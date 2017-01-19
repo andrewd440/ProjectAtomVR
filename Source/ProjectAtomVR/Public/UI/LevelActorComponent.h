@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Components/SceneComponent.h"
-#include "LevelUIComponent.generated.h"
+#include "LevelActorComponent.generated.h"
 
 UENUM()
 enum class ELevelUISpawnType : uint8
@@ -13,18 +13,18 @@ enum class ELevelUISpawnType : uint8
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class PROJECTATOMVR_API ULevelUIComponent : public USceneComponent
+class PROJECTATOMVR_API ULevelActorComponent : public USceneComponent
 {
 	GENERATED_BODY()
 
 public:	
-	ULevelUIComponent();
+	ULevelActorComponent();
 
-	TSubclassOf<class AAtomUIActor> GetUIActor() const { return UIActorClass; }
+	TSubclassOf<class AActor> GetActorClass() const { return ActorClass; }
 
 	ELevelUISpawnType GetSpawnType() const { return SpawnType; }
 
-	void SpawnUIActor(class AAtomUISystem* OwningSystem);
+	void SpawnActor();
 
 	/** USceneComponent Interface Begin */
 #if WITH_EDITOR
@@ -36,11 +36,11 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, Category = LevelUIComponent)
-	TSubclassOf<class AAtomUIActor> UIActorClass;
+	TSubclassOf<class AActor> ActorClass;
 
 	UPROPERTY(EditAnywhere, Category = LevelUIComponent)
 	ELevelUISpawnType SpawnType = ELevelUISpawnType::WithLevel;
 
 	UPROPERTY()
-	class AAtomUIActor* UIActor = nullptr;
+	class AActor* Actor = nullptr;
 };

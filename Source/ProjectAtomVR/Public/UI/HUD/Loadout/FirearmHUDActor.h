@@ -2,19 +2,19 @@
 
 #pragma once
 
-#include "EquippableUIActor.h"
-#include "FirearmUIActor.generated.h"
+#include "EquippableHUDActor.h"
+#include "FirearmHUDActor.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API AFirearmUIActor : public AEquippableUIActor
+class PROJECTATOMVR_API AFirearmHUDActor : public AEquippableHUDActor
 {
 	GENERATED_BODY()
 	
 public:
-	AFirearmUIActor();
+	AFirearmHUDActor();
 
 	UFUNCTION(BlueprintCallable, Category = FirearmUIActor)
 	class AAtomFirearm* GetFirearm() const;

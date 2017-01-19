@@ -364,9 +364,9 @@ void AAtomEquippable::OnUnequipped()
 	OnEquippedStatusChangedUI.ExecuteIfBound();
 }
 
-TSubclassOf<class AEquippableUIActor> AAtomEquippable::GetUIActor() const
+TSubclassOf<class AEquippableHUDActor> AAtomEquippable::GetHUDActor() const
 {
-	return EquippableUI;
+	return HUDActor;
 }
 
 void AAtomEquippable::SetReplicatesAttachment(bool bShouldReplicate)

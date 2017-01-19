@@ -7,7 +7,7 @@
 
 #include "EquippableWidget.generated.h"
 
-class AEquippableUIActor;
+class AEquippableHUDActor;
 
 /**
  * 
@@ -18,10 +18,10 @@ class PROJECTATOMVR_API UEquippableWidget : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void SetOwner(AEquippableUIActor* Owner);
+	void SetOwner(AEquippableHUDActor* Owner);
 
-	AEquippableUIActor* GetOwner() { return Owner.Get(); }
-	const AEquippableUIActor* GetOwner() const { return Owner.Get(); }
+	AEquippableHUDActor* GetOwner() { return Owner.Get(); }
+	const AEquippableHUDActor* GetOwner() const { return Owner.Get(); }
 
 	/**
 	* Called when the equippable has been equipped.
@@ -51,5 +51,5 @@ public:
 
 protected:
 	UPROPERTY(Transient, BlueprintReadOnly, Category = EquippableWidget)
-	TWeakObjectPtr<AEquippableUIActor> Owner;
+	TWeakObjectPtr<AEquippableHUDActor> Owner;
 };

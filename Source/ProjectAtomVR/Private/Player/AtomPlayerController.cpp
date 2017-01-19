@@ -3,10 +3,10 @@
 #include "ProjectAtomVR.h"
 #include "AtomPlayerController.h"
 #include "AtomCharacter.h"
-#include "UI/AtomUISystem.h"
 #include "AtomLocalPlayer.h"
 #include "GameModes/AtomBaseGameMode.h"
 #include "AtomGameUserSettings.h"
+#include "VRHUD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
@@ -15,72 +15,48 @@ AAtomPlayerController::AAtomPlayerController()
 
 }
 
-void AAtomPlayerController::BeginPlay()
-{
-	Super::BeginPlay();	
-
-	if (HasAuthority())
-	{
-		// ReceivedGameModeClass not called for Authority, so create gamemode ui here.
-		AAtomBaseGameMode* const GameMode = GetWorld()->GetAuthGameMode<AAtomBaseGameMode>();
-
-		if (UISystem && GameMode)
-		{
-			UISystem->CreateGameModeUI(GameMode->GetClass());
-		}
-	}
-
-	if (UISystem != nullptr)
-	{
-		UISystem->CreateLevelUI();
-	}
-}
-
-void AAtomPlayerController::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	if (IsLocalController())
-	{
-		CreateUISystem();
-	}		
-}
-
 void AAtomPlayerController::SetPawn(APawn* aPawn)
 {
-	const bool IsNewPawn = (AtomCharacter != aPawn);
-	if (IsNewPawn && AtomCharacter)
+	ensure(aPawn == nullptr || aPawn != GetPawn());
+	Super::SetPawn(aPawn);
+
+	AAtomCharacter* OldCharacter = AtomCharacter;
+	AtomCharacter = Cast<AAtomCharacter>(aPawn);
+
+	const bool bIsNewCharacter = (AtomCharacter != OldCharacter);
+
+	if (AtomCharacter && bIsNewCharacter)
 	{
-		if (WidgetInteraction)
+		AtomCharacter->ApplyPlayerSettings(PlayerSettings);
+	}
+
+	if (WidgetInteraction)
+	{
+		if (AtomCharacter)
+		{
+			if (bIsNewCharacter)
+			{
+				USceneComponent* Attachment = AtomCharacter->GetHandController(PlayerSettings.bIsRightHanded ?
+					EHand::Right : EHand::Left);
+
+				WidgetInteraction->AttachToComponent(Attachment, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+				WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
+			}
+		}
+		else
 		{
 			WidgetInteraction->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		}
 
-		if (UISystem)
+		if (WidgetInteraction->IsActive())
 		{
-			UISystem->DestroyCharacterUI();
-		}		
+			WidgetInteraction->Deactivate();
+		}
 	}
-
-	Super::SetPawn(aPawn);
-
-	AtomCharacter = Cast<AAtomCharacter>(aPawn);
-
-	if (IsNewPawn && AtomCharacter)
+	
+	if (VRHUD && bIsNewCharacter)
 	{
-		AtomCharacter->ApplyPlayerSettings(PlayerSettings);
-
-		if (WidgetInteraction)
-		{
-			USceneComponent* Attachment = AtomCharacter->GetHandController(PlayerSettings.bIsRightHanded ? EHand::Right : EHand::Left);
-			WidgetInteraction->AttachToComponent(Attachment, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			WidgetInteraction->SetRelativeRotation(FRotator{ -40, 0, 0 });
-		}
-
-		if (UISystem)
-		{
-			UISystem->CreateCharacterUI();
-		}
+		VRHUD->OnCharacterChanged(OldCharacter);
 	}
 }
 
@@ -93,16 +69,19 @@ void AAtomPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>
 
 void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 {
-	// Set player settings before Super::SetPlayer to setup input correctly
-	if (UAtomLocalPlayer* AtomPlayer = Cast<UAtomLocalPlayer>(InPlayer))
+	UAtomLocalPlayer* AtomLocalPlayer = Cast<UAtomLocalPlayer>(InPlayer);
+
+	if (AtomLocalPlayer)
 	{
 		check(Cast<UAtomGameUserSettings>(GEngine->GameUserSettings));
 		UAtomGameUserSettings* GameUserSettings = static_cast<UAtomGameUserSettings*>(GEngine->GameUserSettings);
 
+		// Set player settings before Super::SetPlayer to setup input correctly
 		PlayerSettings = GameUserSettings->GetPlayerSettings();
 
 		Super::SetPlayer(InPlayer);
 
+		// SetPlayer first so RPC works
 		ServerSetPlayerSettings(PlayerSettings);
 		
 		if (AtomCharacter && !HasAuthority())
@@ -110,26 +89,25 @@ void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 			// Needed for local only settings
 			AtomCharacter->ApplyPlayerSettings(PlayerSettings);
 		}
-	}
-	else
-	{
-		Super::SetPlayer(InPlayer);
-	}	
 
-	// Create widget interaction for local controllers
-	if (IsLocalController())
-	{
+		// Create widget interaction for local players
 		WidgetInteraction = NewObject<UWidgetInteractionComponent>(this);
 		WidgetInteraction->SetIsReplicated(false);
 		WidgetInteraction->RegisterComponent();
 		WidgetInteraction->Deactivate();
 		WidgetInteraction->bShowDebug = true;
 	}
-	else if (WidgetInteraction)
+	else
 	{
-		WidgetInteraction->DestroyComponent();
-		WidgetInteraction = nullptr;
-	}
+		Super::SetPlayer(InPlayer);
+
+		if (WidgetInteraction)
+		{
+			// Not local player, destroy
+			WidgetInteraction->DestroyComponent();
+			WidgetInteraction = nullptr;
+		}
+	}	
 }
 
 void AAtomPlayerController::SetupInputComponent()
@@ -153,18 +131,6 @@ void AAtomPlayerController::SetupInputComponent()
 	InputComponent->BindAction(MenuAction, IE_Pressed, this, &AAtomPlayerController::OnMenuButtonPressed).bConsumeInput = true;
 	InputComponent->BindAction(MenuClickAction, IE_Pressed, this, &AAtomPlayerController::OnMenuClickPressed).bConsumeInput = false;
 	InputComponent->BindAction(MenuClickAction, IE_Released, this, &AAtomPlayerController::OnMenuClickReleased).bConsumeInput = false;
-}
-
-void AAtomPlayerController::CreateUISystem()
-{
-	check(IsLocalController());
-
-	UE_LOG(LogAtomPlayerController, Log, TEXT("Spawned UISystem"));
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.ObjectFlags |= RF_Transient;
-	UISystem = GetWorld()->SpawnActor<AAtomUISystem>(AAtomUISystem::StaticClass(), SpawnParams);
 }
 
 void AAtomPlayerController::OnMenuButtonPressed()
@@ -250,46 +216,58 @@ void AAtomPlayerController::UnFreeze()
 	ServerRestartPlayer();
 }
 
-void AAtomPlayerController::CreateCharacterUI()
+void AAtomPlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList)
 {
-	check(UISystem);
+	Super::GetSeamlessTravelActorList(bToEntry, ActorList);
 
-	UISystem->CreateCharacterUI();
-}
-
-void AAtomPlayerController::NotifyLoadedWorld(FName WorldPackageName, bool bFinalDest)
-{
-	Super::NotifyLoadedWorld(WorldPackageName, bFinalDest);
-
-	if (!UISystem && IsLocalController())
+	if (VRHUD)
 	{
-		CreateUISystem();
-	}
-
-	if (UISystem != nullptr)
-	{
-		UISystem->CreateLevelUI();
+		ActorList.Add(VRHUD);
 	}
 }
 
-void AAtomPlayerController::ReceivedGameModeClass(TSubclassOf<class AGameModeBase> GameModeClass)
+void AAtomPlayerController::ClientSetVRHUD_Implementation(TSubclassOf<class AVRHUD> NewHUDClass)
 {
-	Super::ReceivedGameModeClass(GameModeClass);
-
-	if (UISystem)
+	if (VRHUD)
 	{
-		UISystem->CreateGameModeUI(GameModeClass);
+		VRHUD->Destroy();
+		VRHUD = nullptr;
+	}
+
+	if (NewHUDClass)
+	{
+		UE_LOG(LogAtomPlayerController, Log, TEXT("Spawning VRHUD % for %"), *NewHUDClass->GetName(), *GetName());
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.ObjectFlags |= RF_Transient;
+		VRHUD = GetWorld()->SpawnActor<AVRHUD>(NewHUDClass, FTransform::Identity, SpawnParams);
 	}
 }
 
 void AAtomPlayerController::Destroyed()
 {
-	if (UISystem)
+	if (VRHUD)
 	{
-		UISystem->Destroy();
-		UISystem = nullptr;
+		VRHUD->Destroy();
+		VRHUD = nullptr;
 	}
 
 	Super::Destroyed();
+}
+
+void AAtomPlayerController::SpawnDefaultHUD()
+{
+	if (Cast<ULocalPlayer>(Player) == NULL)
+	{
+		return;
+	}
+
+	UE_LOG(LogAtomPlayerController, Verbose, TEXT("SpawnDefaultHUD"));
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.Owner = this;
+	SpawnInfo.Instigator = Instigator;
+	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save HUDs into a map
+	VRHUD = GetWorld()->SpawnActor<AVRHUD>(SpawnInfo);
 }
 

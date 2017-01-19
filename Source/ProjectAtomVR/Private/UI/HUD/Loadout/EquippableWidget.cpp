@@ -6,7 +6,7 @@
 
 
 
-void UEquippableWidget::SetOwner(AEquippableUIActor* InOwner)
+void UEquippableWidget::SetOwner(AEquippableHUDActor* InOwner)
 {
 	Owner = InOwner;
 }

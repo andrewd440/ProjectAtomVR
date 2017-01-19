@@ -5,7 +5,6 @@
 #include "WidgetComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Character/CharacterSelectWidget.h"
-#include "AtomUISystem.h"
 
 
 // Sets default values

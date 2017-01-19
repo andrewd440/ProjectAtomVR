@@ -21,6 +21,6 @@ void UAtomLoadoutTemplate::PostLoad()
 
 	if (GetWorld() != nullptr && GetWorld()->WorldType == EWorldType::Game)
 	{
-		UE_LOG(AtomLog, Warning, TEXT("UHeroLoadoutTemplate should not be created. Use CDO instead."));
+		UE_LOG(LogAtom, Warning, TEXT("UHeroLoadoutTemplate should not be created. Use CDO instead."));
 	}
 }

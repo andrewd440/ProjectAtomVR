@@ -2,10 +2,10 @@
 
 #pragma once
 
-#include "Blueprint/UserWidget.h"
+#include "EquippableWidget.h"
 #include "FirearmWidget.generated.h"
 
-class AFirearmUIActor;
+class AFirearmHUDActor;
 
 /**
  * 
@@ -20,7 +20,7 @@ public:
 	void OnAmmoCountChanged();	
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = FirearmWidget)
-	class AFirearmUIActor* GetFirearmUI();
+	class AFirearmHUDActor* GetFirearmUI();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = FirearmWidget)
 	class AAtomFirearm* GetFirearm();
