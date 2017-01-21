@@ -83,7 +83,7 @@ void UHMDCapsuleComponent::UpdateCollisionOffset()
 		FVector Start = ComponentToWorld.TransformPosition(CollisionOffset);
 		FVector End = ComponentToWorld.TransformPosition(PendingCollisionOffset);
 
-		FCollisionQueryParams QueryParams{ NAME_None, false, GetOwner() };
+		FCollisionQueryParams QueryParams( NAME_None, false, GetOwner() );
 		FCollisionResponseParams ResponseParam;
 		InitSweepCollisionParams(QueryParams, ResponseParam);
 

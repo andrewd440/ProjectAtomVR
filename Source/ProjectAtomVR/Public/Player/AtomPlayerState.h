@@ -14,14 +14,22 @@ class PROJECTATOMVR_API AAtomPlayerState : public APlayerState
 	GENERATED_BODY()
 	
 public:
+	AAtomPlayerState();
+
+	AAtomTeamInfo* GetTeam() const;
+	void SetTeam(AAtomTeamInfo* InTeam);
+
+	int32 GetSavedTeamId() const;
 
 	/** APlayerState Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	/** APlayerState Interface End */	
+	virtual void ClientInitialize(class AController* C) override;
+	/** APlayerState Interface End */
 
 protected:
 	UFUNCTION()
-	virtual void OnRep_TeamId();
+	virtual void NotifyTeamChanged();
+	AAtomCharacter* GetAtomCharacter() const;
 
 public:
 	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)
@@ -30,6 +38,14 @@ public:
 	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)
 	int32 Deaths = 0;
 
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_TeamId, BlueprintReadWrite, Category = AtomPlayerState)
-	int32 TeamId = -1;
+protected:
+	UPROPERTY(Transient, ReplicatedUsing=NotifyTeamChanged, BlueprintReadWrite, Category = AtomPlayerState)
+	AAtomTeamInfo* Team = nullptr;
+
+private:
+	UPROPERTY(Transient)
+	mutable AAtomCharacter* AtomCharacter; // Cached reference to the character. Do not use directly, use GetAtomCharacter instead.
+
+	UPROPERTY()
+	int32 SavedTeamId = -1; // Saved team id used to rejoin teams after seamless travel from lobby
 };

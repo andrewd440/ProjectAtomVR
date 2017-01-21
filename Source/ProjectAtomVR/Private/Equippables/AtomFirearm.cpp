@@ -256,7 +256,7 @@ bool AAtomFirearm::CanFire() const
 bool AAtomFirearm::IsMuzzleInGeometry() const
 {
 	const FCollisionObjectQueryParams ObjectParams{ FCollisionObjectQueryParams::AllStaticObjects };
-	const FCollisionQueryParams QueryParams{ NAME_None, false, this };
+	const FCollisionQueryParams QueryParams( NAME_None, false, this );
 
 	const FVector WorldLocation = GetTransform().TransformPosition(BlockFireVolume.RelativePosition);
 	const FQuat WorldRotation = GetTransform().GetRotation() * BlockFireVolume.RelativeRotation;

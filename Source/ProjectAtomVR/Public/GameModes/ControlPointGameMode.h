@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "GameModes/AtomGameMode.h"
+#include "AtomTeamGameMode.h"
 #include "ControlPointGameMode.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class PROJECTATOMVR_API AControlPointGameMode : public AAtomGameMode
+class PROJECTATOMVR_API AControlPointGameMode : public AAtomTeamGameMode
 {
 	GENERATED_BODY()
 	

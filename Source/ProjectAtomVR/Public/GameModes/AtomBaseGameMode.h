@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/GameMode.h"
+#include "AtomGameState.h"
 #include "AtomBaseGameMode.generated.h"
 
 /**
@@ -30,7 +31,15 @@ protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
 
+	AAtomGameState* GetAtomGameState() const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = Classes, meta = (DisplayName="VR HUD Class"))
 	TSubclassOf<class AVRHUD> VRHUDClass;
 };
+
+FORCEINLINE AAtomGameState* AAtomBaseGameMode::GetAtomGameState() const
+{
+	check(Cast<AAtomGameState>(GameState));
+	return static_cast<AAtomGameState*>(GameState);
+}

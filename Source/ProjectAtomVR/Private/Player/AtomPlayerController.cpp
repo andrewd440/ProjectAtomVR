@@ -17,7 +17,6 @@ AAtomPlayerController::AAtomPlayerController()
 
 void AAtomPlayerController::SetPawn(APawn* aPawn)
 {
-	ensure(aPawn == nullptr || aPawn != GetPawn());
 	Super::SetPawn(aPawn);
 
 	AAtomCharacter* OldCharacter = AtomCharacter;

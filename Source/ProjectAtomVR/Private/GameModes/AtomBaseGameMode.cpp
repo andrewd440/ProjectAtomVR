@@ -15,6 +15,8 @@ AAtomBaseGameMode::AAtomBaseGameMode()
 	PlayerControllerClass = AAtomPlayerController::StaticClass();
 	PlayerStateClass = AAtomPlayerState::StaticClass();
 	VRHUDClass = AVRHUD::StaticClass();
+
+	bUseSeamlessTravel = true;
 }
 
 void AAtomBaseGameMode::RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character)

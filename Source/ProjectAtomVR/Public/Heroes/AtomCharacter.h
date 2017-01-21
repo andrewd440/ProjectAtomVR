@@ -93,6 +93,8 @@ public:
 
 	virtual bool CanDie() const;
 
+	virtual void NotifyTeamChanged();
+
 	/** ACharacter Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual FVector GetPawnViewLocation() const override;
@@ -107,6 +109,7 @@ public:
 	virtual void UnPossessed() override;
 	virtual bool ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const override;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	virtual void OnRep_PlayerState() override;
 	/** APawn Interface End */
 
 	/** AActor Interface Begin */
@@ -146,6 +149,8 @@ protected:
 	/** Room scale movement velocity of the player. */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = AtomCharacter)
 	FVector RoomScaleVelocity = FVector::ZeroVector;
+
+	TArray<UMaterialInstanceDynamic*> MeshMaterialInstances;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AtomCharacter, meta = (AllowPrivateAccess = "true"))

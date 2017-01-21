@@ -11,53 +11,14 @@ AAtomGameState::AAtomGameState()
 
 }
 
-void AAtomGameState::ScoreKill(AAtomPlayerState* Player, int32 Score)
+void AAtomGameState::SetGameWinner(AAtomPlayerState* Winner)
 {
-	++Player->Kills;
-	Player->Score += Score;
-
-	check(Player->TeamId >= 0);
-	Teams[Player->TeamId].Score += Score;
+	GameWinner = Winner;
 }
 
-void AAtomGameState::ScoreDeath(AAtomPlayerState* Player, int32 Score)
+AAtomPlayerState* AAtomGameState::GetGameWinner() const
 {
-	++Player->Deaths;
-	Player->Score += Score;
-
-	check(Player->TeamId >= 0);
-	Teams[Player->TeamId].Score += Score;
-}
-
-void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
-{
-	Super::AddPlayerState(PlayerState);
-
-	// Assign team and add to list
-	if (AAtomPlayerState* const AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
-	{
-		if (AtomPlayerState->TeamId < 0)
-		{
-			AtomPlayerState->TeamId = (Teams[0].Players.Num() < Teams[1].Players.Num()) ? 0 : 1;
-		}
-
-		Teams[AtomPlayerState->TeamId].Players.AddUnique(AtomPlayerState);
-	}
-}
-
-void AAtomGameState::RemovePlayerState(APlayerState* PlayerState)
-{
-	Super::RemovePlayerState(PlayerState);
-
-	// Remove from assigned team
-	if (AAtomPlayerState* const AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
-	{
-		if (AtomPlayerState->TeamId >= 0)
-		{
-			Teams[AtomPlayerState->TeamId].Players.Remove(AtomPlayerState);
-			// Keep assigned team in player state while it persists in InactivePlayerArray in GameMode			
-		}
-	}
+	return GameWinner;
 }
 
 void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -65,4 +26,9 @@ void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AAtomGameState, Teams);
+	DOREPLIFETIME(AAtomGameState, GameWinner);
+
+	DOREPLIFETIME_CONDITION(AAtomGameState, bIsTeamGame, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(AAtomGameState, ScoreLimit, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(AAtomGameState, TimeLimit, COND_InitialOnly);
 }

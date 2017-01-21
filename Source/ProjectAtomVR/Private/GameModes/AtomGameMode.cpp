@@ -8,34 +8,53 @@
 #include "AtomTeamStart.h"
 #include "Engine/World.h"
 #include "AtomPlayerState.h"
+#include "AtomGameState.h"
+#include "AtomTeamInfo.h"
 
 AAtomGameMode::AAtomGameMode()
 {
 
 }
 
+void AAtomGameMode::InitGameState()
+{
+	Super::InitGameState();
+
+	AAtomGameState* AtomGameState = GetAtomGameState();
+	AtomGameState->ScoreLimit = ScoreLimit;
+	AtomGameState->TimeLimit = TimeLimit;
+}
+
 void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* Victim)
 {
 	const bool bIsSuicide = (Killer == Victim);
 
-	check(GetGameState<AAtomGameState>());
-
-	AAtomGameState* AtomGameState = static_cast<AAtomGameState*>(GameState);	
+	AAtomGameState* const AtomGameState = GetAtomGameState();
 
 	// Score kill
-	if (Killer != Victim)
+	if (!bIsSuicide)
 	{
 		if (AAtomPlayerState* KillerState = Cast<AAtomPlayerState>(Killer->PlayerState))
 		{
-			AtomGameState->ScoreKill(KillerState, KillScore);
+			KillerState->Score += KillScore;
+			++KillerState->Kills;
+
+			if (AtomGameState->bIsTeamGame)
+				KillerState->GetTeam()->Score += KillScore;
+
+			CheckForGameWinner(KillerState);
 		}
 	}
 
 	// Score death/suicide
 	if (AAtomPlayerState* VictimState = Cast<AAtomPlayerState>(Victim->PlayerState))
 	{
-		AtomGameState->ScoreDeath(VictimState, DeathScore);
-	}
+		VictimState->Score += DeathScore;
+		++VictimState->Deaths;
+
+		if(AtomGameState->bIsTeamGame)
+			VictimState->GetTeam()->Score += DeathScore;
+	}	
 }
 
 bool AAtomGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerController*) const
@@ -53,7 +72,7 @@ bool AAtomGameMode::ReadyToEndMatch_Implementation()
 	{
 		if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
 		{
-			return AtomGameState->ElapsedTime >= TimeLimit;
+			return AtomGameState->GetGameWinner() || AtomGameState->ElapsedTime >= TimeLimit;
 		}		
 	}
 
@@ -69,7 +88,8 @@ void AAtomGameMode::HandleMatchHasEnded()
 
 	UAtomGameInstance* const GameInstance = static_cast<UAtomGameInstance*>(GetGameInstance());
 
-	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *GameInstance->GetLobbyMap().ToString(), *GameInstance->GetLobbyGameMode().ToString());
+	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *GameInstance->GetLobbyMap().ToString(), 
+		*GameInstance->GetLobbyGameMode().ToString());
 	GetWorld()->ServerTravel(URLString);
 }
 
@@ -78,12 +98,20 @@ bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
 	return false;
 }
 
-bool AAtomGameMode::IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart)
+bool AAtomGameMode::IsValidPlayerStart(AController*, APlayerStart*)
 {
-	AAtomPlayerState* AtomPlayerState = Cast<AAtomPlayerState>(Player->PlayerState);
-	AAtomTeamStart* AtomTeamStart = Cast<AAtomTeamStart>(PlayerStart);
+	return true;
+}
 
-	return !AtomPlayerState || (AtomTeamStart && (AtomPlayerState->TeamId == AtomTeamStart->TeamId));
+void AAtomGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scorer)
+{
+	if (ScoreLimit > 0)
+	{
+		if (Scorer->Score > ScoreLimit)
+		{
+			GetAtomGameState()->SetGameWinner(Scorer);
+		}
+	}
 }
 
 AActor* AAtomGameMode::ChoosePlayerStart_Implementation(AController* Player)
@@ -120,6 +148,7 @@ AActor* AAtomGameMode::ChoosePlayerStart_Implementation(AController* Player)
 			}
 		}
 	}
+
 	if (FoundPlayerStart == nullptr)
 	{
 		if (UnOccupiedStartPoints.Num() > 0)

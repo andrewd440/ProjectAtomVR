@@ -15,6 +15,11 @@
 #include "WidgetInteractionComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "AtomPlayerSettings.h"
+#include "Components/MeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "AtomPlayerState.h"
+#include "AtomGameState.h"
+#include "AtomTeamInfo.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
@@ -233,6 +238,27 @@ void AAtomCharacter::SetupPlayerInputComponent(class UInputComponent* InInputCom
 	}
 }
 
+void SetAndCollectDynamicMaterialInstances(UMeshComponent* MeshComponent, TArray<UMaterialInstanceDynamic*>& MaterialInstances)
+{
+	for (int32 i = 0; i < MeshComponent->GetNumMaterials(); ++i)
+	{
+		UMaterialInterface* Material = MeshComponent->GetMaterial(i);
+		UMaterialInstanceDynamic** MaterialInstance = MaterialInstances.FindByPredicate([Material](UMaterialInstanceDynamic* MI)
+		{
+			return MI->Parent == Material;
+		});
+
+		if (MaterialInstance)
+		{
+			MeshComponent->SetMaterial(i, *MaterialInstance);
+		}
+		else
+		{
+			MaterialInstances.Add(MeshComponent->CreateAndSetMaterialInstanceDynamic(i));
+		}
+	}
+}
+
 void AAtomCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();			
@@ -244,6 +270,12 @@ void AAtomCharacter::PostInitializeComponents()
 	DefaultRightHandTransform.Rotation = RightHandMesh->RelativeRotation;
 
 	Loadout->InitializeLoadout(this);
+
+	// Try to reuse any material instances on other meshes with same material
+	SetAndCollectDynamicMaterialInstances(GetMesh(), MeshMaterialInstances);
+	SetAndCollectDynamicMaterialInstances(BodyMesh, MeshMaterialInstances);
+	SetAndCollectDynamicMaterialInstances(LeftHandMesh, MeshMaterialInstances);
+	SetAndCollectDynamicMaterialInstances(RightHandMesh, MeshMaterialInstances);
 }
 
 void AAtomCharacter::PostNetReceiveLocationAndRotation()
@@ -294,6 +326,12 @@ void AAtomCharacter::Destroyed()
 	}
 
 	Super::Destroyed();
+}
+
+void AAtomCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	NotifyTeamChanged();
 }
 
 bool AAtomCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
@@ -407,6 +445,7 @@ void AAtomCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	Loadout->OnCharacterControllerChanged();
+	NotifyTeamChanged();
 
 	if (RightHandEquippable != nullptr)
 	{
@@ -660,6 +699,21 @@ bool AAtomCharacter::CanDie() const
 	return Health > 0 && !IsPendingKill() &&
 		GetWorld()->GetGameState()->GameModeClass != nullptr &&
 		GetWorld()->GetGameState()->GameModeClass->IsChildOf(AAtomGameMode::StaticClass());
+}
+
+void AAtomCharacter::NotifyTeamChanged()
+{
+	AAtomPlayerState* AtomPlayerState = Cast<AAtomPlayerState>(PlayerState);
+
+	if (AtomPlayerState && AtomPlayerState->GetTeam())
+	{
+		static const FName TeamColorMaterialParam = TEXT("TeamColor");
+
+		for (auto MI : MeshMaterialInstances)
+		{
+			MI->SetVectorParameterValue(TeamColorMaterialParam, AtomPlayerState->GetTeam()->TeamColor);
+		}
+	}
 }
 
 template <EHand Hand>
