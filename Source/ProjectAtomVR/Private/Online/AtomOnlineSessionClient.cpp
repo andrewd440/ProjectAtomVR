@@ -33,6 +33,7 @@ bool UAtomOnlineSessionClient::StartOnlineSessionSearch()
 
 		SearchSettings = MakeShareable(new FOnlineSessionSearch());
 		SearchSettings->MaxSearchResults = MaxSearchResults;
+		SearchSettings->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 
 		bOperationSuccessful = SessionInt->FindSessions(*GetGameInstance()->GetFirstGamePlayer()->GetPreferredUniqueNetId(), SearchSettings.ToSharedRef());
 	}

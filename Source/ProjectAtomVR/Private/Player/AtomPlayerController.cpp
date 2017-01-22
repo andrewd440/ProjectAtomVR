@@ -7,12 +7,22 @@
 #include "GameModes/AtomBaseGameMode.h"
 #include "AtomGameUserSettings.h"
 #include "VRHUD.h"
+#include "AtomPlayerState.h"
+#include "AtomTeamInfo.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
 AAtomPlayerController::AAtomPlayerController()
 {
 
+}
+
+void AAtomPlayerController::execChangeTeams()
+{
+	if (auto AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
+	{
+		AtomPlayerState->ServerRequestTeamChange(AAtomTeamInfo::INDEX_NO_TEAM);
+	}
 }
 
 void AAtomPlayerController::SetPawn(APawn* aPawn)

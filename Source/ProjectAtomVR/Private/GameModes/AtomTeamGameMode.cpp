@@ -5,6 +5,7 @@
 #include "AtomTeamInfo.h"
 #include "Color.h"
 #include "AtomPlayerState.h"
+#include "AtomTeamStart.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomTeamGameMode, Log, All);
@@ -13,6 +14,72 @@ AAtomTeamGameMode::AAtomTeamGameMode()
 {
 	new(TeamColors) FLinearColor(FLinearColor::Red);
 	new(TeamColors) FLinearColor(FLinearColor::Blue);
+}
+
+bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
+{
+	AAtomGameState* AtomGameState = GetAtomGameState();
+	check(AtomGameState->Teams.IsValidIndex(TeamId));
+
+	check(Cast<AAtomPlayerState>(Controller->PlayerState));
+	AAtomPlayerState* PlayerState = static_cast<AAtomPlayerState*>(Controller->PlayerState);
+	
+	AAtomTeamInfo* OldTeam = PlayerState->GetTeam();
+	AAtomTeamInfo* NewTeam = AtomGameState->Teams[TeamId];
+
+	// If new team has less members, allow switch
+	if (NewTeam->Size() < OldTeam->Size())
+	{
+		MovePlayerToTeam(Controller, PlayerState, NewTeam);
+		return true;
+	}
+
+	// Check if any members are waiting to switch teams
+	for (auto TeamMember : NewTeam->GetTeamMembers())
+	{
+		check(Cast<AAtomPlayerState>(TeamMember->PlayerState));
+		AAtomPlayerState* TeamMemberState = static_cast<AAtomPlayerState*>(TeamMember->PlayerState);
+
+		if (TeamMemberState->GetPendingTeamChange() == OldTeam->TeamId)
+		{
+			MovePlayerToTeam(Controller, PlayerState, NewTeam);
+			MovePlayerToTeam(TeamMember, TeamMemberState, OldTeam);
+			return true;
+		}
+	}
+
+	// Team change rejected. Set pending and return.
+	PlayerState->SetPendingTeamChange(TeamId);
+	return false;
+}
+
+void AAtomTeamGameMode::MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, AAtomTeamInfo* Team)
+{
+	// Unposses and destroy existing pawn
+	if (APawn* Pawn = Controller->GetPawn())
+	{
+		Pawn->DetachFromControllerPendingDestroy();
+		Pawn->Destroy(true);
+	}
+
+	// Remove from existing team
+	if (PlayerState->GetTeam())
+	{
+		PlayerState->GetTeam()->RemoveFromTeam(Controller);
+	}
+
+	PlayerState->SetPendingTeamChange(-1);
+	
+	// Add to new team
+	PlayerState->SetTeam(Team);
+	Team->AddToTeam(Controller);
+
+	if (auto PlayerController = Cast<APlayerController>(Controller))
+	{
+		UpdateGameplayMuteList(PlayerController);
+	}	
+
+	RestartPlayer(Controller);
 }
 
 void AAtomTeamGameMode::Logout(AController* Exiting)
@@ -84,13 +151,13 @@ void AAtomTeamGameMode::UpdateGameplayMuteList(APlayerController* aPlayer)
 	// Mute opposing teams and unmute team
 	AAtomPlayerState* const AtomPlayerState = Cast<AAtomPlayerState>(aPlayer->PlayerState);
 	
-	int32 TeamId = -1;
+	int32 TeamId = AAtomTeamInfo::INDEX_NO_TEAM;
 	if (AtomPlayerState && AtomPlayerState->GetTeam())
 	{
 		TeamId = AtomPlayerState->GetTeam()->TeamId;
 	}
 
-	const auto& PlayerNetId = aPlayer->NetConnection->PlayerId;
+	const auto& PlayerNetId = aPlayer->PlayerState->UniqueId;
 	
 	auto& Teams = GetAtomGameState()->Teams;
 	for (int32 i = 0; i < Teams.Num(); ++i)
@@ -98,12 +165,13 @@ void AAtomTeamGameMode::UpdateGameplayMuteList(APlayerController* aPlayer)
 		if (i != TeamId)
 		{
 			for (auto& Controller : Teams[i]->GetTeamMembers())
-			{
+			{				
 				if (auto PlayerController = Cast<APlayerController>(Controller))
 				{
-					if (PlayerController->NetConnection)
+					const auto& OtherNetId = PlayerController->PlayerState->UniqueId;
+					if (OtherNetId.IsValid())
 					{
-						aPlayer->GameplayMutePlayer(PlayerController->NetConnection->PlayerId);
+						aPlayer->GameplayMutePlayer(OtherNetId);
 						PlayerController->GameplayMutePlayer(PlayerNetId);
 					}
 				}
@@ -119,9 +187,10 @@ void AAtomTeamGameMode::UpdateGameplayMuteList(APlayerController* aPlayer)
 
 				if (auto PlayerController = Cast<APlayerController>(Controller))
 				{
-					if (PlayerController->NetConnection)
+					const auto& OtherNetId = PlayerController->PlayerState->UniqueId;
+					if (OtherNetId.IsValid())
 					{
-						aPlayer->GameplayUnmutePlayer(PlayerController->NetConnection->PlayerId);
+						aPlayer->GameplayUnmutePlayer(OtherNetId);
 						PlayerController->GameplayUnmutePlayer(PlayerNetId);
 					}
 				}
@@ -180,9 +249,23 @@ void AAtomTeamGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scor
 	}
 }
 
-void AAtomTeamGameMode::GenericPlayerInitialization(AController* C)
+FString AAtomTeamGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal)
 {
-	if (auto PlayerState = Cast<AAtomPlayerState>(C->PlayerState))
+	// Assign team before Super for things that rely on teams (mute list, player start)
+	if (auto PlayerState = Cast<AAtomPlayerState>(NewPlayerController->PlayerState))
+	{
+		AAtomTeamInfo* Team = ChooseBestTeam(NewPlayerController);
+		PlayerState->SetTeam(Team);
+		Team->AddToTeam(NewPlayerController);
+	}
+
+	return Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+}
+
+void AAtomTeamGameMode::InitSeamlessTravelPlayer(AController* NewController)
+{
+	// Assign team before Super for things that rely on teams (mute list, player start)
+	if (auto PlayerState = Cast<AAtomPlayerState>(NewController->PlayerState))
 	{
 		auto& Teams = GetAtomGameState()->Teams;
 
@@ -192,17 +275,12 @@ void AAtomTeamGameMode::GenericPlayerInitialization(AController* C)
 			PlayerState->SetTeam(Teams[PlayerState->GetSavedTeamId()]);
 		}
 		else
-		{			
-			PlayerState->SetTeam(ChooseBestTeam(C));
+		{
+			PlayerState->SetTeam(ChooseBestTeam(NewController));
 		}
-		
-		PlayerState->GetTeam()->AddToTeam(C);
-	}
-	else
-	{
-		UE_LOG(LogAtomTeamGameMode, Warning, TEXT("Incoming player without valid AtomPlayerState."));
+
+		PlayerState->GetTeam()->AddToTeam(NewController);
 	}
 
-	// Call after setting up team to update gameplay mute list correctly
-	Super::GenericPlayerInitialization(C);
+	Super::InitSeamlessTravelPlayer(NewController);
 }

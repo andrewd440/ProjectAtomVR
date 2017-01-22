@@ -6,6 +6,8 @@
 #include "AtomCharacter.h"
 #include "AtomTeamInfo.h"
 #include "Engine/World.h"
+#include "AtomGameState.h"
+#include "AtomTeamGameMode.h"
 
 
 AAtomPlayerState::AAtomPlayerState()
@@ -25,9 +27,42 @@ void AAtomPlayerState::SetTeam(AAtomTeamInfo* InTeam)
 	NotifyTeamChanged();
 }
 
-int32 AAtomPlayerState::GetSavedTeamId() const
+uint32 AAtomPlayerState::GetSavedTeamId() const
 {
 	return SavedTeamId;
+}
+
+void AAtomPlayerState::SetPendingTeamChange(uint32 InTeamId)
+{
+	PendingTeamChange = static_cast<uint8>(InTeamId);
+}
+
+uint32 AAtomPlayerState::GetPendingTeamChange() const
+{
+	return PendingTeamChange;
+}
+
+void AAtomPlayerState::ServerRequestTeamChange_Implementation(int32 RequestedTeam)
+{
+	AController* Controller = Cast<AController>(GetOwner());
+	AAtomTeamGameMode* GameMode = GetWorld()->GetAuthGameMode<AAtomTeamGameMode>();
+	
+	if (Controller && GameMode)
+	{
+		AAtomGameState* GameState = GameMode->GetAtomGameState();
+
+		if (RequestedTeam == AAtomTeamInfo::INDEX_NO_TEAM)
+		{			
+			RequestedTeam = (Team != nullptr && GameState->Teams.IsValidIndex(Team->TeamId + 1)) ? Team->TeamId + 1 : 0;	
+		}
+
+		GameMode->ChangeTeams(Controller, RequestedTeam);
+	}
+}
+
+bool AAtomPlayerState::ServerRequestTeamChange_Validate(int32)
+{
+	return true;
 }
 
 void AAtomPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -37,6 +72,7 @@ void AAtomPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AAtomPlayerState, Team);
 	DOREPLIFETIME(AAtomPlayerState, Kills);
 	DOREPLIFETIME(AAtomPlayerState, Deaths);
+	DOREPLIFETIME(AAtomPlayerState, PendingTeamChange);
 }
 
 void AAtomPlayerState::ClientInitialize(class AController* C)
@@ -79,4 +115,9 @@ AAtomCharacter* AAtomPlayerState::GetAtomCharacter() const
 	}
 
 	return nullptr;
+}
+
+void AAtomPlayerState::OnRep_PendingTeamChange()
+{
+	// Do nothing yet...
 }

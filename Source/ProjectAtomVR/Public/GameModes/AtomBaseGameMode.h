@@ -22,6 +22,8 @@ public:
 
 	TSubclassOf<class AVRHUD> GetVRHUDClass() const;
 	
+	AAtomGameState* GetAtomGameState() const;
+
 	/** AGameModeBase Interface Begin */
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 	virtual void InitializeHUDForPlayer_Implementation(APlayerController* NewPlayer) override;
@@ -30,8 +32,6 @@ public:
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
-
-	AAtomGameState* GetAtomGameState() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = Classes, meta = (DisplayName="VR HUD Class"))

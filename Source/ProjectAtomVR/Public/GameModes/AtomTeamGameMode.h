@@ -16,8 +16,12 @@ class PROJECTATOMVR_API AAtomTeamGameMode : public AAtomGameMode
 public:
 	AAtomTeamGameMode();		
 
+	bool ChangeTeams(AController* Controller, int32 TeamId);
+
 protected:
-	AAtomTeamInfo* ChooseBestTeam(const AController* Controller) const;	
+	AAtomTeamInfo* ChooseBestTeam(const AController* Controller) const;		
+
+	void MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, class AAtomTeamInfo* Team);
 
 	/** AtomGameMode Interface Begin */
 public:
@@ -28,9 +32,15 @@ protected:
 	virtual void CheckForGameWinner_Implementation(AAtomPlayerState* Scorer) override;
 	/** AtomGameMode Interface End */
 
+	/** AGameMode Interface Begin */
+public:
+	virtual void InitSeamlessTravelPlayer(AController* NewController) override;
+	/** AGameMode Interface End */
+
 	/** AGameModeBase Interface Begin */
+protected:
 	virtual void UpdateGameplayMuteList(APlayerController* aPlayer) override;
-	virtual void GenericPlayerInitialization(AController* C) override;
+	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
 	/** AGameModeBase Interface End */
 
 protected:

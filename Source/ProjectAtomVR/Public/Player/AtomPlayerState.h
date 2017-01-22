@@ -19,7 +19,20 @@ public:
 	AAtomTeamInfo* GetTeam() const;
 	void SetTeam(AAtomTeamInfo* InTeam);
 
-	int32 GetSavedTeamId() const;
+	uint32 GetSavedTeamId() const;
+
+	/** 
+	 * Sends a request to the server to switch teams. 
+	 * @param TeamId The id for the team. -1 to switch to the next team.
+	 */
+	UFUNCTION(BlueprintCallable, Server, Reliable, WithValidation, Category=AtomPlayerState)
+	void ServerRequestTeamChange(int32 RequestedTeam);
+
+	/** Sets the team id for a pending team change that has been requested. Only set on server by gamemode. */
+	void SetPendingTeamChange(uint32 InTeamId);
+
+	/** Gets the team id for a pending team changes that has been requested. */
+	uint32 GetPendingTeamChange() const;
 
 	/** APlayerState Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -30,6 +43,9 @@ protected:
 	UFUNCTION()
 	virtual void NotifyTeamChanged();
 	AAtomCharacter* GetAtomCharacter() const;
+
+	UFUNCTION()
+	void OnRep_PendingTeamChange();
 
 public:
 	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)
@@ -42,10 +58,13 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing=NotifyTeamChanged, BlueprintReadWrite, Category = AtomPlayerState)
 	AAtomTeamInfo* Team = nullptr;
 
+	UPROPERTY(ReplicatedUsing=OnRep_PendingTeamChange)
+	uint8 PendingTeamChange = 255;
+
+	UPROPERTY()
+	uint8 SavedTeamId = 255; // Saved team id used to rejoin teams after seamless travel from lobby. 255 for no team.
+
 private:
 	UPROPERTY(Transient)
 	mutable AAtomCharacter* AtomCharacter; // Cached reference to the character. Do not use directly, use GetAtomCharacter instead.
-
-	UPROPERTY()
-	int32 SavedTeamId = -1; // Saved team id used to rejoin teams after seamless travel from lobby
 };

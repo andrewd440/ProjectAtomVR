@@ -53,6 +53,9 @@ private:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void ServerSetPlayerSettings(FAtomPlayerSettings InPlayerSettings);
 
+	UFUNCTION(Exec)
+	void execChangeTeams();
+
 	/** APlayerController Interface Begin */
 public:
 	virtual void SetPawn(APawn* aPawn) override;

@@ -14,6 +14,9 @@ class PROJECTATOMVR_API AAtomTeamInfo : public AInfo
 	GENERATED_BODY()
 
 public:
+	static constexpr uint8 INDEX_NO_TEAM = 255;
+
+public:
 	AAtomTeamInfo();
 
 	/** Adds a member from this team. */
@@ -36,11 +39,12 @@ public:
 	FLinearColor TeamColor;
 
 	UPROPERTY(BlueprintReadOnly, Category = AtomTeamInfo)
-	int32 TeamId = -1;
+	uint8 TeamId = INDEX_NO_TEAM;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)
 	int32 Score = 0;
 
 protected:
-	TArray<AController*> TeamMembers;
+	UPROPERTY()
+	TArray<AController*> TeamMembers; // Maintained on server and remotes
 };
