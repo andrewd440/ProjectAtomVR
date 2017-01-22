@@ -38,7 +38,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)
 	FLinearColor TeamColor;
 
-	UPROPERTY(BlueprintReadOnly, Category = AtomTeamInfo)
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)
 	uint8 TeamId = INDEX_NO_TEAM;
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)

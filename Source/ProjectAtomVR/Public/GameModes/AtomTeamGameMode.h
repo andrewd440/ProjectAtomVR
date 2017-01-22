@@ -44,9 +44,12 @@ protected:
 	/** AGameModeBase Interface End */
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameMode)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = TeamGameMode)
 	TArray<FLinearColor> TeamColors; /** Colors assigned to each team */
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameMode)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = TeamGameMode)
 	int32 TeamCount = 2; /** Number of teams for the game */
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = TeamGameMode)
+	uint32 bBalanceTeams : 1; /** Number of teams for the game */
 };

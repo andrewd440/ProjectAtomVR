@@ -14,6 +14,8 @@ AAtomTeamGameMode::AAtomTeamGameMode()
 {
 	new(TeamColors) FLinearColor(FLinearColor::Red);
 	new(TeamColors) FLinearColor(FLinearColor::Blue);
+
+	bBalanceTeams = true;
 }
 
 bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
@@ -28,7 +30,7 @@ bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
 	AAtomTeamInfo* NewTeam = AtomGameState->Teams[TeamId];
 
 	// If new team has less members, allow switch
-	if (NewTeam->Size() < OldTeam->Size())
+	if (!bBalanceTeams || NewTeam->Size() < OldTeam->Size())
 	{
 		MovePlayerToTeam(Controller, PlayerState, NewTeam);
 		return true;

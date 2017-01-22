@@ -336,6 +336,25 @@ void AAtomCharacter::OnRep_PlayerState()
 
 bool AAtomCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
 {
+	bool bIsTeamGame = false;
+
+	if (AAtomGameState* GameState = GetWorld()->GetGameState<AAtomGameState>())
+	{
+		bIsTeamGame = GameState->bIsTeamGame;
+	}
+
+	// Prevent friendly fire
+	if (bIsTeamGame)
+	{
+		AAtomPlayerState* InstigatorPlayerState = EventInstigator ? Cast<AAtomPlayerState>(EventInstigator->PlayerState) : nullptr;
+		AAtomPlayerState* MyPlayerState = InstigatorPlayerState ? Cast<AAtomPlayerState>(PlayerState) : nullptr;
+
+		if (MyPlayerState && MyPlayerState->GetTeam() == InstigatorPlayerState->GetTeam())
+		{
+			return false;
+		}
+	}
+	
 	return CanDie() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 

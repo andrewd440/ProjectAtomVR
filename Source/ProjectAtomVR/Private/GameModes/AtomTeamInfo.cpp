@@ -32,6 +32,7 @@ void AAtomTeamInfo::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(AAtomTeamInfo, TeamId, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomTeamInfo, TeamColor, COND_InitialOnly);
 	DOREPLIFETIME(AAtomTeamInfo, Score);
 }
