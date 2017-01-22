@@ -16,11 +16,24 @@ class PROJECTATOMVR_API AAtomTeamGameMode : public AAtomGameMode
 public:
 	AAtomTeamGameMode();		
 
+	/**
+	* Tries to change teams for a player. If team can not be changed, the pending team change property will be set on the 
+	* player state.
+	* 
+	* @returns True if teams was changed.
+	*/
 	bool ChangeTeams(AController* Controller, int32 TeamId);
 
 protected:
+	/**
+	* Chooses the best team to assign a new player to.
+	*/
 	AAtomTeamInfo* ChooseBestTeam(const AController* Controller) const;		
 
+	/**
+	* Moves a player to another team. Destroys the currently possessed pawn, removes from current team, adds 
+	* to new team and restarts the player.
+	*/
 	void MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, class AAtomTeamInfo* Team);
 
 	/** AtomGameMode Interface Begin */
