@@ -64,6 +64,7 @@ public:
 	virtual void Destroyed() override;
 	virtual void SpawnDefaultHUD() override;
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList) override;
+	virtual void ClientTravelInternal_Implementation(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid()) override;
 protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */

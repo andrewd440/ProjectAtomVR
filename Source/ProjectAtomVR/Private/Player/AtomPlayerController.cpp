@@ -9,6 +9,7 @@
 #include "VRHUD.h"
 #include "AtomPlayerState.h"
 #include "AtomTeamInfo.h"
+#include "Engine/World.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
@@ -233,6 +234,24 @@ void AAtomPlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<cla
 	{
 		ActorList.Add(VRHUD);
 	}
+}
+
+void AAtomPlayerController::ClientTravelInternal_Implementation(const FString& URL, enum ETravelType TravelType, bool bSeamless /*= false*/, FGuid MapPackageGuid /*= FGuid()*/)
+{
+	// #HACK For seamless travel on clients, IKinema likes accessing the physics system too early, before it is create, for IK. Just
+	// disable animation blueprint for all AtomCharacters here since a new one will be created after the level transition anyway.
+	if (bSeamless)
+	{
+		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		{
+			if (auto WorldAtomCharacter = Cast<AAtomCharacter>(*It))
+			{
+				WorldAtomCharacter->GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+			}
+		}
+	}
+
+	Super::ClientTravelInternal_Implementation(URL, TravelType, bSeamless, MapPackageGuid);
 }
 
 void AAtomPlayerController::ClientSetVRHUD_Implementation(TSubclassOf<class AVRHUD> NewHUDClass)

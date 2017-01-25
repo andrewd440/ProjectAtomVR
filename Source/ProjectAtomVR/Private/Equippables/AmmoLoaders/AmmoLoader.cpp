@@ -27,9 +27,9 @@ void UAmmoLoader::SetupInputComponent(class UInputComponent* InputComponent)
 
 }
 
-void UAmmoLoader::FirearmDestroyed()
+void UAmmoLoader::Destroy()
 {
-
+	ConditionalBeginDestroy();
 }
 
 void UAmmoLoader::OnEquipped()

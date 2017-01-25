@@ -242,19 +242,22 @@ void UAtomLoadout::ReturnToLoadout(const AAtomEquippable* Item)
 
 void UAtomLoadout::DiscardFromLoadout(const AAtomEquippable* Item)
 {
-	// Discards only happen on server
-	if (!CharacterOwner->HasAuthority())
-		return;
-
 	const int32 Index = GetItemIndex(Item);
 	check(Index != INDEX_NONE);
 	check(Loadout[Index].Item == Item);
 
 	FAtomLoadoutSlot& Slot = Loadout[Index];
-	const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[Index];
 
-	if (Slot.Count > 1)
+	// Discards only happen on server
+	if (!CharacterOwner->HasAuthority())
 	{
+		// Only indicate that the item is no longer in the loadout locally
+		Slot.Item = nullptr;
+	}
+	else if (Slot.Count > 1)
+	{
+		const FAtomLoadoutTemplateSlot& TemplateSlot = GetTemplateSlots()[Index];
+
 		// We have more, spawn one
 		--Slot.Count;
 

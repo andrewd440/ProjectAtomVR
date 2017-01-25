@@ -38,7 +38,7 @@ public:
 	/**
 	* Called when the owning firearm is destroyed.
 	*/
-	virtual void FirearmDestroyed();
+	virtual void Destroy();
 
 	/**
 	* Called when the owning HeroFirearm is equipped.

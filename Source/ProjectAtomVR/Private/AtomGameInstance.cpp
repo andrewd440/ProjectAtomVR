@@ -73,10 +73,10 @@ void UAtomGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSucc
 
 		if (bWasSuccessful)
 		{
-			const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *OnlineLobbyMap.ToString(), *OnlineLobbyGameMode.ToString());
+			FString const StartURL = FString::Printf(TEXT("/Game/Maps/%s?game=%s%s"), *OnlineLobbyMap.ToString(), *OnlineLobbyGameMode.ToString(), TEXT("?listen"));
 
 			// Travel to the online lobby
-			GetWorld()->ServerTravel(URLString);
+			GetWorld()->ServerTravel(StartURL);
 		}
 		else
 		{
@@ -134,22 +134,22 @@ void UAtomGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionC
 		SessionInt->ClearOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteHandle);
 	}
 
-	// #AtomTodo Handle other result types
-	if (AGameModeBase* GameMode = GetWorld()->GetAuthGameMode())
+	if (Result != EOnJoinSessionCompleteResult::Success)
 	{
-		if (GameMode->GameSession != nullptr)
-		{
-			switch (Result)
-			{
-				case EOnJoinSessionCompleteResult::Success:
-				{
-					ULocalPlayer* const LocalPlayer = GetFirstGamePlayer();
-					GameMode->GameSession->TravelToSession(LocalPlayer->GetControllerId(), SessionName);
-					break;
-				}
-			}
-		}		
-	}	
+		UE_LOG(LogOnlineGame, Log, TEXT("Failed to join session %s"), *SessionName.GetPlainNameString());
+		return;
+	}
+
+	FString URL;
+	if (SessionInt.IsValid() && SessionInt->GetResolvedConnectString(SessionName, URL))
+	{
+		UE_LOG(LogOnlineGame, Log, TEXT("Joining Session with connect string: %s"), *URL);
+		GetPrimaryPlayerController()->ClientTravel(URL, TRAVEL_Absolute);
+	}
+	else
+	{
+		UE_LOG(LogOnlineGame, Warning, TEXT("Failed to travel to session upon joining it"));
+	}
 }
 
 void UAtomGameInstance::execFindSession()

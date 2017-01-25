@@ -16,7 +16,7 @@ AAtomBaseGameMode::AAtomBaseGameMode()
 	PlayerStateClass = AAtomPlayerState::StaticClass();
 	VRHUDClass = AVRHUD::StaticClass();
 
-	bUseSeamlessTravel = true;
+	bUseSeamlessTravel = false;
 }
 
 void AAtomBaseGameMode::RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character)
@@ -72,4 +72,16 @@ void AAtomBaseGameMode::InitializeHUDForPlayer_Implementation(APlayerController*
 	{
 		NewPlayer->ClientSetHUD(HUDClass);
 	}	
+}
+
+void AAtomBaseGameMode::HandleMatchHasEnded()
+{
+	// Turn off all pawns. They will not be carried over to new map with seamless travel and new pawns will be created
+	// for all controllers.
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+	{
+		(*It)->TurnOff();
+	}
+
+	Super::HandleMatchHasEnded();
 }

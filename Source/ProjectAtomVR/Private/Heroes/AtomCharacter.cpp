@@ -42,12 +42,15 @@ AAtomCharacter::AAtomCharacter(const FObjectInitializer& ObjectInitializer /*= F
 	bReplicates = true;
 	bReplicateMovement = true;
 	bIsDying = false;
+	bNetLoadOnClient = false;
 
 	GetMesh()->SetOwnerNoSee(true);
 	GetMesh()->bReceivesDecals = false;
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCastShadow(false);
+	GetMesh()->bPerBoneMotionBlur = false;
+	GetMesh()->bUseRefPoseOnInitAnim = true;
 
 	// Setup camera
 	Camera = CreateDefaultSubobject<UHMDCameraComponent>(TEXT("Camera"));
@@ -122,7 +125,7 @@ void AAtomCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Loadout->SpawnLoadout();
+	Loadout->SpawnLoadout();	
 
 	if (IsLocallyControlled())
 	{
@@ -610,8 +613,6 @@ void AAtomCharacter::OnUnequipped(AAtomEquippable* Item, const EHand Hand)
 
 void AAtomCharacter::DiscardFromLoadout(AAtomEquippable* Item)
 {
-	check(HasAuthority());
-
 	if (Loadout->IsInLoadout(Item))
 	{
 		Loadout->DiscardFromLoadout(Item);

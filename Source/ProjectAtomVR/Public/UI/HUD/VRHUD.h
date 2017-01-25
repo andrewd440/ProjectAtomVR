@@ -53,5 +53,6 @@ private:
 private:
 	AAtomPlayerController* PlayerController = nullptr;
 
+	UPROPERTY()
 	TArray<AEquippableHUDActor*> LoadoutActors;			
 };

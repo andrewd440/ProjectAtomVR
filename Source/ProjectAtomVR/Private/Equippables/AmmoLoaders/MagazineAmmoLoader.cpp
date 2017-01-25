@@ -65,7 +65,7 @@ bool UMagazineAmmoLoader::IsTickable() const
 			bIsLoadingMagazine;
 }
 
-void UMagazineAmmoLoader::FirearmDestroyed()
+void UMagazineAmmoLoader::Destroy()
 {
 	if (Magazine != nullptr)
 	{
@@ -73,7 +73,7 @@ void UMagazineAmmoLoader::FirearmDestroyed()
 		Magazine = nullptr;
 	}
 
-	Super::FirearmDestroyed();
+	Super::Destroy();
 }
 
 void UMagazineAmmoLoader::BeginPlay()
@@ -176,9 +176,8 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 
 	// Disable immediately to prevent newly spawned loadout items from trying to load ammo.
 	ReloadTrigger->bGenerateOverlapEvents = false; 
-
-	AAtomCharacter* const CharacterOwner = GetFirearm()->GetCharacterOwner();
-	if (CharacterOwner && CharacterOwner->HasAuthority())
+	
+	if (AAtomCharacter* const CharacterOwner = GetFirearm()->GetCharacterOwner())
 	{
 		CharacterOwner->DiscardFromLoadout(Magazine);
 	}

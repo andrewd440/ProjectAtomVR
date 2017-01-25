@@ -62,7 +62,7 @@ void AAtomLobbyGameMode::TravelToNextMatch()
 	AAtomLobbyGameState* LobbyState = static_cast<AAtomLobbyGameState*>(GameState);
 	const FPlaylistItem& NextGame = LobbyState->GetNextPlaylistItem();
 
-	const FString Url = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *NextGame.MapName.ToString(), *NextGame.GameMode.ToString());
+	const FString Url = FString::Printf(TEXT("/Game/Maps/%s?game=%s?listen"), *NextGame.MapName.ToString(), *NextGame.GameMode.ToString());
 
 	GetWorld()->ServerTravel(Url);
 }

@@ -777,7 +777,8 @@ void AAtomFirearm::BeginPlay()
 
 void AAtomFirearm::Destroyed()
 {
-	AmmoLoader->FirearmDestroyed();
+	AmmoLoader->Destroy();
+	AmmoLoader = nullptr;
 
 	Super::Destroyed();
 }

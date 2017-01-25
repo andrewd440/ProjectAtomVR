@@ -24,14 +24,17 @@ public:
 	
 	AAtomGameState* GetAtomGameState() const;
 
-	/** AGameModeBase Interface Begin */
-	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
-	virtual void InitializeHUDForPlayer_Implementation(APlayerController* NewPlayer) override;
-	/** AGameModeBase Interface End */
-
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
+
+	/** AGameModeBase Interface Begin */
+public:
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+	virtual void InitializeHUDForPlayer_Implementation(APlayerController* NewPlayer) override;
+protected:
+	virtual void HandleMatchHasEnded() override;
+	/** AGameModeBase Interface End */
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = Classes, meta = (DisplayName="VR HUD Class"))
