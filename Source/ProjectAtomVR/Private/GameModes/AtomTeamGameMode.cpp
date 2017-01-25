@@ -55,6 +55,21 @@ bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
 	return false;
 }
 
+void AAtomTeamGameMode::GetSeamlessTravelActorList(bool bToTransition, TArray<AActor *>& ActorList)
+{
+	Super::GetSeamlessTravelActorList(bToTransition, ActorList);
+
+	// Save teams when traveling to transition level. When the final level is loaded, new teams will be created.
+	if (bToTransition)
+	{
+		const TArray<AAtomTeamInfo*> Teams = GetAtomGameState()->Teams;
+		for (auto Team : Teams)
+		{
+			ActorList.Add(Team);
+		}
+	}
+}
+
 void AAtomTeamGameMode::MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, AAtomTeamInfo* Team)
 {
 	// Unposses and destroy existing pawn

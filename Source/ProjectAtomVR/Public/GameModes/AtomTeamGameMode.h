@@ -22,7 +22,7 @@ public:
 	* 
 	* @returns True if teams was changed.
 	*/
-	bool ChangeTeams(AController* Controller, int32 TeamId);
+	bool ChangeTeams(AController* Controller, int32 TeamId);	
 
 protected:
 	/**
@@ -51,6 +51,8 @@ public:
 	/** AGameMode Interface End */
 
 	/** AGameModeBase Interface Begin */
+public:
+	virtual void GetSeamlessTravelActorList(bool bToTransition, TArray<AActor *>& ActorList) override;
 protected:
 	virtual void UpdateGameplayMuteList(APlayerController* aPlayer) override;
 	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
