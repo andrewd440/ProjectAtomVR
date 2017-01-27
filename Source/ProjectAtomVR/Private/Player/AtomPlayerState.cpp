@@ -82,6 +82,15 @@ void AAtomPlayerState::ClientInitialize(class AController* C)
 	AtomCharacter = Cast<AAtomCharacter>(C->GetPawn());
 }
 
+void AAtomPlayerState::Reset()
+{
+	Super::Reset();
+
+	Kills = 0;
+	Deaths = 0;
+	PendingTeamChange = AAtomTeamInfo::INDEX_NO_TEAM;
+}
+
 void AAtomPlayerState::NotifyTeamChanged()
 {
 	if (AAtomCharacter* Character = GetAtomCharacter())
@@ -120,4 +129,14 @@ AAtomCharacter* AAtomPlayerState::GetAtomCharacter() const
 void AAtomPlayerState::OnRep_PendingTeamChange()
 {
 	// Do nothing yet...
+}
+
+void AAtomPlayerState::CopyProperties(APlayerState* PlayerState)
+{
+	Super::CopyProperties(PlayerState);
+
+	if (auto AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
+	{
+		AtomPlayerState->SavedTeamId = SavedTeamId;
+	}
 }

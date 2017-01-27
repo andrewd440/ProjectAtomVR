@@ -18,6 +18,21 @@ struct FPlaylistItem
 
 	UPROPERTY(EditAnywhere)
 	int32 MinPlayers;
+
+	UPROPERTY(EditAnywhere)
+	int32 MaxPlayers;
+
+	UPROPERTY(EditAnywhere)
+	int32 TimeLimit;
+
+	UPROPERTY(EditAnywhere)
+	int32 ScoreLimit;
+
+	UPROPERTY(EditAnywhere)
+	int32 TeamCount;
+
+	UPROPERTY(EditAnywhere)
+	TArray<FLinearColor> TeamColors;
 };
 
 /**
@@ -31,10 +46,13 @@ class PROJECTATOMVR_API UAtomPlaylistManager : public UObject
 public:
 	UAtomPlaylistManager();
 	
-	FPlaylistItem CyclePlaylist();
-	
-private:
+	const FPlaylistItem& CyclePlaylist();
 
+	const FPlaylistItem& CurrentItem() const;
+
+private:
 	UPROPERTY(EditAnywhere, Category = Playlist)
 	TArray<FPlaylistItem> Playlist;
+
+	int32 PlaylistIndex = -1;
 };

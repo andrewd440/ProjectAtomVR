@@ -11,17 +11,13 @@ UAtomPlaylistManager::UAtomPlaylistManager()
 
 }
 
-FPlaylistItem UAtomPlaylistManager::CyclePlaylist()
+const FPlaylistItem& UAtomPlaylistManager::CyclePlaylist()
 {
-	FPlaylistItem CycledItem;
+	PlaylistIndex = Playlist.IsValidIndex(PlaylistIndex + 1) ? PlaylistIndex + 1 : 0;
+	return Playlist[PlaylistIndex];
+}
 
-	if (Playlist.Num() > 0)
-	{
-		CycledItem = Playlist[0];
-
-		Playlist.RemoveAt(0, 1, false);
-		Playlist.Add(CycledItem);
-	}
-
-	return CycledItem;
+const FPlaylistItem& UAtomPlaylistManager::CurrentItem() const
+{
+	return Playlist[PlaylistIndex];
 }

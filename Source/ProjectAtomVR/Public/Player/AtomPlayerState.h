@@ -34,18 +34,23 @@ public:
 	/** Gets the team id for a pending team changes that has been requested. */
 	uint32 GetPendingTeamChange() const;
 
-	/** APlayerState Interface Begin */
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void ClientInitialize(class AController* C) override;
-	/** APlayerState Interface End */
-
 protected:
 	UFUNCTION()
 	virtual void NotifyTeamChanged();
 	AAtomCharacter* GetAtomCharacter() const;
 
 	UFUNCTION()
-	void OnRep_PendingTeamChange();
+	void OnRep_PendingTeamChange();	
+
+
+	/** APlayerState Interface Begin */
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void ClientInitialize(class AController* C) override;
+	virtual void Reset() override;
+protected:
+	virtual void CopyProperties(APlayerState* PlayerState) override;
+	/** APlayerState Interface End */
 
 public:
 	UPROPERTY(Transient, Replicated, BlueprintReadWrite, Category = AtomPlayerState)

@@ -44,6 +44,18 @@ void UEquippableStateFiring::GetLifetimeReplicatedProps(TArray<class FLifetimePr
 	DOREPLIFETIME_CONDITION(UEquippableStateFiring, bDryFireNotify, COND_SkipOwner);
 }
 
+void UEquippableStateFiring::Deactivate()
+{
+	if (FireTimer.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(FireTimer);
+	}
+
+	GetEquippable<AAtomFirearm>()->StopFiringSequence();
+
+	Super::Deactivate();
+}
+
 void UEquippableStateFiring::OnTriggerReleased()
 {
 	GetEquippable()->PopState(this);

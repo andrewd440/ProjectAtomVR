@@ -22,6 +22,7 @@ public:
 	const FPlaylistItem& GetNextPlaylistItem() const;
 
 	float GetPreGameStartTimeStamp() const { return PreGameStartTimeStamp; }
+	void SetPreGameStartTimeStamp(float TimeStamp) { PreGameStartTimeStamp = TimeStamp; }
 
 protected:
 	UFUNCTION()
@@ -30,15 +31,13 @@ protected:
 	/** AGameStateBase Interface Begin */
 public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-protected:
-	virtual void HandleMatchHasEnded() override;
 	/** AGameStateBase Interface End */	
 
 protected:
 	/** The next playlist item */
-	UPROPERTY(ReplicatedUsing=OnRep_NextPlaylistItem, Transient)
+	UPROPERTY(ReplicatedUsing=OnRep_NextPlaylistItem, Transient, BlueprintReadOnly)
 	FPlaylistItem NextPlaylistItem;
 
-	UPROPERTY(Transient, BlueprintReadOnly)
+	UPROPERTY(Transient, Replicated, BlueprintReadOnly)
 	float PreGameStartTimeStamp = 0; // Time stamp for when the pregame timer started
 };

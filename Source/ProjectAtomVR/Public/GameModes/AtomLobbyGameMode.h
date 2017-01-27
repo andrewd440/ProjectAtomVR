@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "AtomBaseGameMode.h"
+#include "AtomTeamGameMode.h"
 #include "AtomLobbyGameMode.generated.h"
 
 /**
@@ -12,24 +12,30 @@
  * time has passed, the next match is loaded.
  */
 UCLASS(Config=Game)
-class PROJECTATOMVR_API AAtomLobbyGameMode : public AAtomBaseGameMode
+class PROJECTATOMVR_API AAtomLobbyGameMode : public AAtomTeamGameMode
 {
 	GENERATED_BODY()
 	
 public:
 	AAtomLobbyGameMode();
 
+	/** AAtomGameMode Interface Begin */
+public:
+	virtual bool CanDamage_Implementation(AController* Inflictor, AController* Reciever) const override;
+protected:
+	virtual void TravelToNextMatch() override;
+	virtual bool IsCharacterChangeAllowed_Implementation(class AAtomPlayerController* Controller) const override;
+	/** AAtomGameMode Interface End */
+
 	/** AGameModeBase Interface Begin */
+public:
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void InitGameState() override;
-	virtual bool ReadyToEndMatch_Implementation() override;
 	virtual void Tick(float DeltaSeconds) override;
 	/** AGameModeBase Interface End */
 
 protected:
-	void TravelToNextMatch();
-
-protected:
-	/** Delay for match start once player count is meet for next map. */
+	/** Delay for match start once conditions as been met for the next match to start. */
 	UPROPERTY(Config, BlueprintReadOnly)
 	int32 PreGameTimer = 30;
 };

@@ -67,6 +67,8 @@ bool UMagazineAmmoLoader::IsTickable() const
 
 void UMagazineAmmoLoader::Destroy()
 {
+	bIsLoadingMagazine = false;
+
 	if (Magazine != nullptr)
 	{
 		Magazine->Destroy();

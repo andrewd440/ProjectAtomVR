@@ -38,9 +38,11 @@ protected:
 
 	/** AtomGameMode Interface Begin */
 public:
+	virtual bool CanDamage_Implementation(AController* Instigator, AController* Reciever) const;
 	virtual void Logout(AController* Exiting) override;
 	virtual void InitGameState() override;
 protected:
+	virtual void ApplyPlaylistSettings(const FPlaylistItem& Playlist) override;
 	virtual bool IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart) override;
 	virtual void CheckForGameWinner_Implementation(AAtomPlayerState* Scorer) override;
 	/** AtomGameMode Interface End */
@@ -67,4 +69,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = TeamGameMode)
 	uint32 bBalanceTeams : 1; /** Number of teams for the game */
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = TeamGameMode)
+	uint32 bMuteTeams : 1; /** If opposing teams should be muted */
 };

@@ -17,6 +17,7 @@ AAtomBaseGameMode::AAtomBaseGameMode()
 	VRHUDClass = AVRHUD::StaticClass();
 
 	bUseSeamlessTravel = false;
+	bDelayCharacterLoadoutCreation = false;
 }
 
 void AAtomBaseGameMode::RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character)
@@ -41,6 +42,11 @@ void AAtomBaseGameMode::RequestCharacterChange(AAtomPlayerController* Controller
 TSubclassOf<class AVRHUD> AAtomBaseGameMode::GetVRHUDClass() const
 {
 	return VRHUDClass;
+}
+
+bool AAtomBaseGameMode::ShouldDelayCharacterLoadoutCreation() const
+{
+	return bDelayCharacterLoadoutCreation;
 }
 
 bool AAtomBaseGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerController*) const

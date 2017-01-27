@@ -26,22 +26,35 @@ public:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	void ScoreKill(AController* Killer, AController* Victim);	
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = AtomGameMode)
+	float ModifyDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* Inflictor, AController* Reciever) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = AtomGameMode)
+	bool CanDamage(AController* Inflictor, AController* Reciever) const;
+
 protected:
 	virtual bool IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart);
+	virtual void ApplyPlaylistSettings(const struct FPlaylistItem& Playlist);
+	virtual void TravelToNextMatch();
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = AtomGameMode)
 	void CheckForGameWinner(AAtomPlayerState* Scorer);
 
 	/** AAtomBaseGameMode Interface Begin */
+protected:
 	virtual bool IsCharacterChangeAllowed_Implementation(class AAtomPlayerController* Controller) const override;
 	/** AAtomBaseGameMode Interface End */
 
 	/** AGameMode Interface Begin */
+public:
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+protected:
 	virtual bool ReadyToEndMatch_Implementation() override;
 	virtual void HandleMatchHasEnded() override;
 	/** AGameMode Interface End */
 
 	/** AGameModeBase Interface Begin */
+protected:
 	virtual void InitGameState() override;
 	virtual bool ShouldSpawnAtStartSpot(AController* Player) override;
 	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;

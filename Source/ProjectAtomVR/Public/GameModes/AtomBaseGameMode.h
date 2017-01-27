@@ -24,6 +24,8 @@ public:
 	
 	AAtomGameState* GetAtomGameState() const;
 
+	bool ShouldDelayCharacterLoadoutCreation() const;
+
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
@@ -39,6 +41,9 @@ protected:
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = Classes, meta = (DisplayName="VR HUD Class"))
 	TSubclassOf<class AVRHUD> VRHUDClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameMode)
+	uint32 bDelayCharacterLoadoutCreation : 1;
 };
 
 FORCEINLINE AAtomGameState* AAtomBaseGameMode::GetAtomGameState() const

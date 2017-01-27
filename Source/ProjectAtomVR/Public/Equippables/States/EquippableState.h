@@ -45,6 +45,8 @@ public:
 	*/
 	virtual void BeginPlay();
 
+	virtual void Deactivate();
+
 	template <typename EquippableType = AAtomEquippable>
 	EquippableType* GetEquippable() const
 	{
@@ -64,6 +66,8 @@ protected:
 	 * of the stack.
 	 **/
 	virtual void BindStateInputs(UInputComponent* InputComponent);
+
+	void ClearStateInputs();
 
 private:
 	class AAtomEquippable* Equippable = nullptr;

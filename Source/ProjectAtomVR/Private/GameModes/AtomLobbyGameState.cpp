@@ -26,16 +26,10 @@ void AAtomLobbyGameState::OnRep_NextPlaylistItem()
 
 }
 
-void AAtomLobbyGameState::HandleMatchHasEnded()
-{
-	Super::HandleMatchHasEnded();
-
-	PreGameStartTimeStamp = GetServerWorldTimeSeconds();
-}
-
 void AAtomLobbyGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ThisClass, NextPlaylistItem);
+	DOREPLIFETIME(AAtomLobbyGameState, NextPlaylistItem);
+	DOREPLIFETIME(AAtomLobbyGameState, PreGameStartTimeStamp);
 }

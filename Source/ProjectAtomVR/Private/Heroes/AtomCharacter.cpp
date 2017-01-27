@@ -20,6 +20,7 @@
 #include "AtomPlayerState.h"
 #include "AtomGameState.h"
 #include "AtomTeamInfo.h"
+#include "AtomGameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHero, Log, All);
 
@@ -125,7 +126,16 @@ void AAtomCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Loadout->SpawnLoadout();	
+	bool bDelayLoadout = false;
+	if (AAtomBaseGameMode* GameMode = GetWorld()->GetAuthGameMode<AAtomBaseGameMode>())
+	{
+		bDelayLoadout = GameMode->ShouldDelayCharacterLoadoutCreation();
+	}
+
+	if (!bDelayLoadout)
+	{
+		Loadout->SpawnLoadout();
+	}	
 
 	if (IsLocallyControlled())
 	{
@@ -339,41 +349,32 @@ void AAtomCharacter::OnRep_PlayerState()
 
 bool AAtomCharacter::ShouldTakeDamage(float Damage, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) const
 {
-	bool bIsTeamGame = false;
+	bool bCanDamage = false;
 
-	if (AAtomGameState* GameState = GetWorld()->GetGameState<AAtomGameState>())
+	if (AAtomGameMode* GameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>())
 	{
-		bIsTeamGame = GameState->bIsTeamGame;
-	}
-
-	// Prevent friendly fire
-	if (bIsTeamGame)
-	{
-		AAtomPlayerState* InstigatorPlayerState = EventInstigator ? Cast<AAtomPlayerState>(EventInstigator->PlayerState) : nullptr;
-		AAtomPlayerState* MyPlayerState = InstigatorPlayerState ? Cast<AAtomPlayerState>(PlayerState) : nullptr;
-
-		if (MyPlayerState && MyPlayerState->GetTeam() == InstigatorPlayerState->GetTeam())
-		{
-			return false;
-		}
+		bCanDamage = GameMode->CanDamage(EventInstigator, GetController());
 	}
 	
-	return CanDie() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	return bCanDamage && CanDie() && Super::ShouldTakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 }
 
 float AAtomCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	float ActualDamage = 0;
-
 	if (Health > 0)
 	{
-		ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+		if (AAtomGameMode* GameMode = GetWorld()->GetAuthGameMode<AAtomGameMode>())
+		{
+			Damage = GameMode->ModifyDamage(Damage, DamageEvent, EventInstigator, GetController());
+		}
+
+		Damage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 
 		//TakeHit(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
 
-		if (ActualDamage > 0)
+		if (Damage > 0)
 		{
-			Health -= ActualDamage;
+			Health -= Damage;
 
 			if (Health <= 0)
 			{
@@ -382,7 +383,7 @@ float AAtomCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damage
 		}
 	}
 
-	return ActualDamage;
+	return Damage;
 }
 
 void AAtomCharacter::Die(AController* Killer)
@@ -716,9 +717,7 @@ UAtomLoadout* AAtomCharacter::GetLoadout() const
 
 bool AAtomCharacter::CanDie() const
 {
-	return Health > 0 && !IsPendingKill() &&
-		GetWorld()->GetGameState()->GameModeClass != nullptr &&
-		GetWorld()->GetGameState()->GameModeClass->IsChildOf(AAtomGameMode::StaticClass());
+	return Health > 0 && !IsPendingKill();
 }
 
 void AAtomCharacter::NotifyTeamChanged()

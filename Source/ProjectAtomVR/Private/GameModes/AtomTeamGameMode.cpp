@@ -16,6 +16,7 @@ AAtomTeamGameMode::AAtomTeamGameMode()
 	new(TeamColors) FLinearColor(FLinearColor::Blue);
 
 	bBalanceTeams = true;
+	bMuteTeams = true;
 }
 
 bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
@@ -99,6 +100,19 @@ void AAtomTeamGameMode::MovePlayerToTeam(AController* Controller, AAtomPlayerSta
 	RestartPlayer(Controller);
 }
 
+bool AAtomTeamGameMode::CanDamage_Implementation(AController* Inflictor, AController* Reciever) const
+{
+	AAtomPlayerState* InflictorState = Inflictor ? Cast<AAtomPlayerState>(Inflictor->PlayerState) : nullptr;
+	AAtomPlayerState* RecieverState = Reciever ? Cast<AAtomPlayerState>(Reciever->PlayerState) : nullptr;
+
+	if (InflictorState && RecieverState && InflictorState->GetTeam() == RecieverState->GetTeam())
+	{
+		return false;
+	}
+	
+	return true;
+}
+
 void AAtomTeamGameMode::Logout(AController* Exiting)
 {	
 	if (auto PlayerState = Cast<AAtomPlayerState>(Exiting->PlayerState))
@@ -162,7 +176,7 @@ void AAtomTeamGameMode::UpdateGameplayMuteList(APlayerController* aPlayer)
 
 	static bool bNoGameplayMute = NoMuteCmdInit();
 
-	if (bNoGameplayMute)
+	if (bNoGameplayMute || !bMuteTeams)
 		return;
 
 	// Mute opposing teams and unmute team
@@ -242,6 +256,12 @@ void AAtomTeamGameMode::InitGameState()
 		NewTeam->TeamId = i;
 		AtomGameState->Teams[i] = NewTeam;
 	}
+}
+
+void AAtomTeamGameMode::ApplyPlaylistSettings(const FPlaylistItem& Playlist)
+{
+	TeamCount = Playlist.TeamCount;
+	TeamColors = Playlist.TeamColors;
 }
 
 bool AAtomTeamGameMode::IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart)

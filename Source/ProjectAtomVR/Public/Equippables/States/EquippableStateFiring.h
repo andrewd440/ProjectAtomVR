@@ -57,6 +57,7 @@ public:
 	virtual void OnEnteredState() override;
 	virtual void OnExitedState() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty> & OutLifetimeProps) const override;	
+	virtual void Deactivate() override;
 
 protected:
 	virtual void BindStateInputs(UInputComponent* InputComponent);

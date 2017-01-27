@@ -183,15 +183,10 @@ public:
 	virtual void OnEquipped() override;
 	virtual void OnUnequipped() override;
 	virtual void BeginPlay() override;
-
+	virtual void Destroyed() override;
 protected:
 	virtual void SetupInputComponent(UInputComponent* InputComponent) override;
 	/** AHeroEquippable Interface End */
-
-	/** AActor Interface Begin */
-public:
-	virtual void Destroyed() override;
-	/** AActor Interface End */
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Firearm)

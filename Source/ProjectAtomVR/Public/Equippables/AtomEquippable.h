@@ -58,7 +58,7 @@ protected:
 
 public:
 	DECLARE_DELEGATE(FEquippedStatusChangedUI)
-	FEquippedStatusChangedUI OnEquippedStatusChangedUI;	
+	FEquippedStatusChangedUI OnEquippedStatusChangedUI;		
 
 public:
 	// Sets default values for this actor's properties
@@ -150,6 +150,7 @@ public:
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
+	virtual void Destroyed() override;
 
 protected:
 	virtual void OnRep_Owner() override;

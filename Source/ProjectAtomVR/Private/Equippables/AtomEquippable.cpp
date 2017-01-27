@@ -500,6 +500,14 @@ void AAtomEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropert
 	}
 }
 
+void AAtomEquippable::Destroyed()
+{
+	if (StateStack.Top())
+	{
+		StateStack.Top()->Deactivate();
+	}
+}
+
 bool AAtomEquippable::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);;

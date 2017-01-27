@@ -10,10 +10,40 @@
 #include "AtomPlayerState.h"
 #include "AtomGameState.h"
 #include "AtomTeamInfo.h"
+#include "Engine/EngineTypes.h"
+#include "AtomPlaylistManager.h"
 
 AAtomGameMode::AAtomGameMode()
 {
 
+}
+
+void AAtomGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	if (UGameplayStatics::GetIntOption(Options, TEXT("bUsePlaylist"), 0) != 0)
+	{
+		if (UGameInstance* const GameInstance = GetGameInstance())
+		{
+			check(Cast<UAtomGameInstance>(GameInstance));
+
+			UAtomGameInstance* AtomGameInstance = static_cast<UAtomGameInstance*>(GameInstance);
+			const FPlaylistItem& Playlist = AtomGameInstance->GetPlaylistManager()->CurrentItem();
+
+			ApplyPlaylistSettings(Playlist);
+		}
+	}
+}
+
+float AAtomGameMode::ModifyDamage_Implementation(float Damage, struct FDamageEvent const& DamageEvent, AController* Inflictor, AController* Reciever) const
+{
+	return Damage;
+}
+
+bool AAtomGameMode::CanDamage_Implementation(AController* Inflictor, AController* Reciever) const
+{
+	return true;
 }
 
 void AAtomGameMode::InitGameState()
@@ -83,14 +113,7 @@ void AAtomGameMode::HandleMatchHasEnded()
 {
 	Super::HandleMatchHasEnded();
 
-	// Travel back to lobby
-	check(Cast<UAtomGameInstance>(GetGameInstance()));
-
-	UAtomGameInstance* const GameInstance = static_cast<UAtomGameInstance*>(GetGameInstance());
-
-	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s"), *GameInstance->GetLobbyMap().ToString(), 
-		*GameInstance->GetLobbyGameMode().ToString());
-	GetWorld()->ServerTravel(URLString);
+	TravelToNextMatch();
 }
 
 bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
@@ -101,6 +124,26 @@ bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
 bool AAtomGameMode::IsValidPlayerStart(AController*, APlayerStart*)
 {
 	return true;
+}
+
+void AAtomGameMode::ApplyPlaylistSettings(const FPlaylistItem& Playlist)
+{
+	MinPlayers = Playlist.MinPlayers;
+	MaxPlayers = Playlist.MaxPlayers;
+	TimeLimit = Playlist.TimeLimit;
+	ScoreLimit = Playlist.ScoreLimit;
+}
+
+void AAtomGameMode::TravelToNextMatch()
+{
+	// Travel back to lobby by default
+	check(Cast<UAtomGameInstance>(GetGameInstance()));
+
+	UAtomGameInstance* const GameInstance = static_cast<UAtomGameInstance*>(GetGameInstance());
+
+	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s?bUsePlaylist=0"), *GameInstance->GetLobbyMap().ToString(),
+		*GameInstance->GetLobbyGameMode().ToString());
+	GetWorld()->ServerTravel(URLString);
 }
 
 void AAtomGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scorer)
