@@ -12,10 +12,34 @@
 #include "AtomTeamInfo.h"
 #include "Engine/EngineTypes.h"
 #include "AtomPlaylistManager.h"
+#include "AtomGameObjective.h"
+
+namespace MatchState
+{
+	const FName Countdown = FName(TEXT("Countdown"));
+	const FName Intermission = FName(TEXT("Intermission"));
+	const FName ExitingIntermission = FName(TEXT("ExitingIntermission"));
+}
+
 
 AAtomGameMode::AAtomGameMode()
 {
+	bFirstRoundInitialized = false;
+}
 
+void AAtomGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GetMatchState() == MatchState::InProgress)
+	{
+		// Check to see if we should start the match
+		if (ReadyToEndRound())
+		{
+			UE_LOG(LogGameMode, Log, TEXT("GameMode returned ReadyToEndRound"));
+			EndRound();
+		}
+	}
 }
 
 void AAtomGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -34,6 +58,36 @@ void AAtomGameMode::InitGame(const FString& MapName, const FString& Options, FSt
 			ApplyPlaylistSettings(Playlist);
 		}
 	}
+
+	for (TActorIterator<AAtomGameObjective> ObjectiveItr(GetWorld()); ObjectiveItr; ++ObjectiveItr)
+	{
+		(*ObjectiveItr)->InitializeObjective();
+		OnObjectiveInitialized(*ObjectiveItr);
+	}
+}
+
+bool AAtomGameMode::PlayerCanRestart_Implementation(APlayerController* Player)
+{
+	return MatchState != MatchState::Intermission && 
+		MatchState != MatchState::ExitingIntermission && 
+		Super::PlayerCanRestart_Implementation(Player);
+}
+
+void AAtomGameMode::StartMatch()
+{
+	if (HasMatchStarted())
+	{
+		// Already started
+		return;
+	}
+
+	//Let the game session override the StartMatch function, in case it wants to wait for arbitration
+	if (GameSession->HandleStartMatchRequest())
+	{
+		return;
+	}
+
+	SetMatchState(MatchState::Countdown);		
 }
 
 float AAtomGameMode::ModifyDamage_Implementation(float Damage, struct FDamageEvent const& DamageEvent, AController* Inflictor, AController* Reciever) const
@@ -43,7 +97,7 @@ float AAtomGameMode::ModifyDamage_Implementation(float Damage, struct FDamageEve
 
 bool AAtomGameMode::CanDamage_Implementation(AController* Inflictor, AController* Reciever) const
 {
-	return true;
+	return MatchState == MatchState::InProgress;
 }
 
 void AAtomGameMode::InitGameState()
@@ -53,6 +107,8 @@ void AAtomGameMode::InitGameState()
 	AAtomGameState* AtomGameState = GetAtomGameState();
 	AtomGameState->ScoreLimit = ScoreLimit;
 	AtomGameState->TimeLimit = TimeLimit;
+	AtomGameState->Rounds = Rounds;
+	AtomGameState->CurrentRound = 1;
 }
 
 void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* Victim)
@@ -87,22 +143,54 @@ void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* V
 	}	
 }
 
+void AAtomGameMode::OnMatchStateSet()
+{
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		HandleMatchIsWaitingToStart();
+	}
+	else if (MatchState == MatchState::Countdown)
+	{
+		HandleMatchEnteredCountdown();
+	} 
+	else if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStarted();
+	}
+	else if (MatchState == MatchState::Intermission)
+	{
+		HandleMatchEnteredIntermission();
+	}
+	else if (MatchState == MatchState::ExitingIntermission)
+	{
+		HandleMatchLeavingIntermission();
+	}
+	else if (MatchState == MatchState::WaitingPostMatch)
+	{
+		HandleMatchHasEnded();
+	}
+	else if (MatchState == MatchState::LeavingMap)
+	{
+		HandleLeavingMap();
+	}
+	else if (MatchState == MatchState::Aborted)
+	{
+		HandleMatchAborted();
+	}
+}
+
 bool AAtomGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerController*) const
 {
 	return false; // Default to false
 }
 
-bool AAtomGameMode::ReadyToEndMatch_Implementation()
+bool AAtomGameMode::ReadyToEndRound_Implementation()
 {
-	if (Super::ReadyToEndMatch_Implementation())
-	{
-		return true;
-	}
-	else if (TimeLimit > 0 || ScoreLimit > 0)
+	if (TimeLimit > 0 || ScoreLimit > 0)
 	{
 		if (AAtomGameState* const AtomGameState = GetGameState<AAtomGameState>())
 		{
-			return AtomGameState->GetGameWinner() || AtomGameState->ElapsedTime >= TimeLimit;
+			return AtomGameState->GetGameWinner() || AtomGameState->RemainingTime < 0;
 		}		
 	}
 
@@ -119,6 +207,31 @@ void AAtomGameMode::HandleMatchHasEnded()
 bool AAtomGameMode::ShouldSpawnAtStartSpot(AController* Player)
 {
 	return false;
+}
+
+void AAtomGameMode::CheckGameTime()
+{
+	Super::CheckGameTime();
+
+	if (MatchState != MatchState::InProgress)
+	{
+		AAtomGameState* AtomGameState = GetAtomGameState();
+
+		if (MatchState == MatchState::Countdown)
+		{
+			if (AtomGameState->RemainingTime <= 0)
+			{
+				SetMatchState(MatchState::InProgress);
+			}
+		}
+		else if (MatchState == MatchState::Intermission)
+		{
+			if (AtomGameState->RemainingTime <= 0)
+			{
+				SetMatchState(MatchState::ExitingIntermission);
+			}
+		}		
+	}
 }
 
 bool AAtomGameMode::IsValidPlayerStart(AController*, APlayerStart*)
@@ -144,6 +257,136 @@ void AAtomGameMode::TravelToNextMatch()
 	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s?bUsePlaylist=0"), *GameInstance->GetLobbyMap().ToString(),
 		*GameInstance->GetLobbyGameMode().ToString());
 	GetWorld()->ServerTravel(URLString);
+}
+
+void AAtomGameMode::InitRound()
+{
+	AAtomGameState* AtomGameState = GetAtomGameState();
+
+	InitGameStateForRound(AtomGameState);
+
+	for (auto PlayerState : AtomGameState->PlayerArray)
+	{
+		if (auto AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
+		{
+			InitPlayerStateForRound(AtomPlayerState);
+		}		
+	}
+}
+
+void AAtomGameMode::InitGameStateForRound(AAtomGameState* InGameState)
+{
+	// Nothing for now...
+}
+
+void AAtomGameMode::InitPlayerStateForRound(AAtomPlayerState* PlayerState)
+{
+	// Nothing for now...
+}
+
+void AAtomGameMode::OnObjectiveInitialized(class AAtomGameObjective* Objective)
+{
+	// Nothing for now...
+}
+
+void AAtomGameMode::HandleMatchHasStarted()
+{
+	// #AtomTodo Enable pawn movement/input
+
+	// Set match timer
+	GetAtomGameState()->RemainingTime = TimeLimit;
+}
+
+void AAtomGameMode::HandleMatchEnteredCountdown()
+{	
+	if (!bFirstRoundInitialized)
+	{
+		GameSession->HandleMatchHasStarted();
+	}
+
+	// start human players first
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* PlayerController = *Iterator;
+		if ((PlayerController->GetPawn() == nullptr) && PlayerCanRestart(PlayerController))
+		{
+			RestartPlayer(PlayerController);
+			// #AtomTodo Disable movement/input
+		}
+	}
+
+	InitRound();
+
+	if (!bFirstRoundInitialized)
+	{
+		// Make sure level streaming is up to date before triggering NotifyMatchStarted
+		GEngine->BlockTillLevelStreamingCompleted(GetWorld());
+
+		// First fire BeginPlay, if we haven't already in waiting to start match
+		GetWorldSettings()->NotifyBeginPlay();
+
+		// Then fire off match started
+		GetWorldSettings()->NotifyMatchStarted();
+	}
+
+	// if passed in bug info, send player to right location
+	const FString BugLocString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugLoc"));
+	const FString BugRotString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugRot"));
+	if (!BugLocString.IsEmpty() || !BugRotString.IsEmpty())
+	{
+		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PlayerController = *Iterator;
+			if (PlayerController->CheatManager != nullptr)
+			{
+				PlayerController->CheatManager->BugItGoString(BugLocString, BugRotString);
+			}
+		}
+	}
+
+	if (!bFirstRoundInitialized && IsHandlingReplays() && GetGameInstance() != nullptr)
+	{
+		GetGameInstance()->StartRecordingReplay(GetWorld()->GetMapName(), GetWorld()->GetMapName());
+	}	
+
+	GetAtomGameState()->RemainingTime = CountdownTime;
+	bFirstRoundInitialized = true;
+}
+
+bool AAtomGameMode::IsMatchFinished() const
+{
+	return GetAtomGameState()->CurrentRound >= Rounds;
+}
+
+void AAtomGameMode::EndRound()
+{
+	if (IsMatchFinished())
+	{
+		EndMatch();
+	}
+	else
+	{		
+		SetMatchState(MatchState::Intermission);
+	}
+}
+
+void AAtomGameMode::HandleMatchEnteredIntermission()
+{
+	// Disable pawn input
+
+	GetAtomGameState()->RemainingTime = IntermissionTime;
+}
+
+void AAtomGameMode::HandleMatchLeavingIntermission()
+{
+	// Destroy pawns. They will be recreated next round.
+	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+	{
+		(*It)->Destroy();
+	}
+
+	++GetAtomGameState()->CurrentRound;
+	SetMatchState(MatchState::Countdown);
 }
 
 void AAtomGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scorer)
@@ -205,5 +448,13 @@ AActor* AAtomGameMode::ChoosePlayerStart_Implementation(AController* Player)
 	}
 
 	return FoundPlayerStart != nullptr ? FoundPlayerStart : Super::ChoosePlayerStart_Implementation(Player);
+}
+
+bool AAtomGameMode::IsMatchInProgress() const
+{
+	return MatchState == MatchState::Countdown || 
+		MatchState == MatchState::Intermission || 
+		MatchState == MatchState::ExitingIntermission || 
+		Super::IsMatchInProgress();
 }
 

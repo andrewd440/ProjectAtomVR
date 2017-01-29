@@ -12,6 +12,5 @@ AFirearmHUDActor* UFirearmWidget::GetFirearmUI()
 
 class AAtomFirearm* UFirearmWidget::GetFirearm()
 {
-	check(GetFirearmUI());
-	return GetFirearmUI()->GetFirearm();
+	return GetFirearmUI() ? GetFirearmUI()->GetFirearm() : nullptr;
 }

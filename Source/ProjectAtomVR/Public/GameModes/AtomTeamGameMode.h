@@ -34,7 +34,7 @@ protected:
 	* Moves a player to another team. Destroys the currently possessed pawn, removes from current team, adds 
 	* to new team and restarts the player.
 	*/
-	void MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, class AAtomTeamInfo* Team);
+	void MovePlayerToTeam(AController* Controller, AAtomPlayerState* PlayerState, class AAtomTeamInfo* Team);		
 
 	/** AtomGameMode Interface Begin */
 public:
@@ -42,6 +42,9 @@ public:
 	virtual void Logout(AController* Exiting) override;
 	virtual void InitGameState() override;
 protected:
+	virtual bool IsMatchFinished() const override;
+	virtual void HandleMatchLeavingIntermission() override;
+	virtual void EndRound() override;
 	virtual void ApplyPlaylistSettings(const FPlaylistItem& Playlist) override;
 	virtual bool IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart) override;
 	virtual void CheckForGameWinner_Implementation(AAtomPlayerState* Scorer) override;

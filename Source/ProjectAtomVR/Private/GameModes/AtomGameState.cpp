@@ -21,14 +21,27 @@ AAtomPlayerState* AAtomGameState::GetGameWinner() const
 	return GameWinner;
 }
 
+void AAtomGameState::DefaultTimer()
+{
+	if (MatchState == MatchState::InProgress || MatchState == MatchState::Intermission || MatchState == MatchState::Countdown)
+	{
+		--RemainingTime;
+	}
+
+	Super::DefaultTimer();
+}
+
 void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AAtomGameState, Teams);
 	DOREPLIFETIME(AAtomGameState, GameWinner);
+	DOREPLIFETIME(AAtomGameState, CurrentRound);
+	DOREPLIFETIME(AAtomGameState, RemainingTime);
 
 	DOREPLIFETIME_CONDITION(AAtomGameState, bIsTeamGame, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomGameState, ScoreLimit, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomGameState, TimeLimit, COND_InitialOnly);
+	DOREPLIFETIME_CONDITION(AAtomGameState, Rounds, COND_InitialOnly);
 }

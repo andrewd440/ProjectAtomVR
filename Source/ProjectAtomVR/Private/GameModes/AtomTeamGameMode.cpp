@@ -100,6 +100,63 @@ void AAtomTeamGameMode::MovePlayerToTeam(AController* Controller, AAtomPlayerSta
 	RestartPlayer(Controller);
 }
 
+bool AAtomTeamGameMode::IsMatchFinished() const
+{
+	if (Super::IsMatchFinished())
+	{
+		return true;
+	}
+
+	// Check if the second place team can catch up
+	int32 TopTeamWins = 0;
+	int32 SecondTeamWins = 0;
+
+	AAtomGameState* AtomGameState = GetAtomGameState();
+
+	for (auto Team : AtomGameState->Teams)
+	{
+		if (Team->RoundWins > TopTeamWins)
+		{
+			TopTeamWins = Team->RoundWins;
+		}
+		else if (Team->RoundWins > SecondTeamWins)
+		{
+			SecondTeamWins = Team->RoundWins;
+		}
+	}
+
+	return TopTeamWins - SecondTeamWins > Rounds - AtomGameState->CurrentRound;
+}
+
+void AAtomTeamGameMode::HandleMatchLeavingIntermission()
+{
+	AAtomGameState* AtomGameState = GetAtomGameState();
+
+	// Reset team scores
+	for (auto Team : AtomGameState->Teams)
+	{
+		Team->Score = 0;
+	}
+
+	// Reset GameWinner
+	AtomGameState->GameWinner = nullptr;
+
+	Super::HandleMatchLeavingIntermission();
+}
+
+void AAtomTeamGameMode::EndRound()
+{
+	// Increment rounds won for winning team
+	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomTeamInfo* WinningTeam = AtomGameState->GameWinner ? AtomGameState->GameWinner->GetTeam() : nullptr;
+	if (WinningTeam)
+	{
+		++WinningTeam->RoundWins;
+	}
+
+	Super::EndRound();
+}
+
 bool AAtomTeamGameMode::CanDamage_Implementation(AController* Inflictor, AController* Reciever) const
 {
 	AAtomPlayerState* InflictorState = Inflictor ? Cast<AAtomPlayerState>(Inflictor->PlayerState) : nullptr;
@@ -110,7 +167,7 @@ bool AAtomTeamGameMode::CanDamage_Implementation(AController* Inflictor, AContro
 		return false;
 	}
 	
-	return true;
+	return Super::CanDamage_Implementation(Inflictor, Reciever);
 }
 
 void AAtomTeamGameMode::Logout(AController* Exiting)

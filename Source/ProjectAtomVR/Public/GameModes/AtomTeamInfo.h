@@ -44,6 +44,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)
 	int32 Score = 0;
 
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = AtomTeamInfo)
+	int32 RoundWins = 0;
+
 protected:
 	UPROPERTY()
 	TArray<AController*> TeamMembers; // Maintained on server and remotes

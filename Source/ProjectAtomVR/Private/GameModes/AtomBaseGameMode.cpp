@@ -49,6 +49,51 @@ bool AAtomBaseGameMode::ShouldDelayCharacterLoadoutCreation() const
 	return bDelayCharacterLoadoutCreation;
 }
 
+void AAtomBaseGameMode::DefaultTimer()
+{
+	FTimerManager& TimerManager = GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandle_DefaultTimer, this, &AAtomBaseGameMode::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation() / GetWorldSettings()->DemoPlayTimeDilation, true);
+
+	CheckGameTime();
+}
+
+void AAtomBaseGameMode::CheckGameTime()
+{
+
+}
+
+void AAtomBaseGameMode::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	FTimerManager& TimerManager = GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandle_DefaultTimer, this, &AAtomBaseGameMode::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation() / GetWorldSettings()->DemoPlayTimeDilation, true);
+}
+
+void AAtomBaseGameMode::SetMatchState(FName NewState)
+{
+	// Needed to reorder logic to set match state in gamestate before OnmatchStateSet to allow handlers to set match state
+	// and be updated correctly in gamestate.
+	if (MatchState == NewState)
+	{
+		return;
+	}
+
+	UE_LOG(LogGameMode, Display, TEXT("Match State Changed from %s to %s"), *MatchState.ToString(), *NewState.ToString());
+
+	MatchState = NewState;
+
+	AGameState* FullGameState = GetGameState<AGameState>();
+	if (FullGameState)
+	{
+		FullGameState->SetMatchState(NewState);
+	}	
+
+	OnMatchStateSet();
+
+	K2_OnSetMatchState(NewState);
+}
+
 bool AAtomBaseGameMode::IsCharacterChangeAllowed_Implementation(AAtomPlayerController*) const
 {
 	return true; // Default to true

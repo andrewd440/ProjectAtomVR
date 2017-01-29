@@ -27,6 +27,7 @@ namespace AtomCollisionProfiles
 {
 	static const FName HeroHand{ TEXT("HeroHand") };
 	static const FName HandTrigger{ TEXT("HandTrigger") };
+	static const FName ObjectiveTrigger{ TEXT("ObjectiveTrigger") };
 }
 
 namespace AtomCollisionChannels

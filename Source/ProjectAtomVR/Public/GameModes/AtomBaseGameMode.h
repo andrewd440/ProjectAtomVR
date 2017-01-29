@@ -24,11 +24,22 @@ public:
 	
 	AAtomGameState* GetAtomGameState() const;
 
-	bool ShouldDelayCharacterLoadoutCreation() const;
+	bool ShouldDelayCharacterLoadoutCreation() const;	
 
 protected:
 	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
 	bool IsCharacterChangeAllowed(class AAtomPlayerController* Controller) const;
+
+	/** Called every second to perform time based event that are not needed every frame. */
+	virtual void DefaultTimer();
+
+	/** Called by DefaultTimer to check time conditions for the gamemode. */
+	virtual void CheckGameTime();
+
+	/** AGameMode Interface Begin */
+	virtual void PostInitializeComponents() override;
+	virtual void SetMatchState(FName NewState) override;
+	/** AGameMode Interface End */	
 
 	/** AGameModeBase Interface Begin */
 public:
@@ -44,6 +55,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameMode)
 	uint32 bDelayCharacterLoadoutCreation : 1;
+
+private:
+	FTimerHandle TimerHandle_DefaultTimer;
 };
 
 FORCEINLINE AAtomGameState* AAtomBaseGameMode::GetAtomGameState() const

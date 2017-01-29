@@ -21,23 +21,36 @@ public:
 	void SetGameWinner(AAtomPlayerState* Winner);
 	AAtomPlayerState* GetGameWinner() const;
 
+	/** AGameState Interface Begin */
+	virtual void DefaultTimer() override;
+	/** AGameState Interface End */
+
 	/** AGameStateBase Interface Begin */
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;	
 	/** AGameStateBase Interface End */
 
 public:
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomGameState)
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameState)
 	uint32 bIsTeamGame : 1;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomGameMode)
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
 	TArray<class AAtomTeamInfo*> Teams; // Only valid if bIsTeamGame
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomGameMode)
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
 	AAtomPlayerState* GameWinner; // Winner of the game.
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomGameMode)
-	int32 ScoreLimit;
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
+	int32 ScoreLimit; // Score limit for the match
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = AtomGameMode)
-	int32 TimeLimit;
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
+	int32 TimeLimit; // Time limit for each round in the match
+
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
+	int32 Rounds = 0;
+
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
+	int32 CurrentRound = 0;
+
+	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = AtomGameMode)
+	int32 RemainingTime; // Timer for the current MatchState (game timer, intermission timer, countdown timer, etc.)
 };
