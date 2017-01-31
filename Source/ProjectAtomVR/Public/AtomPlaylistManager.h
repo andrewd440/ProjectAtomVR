@@ -29,6 +29,9 @@ struct FPlaylistItem
 	int32 ScoreLimit;
 
 	UPROPERTY(EditAnywhere)
+	int32 Rounds;
+
+	UPROPERTY(EditAnywhere)
 	int32 TeamCount;
 
 	UPROPERTY(EditAnywhere)

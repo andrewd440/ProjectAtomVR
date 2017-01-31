@@ -92,6 +92,7 @@ protected:
 	/** AGameMode Interface Begin */
 public:	
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 	virtual bool PlayerCanRestart_Implementation(APlayerController* Player) override;
 	virtual void StartMatch() override;
 	virtual void Tick(float DeltaSeconds) override;
@@ -138,7 +139,7 @@ protected:
 	int32 IntermissionTime = 10;
 
 	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
-	int32 CountdownTime = 15;
+	int32 CountdownTime = 10;
 	
 	uint32 bFirstRoundInitialized : 1;
 };

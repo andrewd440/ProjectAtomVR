@@ -66,6 +66,17 @@ void AAtomGameMode::InitGame(const FString& MapName, const FString& Options, FSt
 	}
 }
 
+void AAtomGameMode::HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer)
+{
+	Super::HandleStartingNewPlayer_Implementation(NewPlayer);
+
+	// Disable moving until match starts
+	if (MatchState != MatchState::InProgress)
+	{
+		NewPlayer->SetCinematicMode(true, false, false, true, false);
+	}
+}
+
 bool AAtomGameMode::PlayerCanRestart_Implementation(APlayerController* Player)
 {
 	return MatchState != MatchState::Intermission && 
@@ -87,6 +98,7 @@ void AAtomGameMode::StartMatch()
 		return;
 	}
 
+	// Countdown is always the first state. Initializes systems and players for first round.
 	SetMatchState(MatchState::Countdown);		
 }
 
@@ -245,6 +257,7 @@ void AAtomGameMode::ApplyPlaylistSettings(const FPlaylistItem& Playlist)
 	MaxPlayers = Playlist.MaxPlayers;
 	TimeLimit = Playlist.TimeLimit;
 	ScoreLimit = Playlist.ScoreLimit;
+	Rounds = Playlist.Rounds;
 }
 
 void AAtomGameMode::TravelToNextMatch()
@@ -291,7 +304,11 @@ void AAtomGameMode::OnObjectiveInitialized(class AAtomGameObjective* Objective)
 
 void AAtomGameMode::HandleMatchHasStarted()
 {
-	// #AtomTodo Enable pawn movement/input
+	// Enable pawn movement/input
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		(*Iterator)->SetCinematicMode(false, false, false, true, false);
+	}
 
 	// Set match timer
 	GetAtomGameState()->RemainingTime = TimeLimit;
@@ -311,7 +328,6 @@ void AAtomGameMode::HandleMatchEnteredCountdown()
 		if ((PlayerController->GetPawn() == nullptr) && PlayerCanRestart(PlayerController))
 		{
 			RestartPlayer(PlayerController);
-			// #AtomTodo Disable movement/input
 		}
 	}
 
@@ -372,7 +388,11 @@ void AAtomGameMode::EndRound()
 
 void AAtomGameMode::HandleMatchEnteredIntermission()
 {
-	// Disable pawn input
+	// Disable pawn movement input
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		(*Iterator)->SetCinematicMode(true, false, false, true, false);
+	}
 
 	GetAtomGameState()->RemainingTime = IntermissionTime;
 }
@@ -380,9 +400,14 @@ void AAtomGameMode::HandleMatchEnteredIntermission()
 void AAtomGameMode::HandleMatchLeavingIntermission()
 {
 	// Destroy pawns. They will be recreated next round.
-	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+	// #AtomTodo Iterating controller list to destroy pawns. Investigate pawns not added to world for remotes for some reason.
+	for (FConstControllerIterator Iterator = GetWorld()->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		(*It)->Destroy();
+		AController* Controller = *Iterator;
+		if (Controller->GetPawn())
+		{
+			Controller->GetPawn()->Destroy();
+		}
 	}
 
 	++GetAtomGameState()->CurrentRound;

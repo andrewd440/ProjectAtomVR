@@ -226,6 +226,33 @@ void AAtomPlayerController::UnFreeze()
 	ServerRestartPlayer();
 }
 
+void AAtomPlayerController::SetIgnorePawnInput(bool bNewPawnInput)
+{
+	IgnorePawnInput= FMath::Max(IgnorePawnInput + (bNewPawnInput ? +1 : -1), 0);
+}
+
+void AAtomPlayerController::ClientSetIgnorePawnInput_Implementation(bool bNewPawnInput)
+{
+	SetIgnorePawnInput(bNewPawnInput);
+}
+
+void AAtomPlayerController::ResetIgnorePawnInput()
+{
+	IgnorePawnInput = 0;
+}
+
+bool AAtomPlayerController::IsPawnInputIgnored() const
+{
+	return (IgnorePawnInput > 0);
+}
+
+void AAtomPlayerController::SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)
+{
+	Super::SetCinematicMode(bInCinematicMode, bAffectsMovement, bAffectsTurning);
+
+	SetIgnorePawnInput(bInCinematicMode);
+}
+
 void AAtomPlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList)
 {
 	Super::GetSeamlessTravelActorList(bToEntry, ActorList);

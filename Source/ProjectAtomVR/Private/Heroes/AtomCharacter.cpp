@@ -508,13 +508,16 @@ void AAtomCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 
 void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotator& DestRotation)
 {
-	// Get correct location and rotation
-	FVector DestinationOffset = GetActorLocation() - Camera->GetWorldHeadLocation();
-	DestinationOffset.Z = 0.f;
-	const FVector CapsuleDestination = DestLocation + DestinationOffset;
+	if (!Controller || !Controller->IsMoveInputIgnored())
+	{
+		// Get correct location and rotation
+		FVector DestinationOffset = GetActorLocation() - Camera->GetWorldHeadLocation();
+		DestinationOffset.Z = 0.f;
+		const FVector CapsuleDestination = DestLocation + DestinationOffset;
 
-	// Just teleport if server call and not locally controlled
-	GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
+		// Just teleport if server call and not locally controlled
+		GetHeroMovementComponent()->TeleportMove(CapsuleDestination);
+	}
 }
 
 UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const

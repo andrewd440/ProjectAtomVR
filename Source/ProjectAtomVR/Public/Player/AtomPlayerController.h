@@ -43,6 +43,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "HUD", Reliable, Client)
 	void ClientSetVRHUD(TSubclassOf<class AVRHUD> NewHUDClass);
 
+	void SetIgnorePawnInput(bool bNewPawnInput);
+
+	UFUNCTION(Client, Reliable)
+	void ClientSetIgnorePawnInput(bool bNewPawnInput);
+
+	void ResetIgnorePawnInput();
+
+	bool IsPawnInputIgnored() const;	
+
 protected:
 	void OnMenuButtonPressed();
 
@@ -65,9 +74,14 @@ public:
 	virtual void SpawnDefaultHUD() override;
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList) override;
 	virtual void ClientTravelInternal_Implementation(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid()) override;
+	virtual void SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning) override;
 protected:
 	virtual void SetupInputComponent() override;
 	/** APlayerController Interface End */
+
+protected:
+	/** Ignores pawn input. Stacked state storage, Use accessor function IgnorePawnInput() */
+	uint8 IgnorePawnInput = 0;
 
 private:
 	UPROPERTY()

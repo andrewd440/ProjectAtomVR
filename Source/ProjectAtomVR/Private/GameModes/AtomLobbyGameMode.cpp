@@ -36,6 +36,10 @@ void AAtomLobbyGameMode::InitGame(const FString& MapName, const FString& Options
 		TeamCount = NextMatch.TeamCount;
 		TeamColors = NextMatch.TeamColors;
 	}
+
+	// Never any rounds or countdown for lobby
+	Rounds = 1;
+	CountdownTime = 0;
 }
 
 void AAtomLobbyGameMode::InitGameState()
