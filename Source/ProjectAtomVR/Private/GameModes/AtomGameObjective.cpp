@@ -12,6 +12,8 @@ AAtomGameObjective::AAtomGameObjective()
 
 	bReplicates = true;
 	bNetLoadOnClient = true;
+	bAlwaysRelevant = true;
+	bCanBeDamaged = false;
 }
 
 void AAtomGameObjective::InitializeObjective()

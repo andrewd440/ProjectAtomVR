@@ -17,9 +17,27 @@ void AControlPointGameMode::InitGameStateForRound(AAtomGameState* InGameState)
 
 	if (auto ControlPointGameState = Cast<AControlPointGameState>(InGameState))
 	{
-		if (GameControlPoints.Num() > 0)
+		const int32 CurrentRound = ControlPointGameState->CurrentRound;
+		const int32 NumControlPoints = GameControlPoints.Num();
+		if (NumControlPoints > 0)
 		{
-			ControlPointGameState->SetActiveControlPoint(GameControlPoints[0]);
+			const int32 ObjectiveIndex = (CurrentRound - 1) % NumControlPoints;
+			ControlPointGameState->SetActiveControlPoint(GameControlPoints[ObjectiveIndex]);
+		}
+	}
+}
+
+void AControlPointGameMode::HandleMatchHasStarted()
+{
+	Super::HandleMatchHasStarted();
+
+	if (auto ControlPointGameState = Cast<AControlPointGameState>(GameState))
+	{
+		AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint();
+
+		if (ControlPoint)
+		{
+			ControlPoint->Activate(ObjectiveSpawnDelay);
 		}
 	}
 }

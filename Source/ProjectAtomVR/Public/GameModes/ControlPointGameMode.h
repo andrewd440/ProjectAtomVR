@@ -25,6 +25,7 @@ public:
 protected:
 	virtual void OnObjectiveInitialized(class AAtomGameObjective* Objective) override;
 	virtual void InitGameStateForRound(AAtomGameState* GameState) override;
+	virtual void HandleMatchHasStarted() override;
 	/** AtomGameMode Interface End */
 
 protected:
