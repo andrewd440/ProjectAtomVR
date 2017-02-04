@@ -21,6 +21,8 @@ public:
 
 	uint32 GetSavedTeamId() const;
 
+	AAtomCharacter* GetAtomCharacter() const;
+
 	/** 
 	 * Sends a request to the server to switch teams. 
 	 * @param TeamId The id for the team. -1 to switch to the next team.
@@ -37,7 +39,6 @@ public:
 protected:
 	UFUNCTION()
 	virtual void NotifyTeamChanged();
-	AAtomCharacter* GetAtomCharacter() const;
 
 	UFUNCTION()
 	void OnRep_PendingTeamChange();	

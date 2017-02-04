@@ -18,6 +18,8 @@ class PROJECTATOMVR_API AAtomGameState : public AGameState
 public:
 	AAtomGameState();
 
+	void SetWinningTeam(class AAtomTeamInfo* Team);
+
 	void SetGameWinner(AAtomPlayerState* Winner);
 	AAtomPlayerState* GetGameWinner() const;
 

@@ -396,7 +396,7 @@ void AAtomCharacter::Die(AController* Killer)
 	AAtomGameMode* GameMode = Cast<AAtomGameMode>(GetWorld()->GetAuthGameMode());
 	check(GameMode && "Deaths should only happen on AtomGameMode");
 
-	GameMode->ScoreKill(Killer, GetController());
+	GameMode->RegisterKill(Killer, GetController());
 
 	DetachFromControllerPendingDestroy();
 

@@ -30,8 +30,7 @@ public:
 	*				should be the same as victim.
 	* @param Victim The victim controller.
 	*/
-	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
-	void ScoreKill(AController* Killer, AController* Victim);	
+	void RegisterKill(AController* Killer, AController* Victim);	
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = AtomGameMode)
 	float ModifyDamage(float Damage, struct FDamageEvent const& DamageEvent, AController* Inflictor, AController* Reciever) const;
@@ -40,6 +39,12 @@ public:
 	bool CanDamage(AController* Inflictor, AController* Reciever) const;			
 
 protected:
+	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
+	void ScoreKill(AAtomPlayerState* Killer, AAtomPlayerState* Victim);
+
+	UFUNCTION(BlueprintNativeEvent, Category = AtomGameMode)
+	void ScoreDeath(AAtomPlayerState* Killer, AAtomPlayerState* Victim);
+
 	/** Checks if a playerstart is valid for a specified player. */
 	virtual bool IsValidPlayerStart(AController* Player, APlayerStart* PlayerStart);
 

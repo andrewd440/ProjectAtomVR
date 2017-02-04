@@ -4,11 +4,18 @@
 #include "AtomGameState.h"
 
 #include "AtomPlayerState.h"
+#include "AtomTeamInfo.h"
 
 
 AAtomGameState::AAtomGameState()
 {
 
+}
+
+void AAtomGameState::SetWinningTeam(AAtomTeamInfo* Team)
+{
+	 auto WinningPlayer = Cast<AAtomPlayerState>(Team->GetTeamMembers()[0]->PlayerState);
+	 SetGameWinner(WinningPlayer);
 }
 
 void AAtomGameState::SetGameWinner(AAtomPlayerState* Winner)

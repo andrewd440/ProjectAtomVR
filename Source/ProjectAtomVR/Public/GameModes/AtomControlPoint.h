@@ -13,7 +13,7 @@ class PROJECTATOMVR_API AAtomControlPoint : public AAtomGameObjective
 {
 	GENERATED_BODY()
 		
-public:
+public:	
 	DECLARE_EVENT(AAtomControlPoint, FOnCaptured)
 
 public:
@@ -26,6 +26,8 @@ public:
 
 	/** Activates the control point with an optional delay before actual activation. */
 	void Activate(const float Delay = 0.f);
+
+	void Deactivate();
 
 	/** True if this point is active. */
 	bool IsActive();
@@ -50,8 +52,10 @@ public:
 	/** AAtomGameObjective Interface End */
 
 	/** AActor Interface Begin */
+	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void Reset() override;
 	/** AActor Interface End */
 
 protected:
@@ -98,7 +102,7 @@ protected:
 	int32 MaxTeamInfluence = 3; // Max team members that can influence the capture rate.
 
 	// Indexed by team id, the number of players inside the bounds of the point.
-	TArray<int32> OverlapTeamCounts;
+	TArray<TArray<AAtomCharacter*>> TeamOverlaps;
 
 	FOnCaptured OnCapturedEvent;
 
@@ -124,8 +128,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = ControlPoint, meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* OuterSphere;
 
+	FTimerHandle ActivationHandle;
+
 	UPROPERTY(ReplicatedUsing = OnRep_ActivationTimestamp)
-	float ActivationTimestamp;
+	float ActivationTimestamp = 0.f;
 
 	UPROPERTY(ReplicatedUsing = OnRep_IsActive)
 	uint32 bIsActive : 1;

@@ -123,36 +123,39 @@ void AAtomGameMode::InitGameState()
 	AtomGameState->CurrentRound = 1;
 }
 
-void AAtomGameMode::ScoreKill_Implementation(AController* Killer, AController* Victim)
+void AAtomGameMode::RegisterKill(AController* Killer, AController* Victim)
 {
 	const bool bIsSuicide = (Killer == Victim);
 
 	AAtomGameState* const AtomGameState = GetAtomGameState();
+	AAtomPlayerState* KillerState = Cast<AAtomPlayerState>(Killer->PlayerState);
+	AAtomPlayerState* VictimState = Cast<AAtomPlayerState>(Victim->PlayerState);
 
 	// Score kill
-	if (!bIsSuicide)
+	if (!bIsSuicide && KillerState)
 	{
-		if (AAtomPlayerState* KillerState = Cast<AAtomPlayerState>(Killer->PlayerState))
-		{
-			KillerState->Score += KillScore;
-			++KillerState->Kills;
-
-			if (AtomGameState->bIsTeamGame)
-				KillerState->GetTeam()->Score += KillScore;
-
-			CheckForGameWinner(KillerState);
-		}
+		ScoreKill(KillerState, VictimState);		
 	}
 
 	// Score death/suicide
-	if (AAtomPlayerState* VictimState = Cast<AAtomPlayerState>(Victim->PlayerState))
+	if (VictimState)
 	{
-		VictimState->Score += DeathScore;
-		++VictimState->Deaths;
-
-		if(AtomGameState->bIsTeamGame)
-			VictimState->GetTeam()->Score += DeathScore;
+		ScoreDeath(KillerState, VictimState);
 	}	
+}
+
+void AAtomGameMode::ScoreKill_Implementation(AAtomPlayerState* Killer, AAtomPlayerState* Victim)
+{
+	Killer->Score += KillScore;
+	++Killer->Kills;
+
+	CheckForGameWinner(Killer);
+}
+
+void AAtomGameMode::ScoreDeath_Implementation(AAtomPlayerState* Killer, AAtomPlayerState* Victim)
+{
+	Victim->Score += DeathScore;
+	++Victim->Deaths;
 }
 
 void AAtomGameMode::OnMatchStateSet()
