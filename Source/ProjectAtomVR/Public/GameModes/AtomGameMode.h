@@ -141,10 +141,10 @@ protected:
 	int32 Rounds = 3;
 
 	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
-	int32 IntermissionTime = 10;
+	int32 IntermissionTime = 10; // Seconds for Intermission match state
 
 	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
-	int32 CountdownTime = 10;
+	int32 CountdownTime = 10; // Seconds for Countdown match state
 	
 	uint32 bFirstRoundInitialized : 1;
 };

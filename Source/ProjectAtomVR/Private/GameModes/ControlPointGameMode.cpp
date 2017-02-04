@@ -8,6 +8,7 @@
 #include "AtomTeamInfo.h"
 #include "AtomCharacter.h"
 #include "AtomPlayerState.h"
+#include "ControlPointPlayerState.h"
 
 AControlPointGameMode::AControlPointGameMode()
 {
@@ -28,6 +29,11 @@ void AControlPointGameMode::OnControlPointCaptured()
 	TArray<AAtomPlayerState*> CapturePlayers = ControlPoint->GetActiveControllingTeamMembers();
 	for (AAtomPlayerState* Player : CapturePlayers)
 	{
+		if (auto CPPlayerState = Cast<AControlPointPlayerState>(Player))
+		{			
+			++CPPlayerState->PointsCaptured;
+		}		
+
 		Player->Score += CaptureScore;
 	}
 }
@@ -150,25 +156,30 @@ void AControlPointGameMode::ScoreKill_Implementation(AAtomPlayerState* Killer, A
 {
 	// Check if killer or victim is in control point
 	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
-	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
+	AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint();
+	auto CPPlayerState = Cast<AControlPointPlayerState>(Killer);
+
+	if (ControlPoint && CPPlayerState)
 	{
 		UPrimitiveComponent* CaptureBounds = ControlPoint->GetCaptureBounds();
 
-		if (CaptureBounds->IsOverlappingActor(Killer->GetAtomCharacter()) ||
+		if (CaptureBounds->IsOverlappingActor(CPPlayerState->GetAtomCharacter()) ||
 			CaptureBounds->IsOverlappingActor(Victim->GetAtomCharacter()))
 		{
-			check(Killer->GetTeam());
+			check(CPPlayerState->GetTeam());
 
 			// Kill occurred on the control point. Determine if it was an attacking or defending kill.
-			if (ControlPoint->GetControllingTeam() != Killer->GetTeam() || !ControlPoint->IsCaptured())
+			if (ControlPoint->GetControllingTeam() != CPPlayerState->GetTeam() || !ControlPoint->IsCaptured())
 			{
 				// Attacking kill
-				Killer->Score += AttackKillScore;
+				CPPlayerState->Score += AttackKillScore;
+				++CPPlayerState->AttackKills;
 			}
 			else
 			{
 				// Defending kill
-				Killer->Score += DefenseKillScore;
+				CPPlayerState->Score += DefenseKillScore;
+				++CPPlayerState->DefenseKills;
 			}
 		}
 	}
