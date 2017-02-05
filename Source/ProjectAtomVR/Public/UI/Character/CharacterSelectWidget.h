@@ -21,9 +21,8 @@ class PROJECTATOMVR_API UCharacterSelectWidget : public UUserWidget
 public:
 	UCharacterSelectWidget(const FObjectInitializer& ObjectInitializer);
 
-	void SetOwner(AAtomCharacterSelect* InOwner);
-
-	AAtomCharacterSelect* GetOwner() const;
+	UFUNCTION(BlueprintCallable, Category = CharacterSelectWidget)
+	void SetCharacterClass(TSubclassOf<AAtomCharacter> Character);
 
 protected:
 	UFUNCTION(BlueprintCallable, Category = CharacterSelectUI)
@@ -38,6 +37,10 @@ protected:
 	/** UUserWidget Interface End */	
 
 protected:
+	/** Character class this selection represents */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CharacterSelect)
+	TSubclassOf<AAtomCharacter> CharacterClass = nullptr;
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* NameText; // Displays the character name
 

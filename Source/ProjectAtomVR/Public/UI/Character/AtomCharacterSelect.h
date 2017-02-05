@@ -25,9 +25,8 @@ public:
 	/** AActor Interface End */	
 
 protected:
-	/** Character class this selection represents */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = CharacterSelect)
-	TSubclassOf<AAtomCharacter> CharacterClass = nullptr;
+	UPROPERTY(EditDefaultsOnly, Category = CharacterSelect)
+	TSubclassOf<AAtomCharacter> CharacterClass;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = CharacterSelect, meta = (AllowPrivateAccess = "true"))

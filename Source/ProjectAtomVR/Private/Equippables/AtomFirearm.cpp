@@ -18,17 +18,33 @@ DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
 namespace
 {
+	// Emitter names
 	static const FName CartridgeFiredEmitterName{ TEXT("CartridgeFired") };
 	static const FName CartridgeUnfiredEmitterName{ TEXT("CartridgeUnfired") };
+
+	// Mesh sockets
 	static const FName CartridgeAttachSocket{ TEXT("CartridgeAttach") };
 	static const FName HandGripSocket{ TEXT("Grip") };
 	static const FName ChamberingHandleSocket{ TEXT("ChamberingHandle") };
-	static const FName MuzzleSocket{ TEXT("Muzzle") };
+	static const FName MuzzleSocket{ TEXT("Muzzle") };		
+
+	// Montage sections
 	static const FName SlideLockSection{ TEXT("SlideLock") };
+
+	// Help text
+	static const FText HelpTextReload{ FText::FromName(TEXT("Reload Ammo")) };
+	static const FText HelpTextChamberAmmo{ FText::FromName(TEXT("Pull Back")) };
+	static const FText HelpTextSlideLock{ FText::FromName(TEXT("Release Lock")) };
+
+	// Help sockets
+	static const FName ReloadIndicatorSocket{ TEXT("ReloadIndicator") };
+	static const FName SlideLockIndicatorSocket{ TEXT("SlideLockIndicator") };
 
 	// Tolerances for snapping back to original location once the recoil has returned.
 	constexpr float ActiveRecoilRotationTolerance = 0.003f;
 	constexpr float ActiveRecoilOffsetTolerance = 0.1f;
+
+	constexpr float HelpIndicatorDelay = 5.f;
 }
 
 AAtomFirearm::AAtomFirearm(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -280,6 +296,21 @@ void AAtomFirearm::LoadAmmo(UObject* LoadObject, bool bForceLocalOnly)
 
 	AmmoLoader->LoadAmmo(LoadObject);	
 
+	// Update help indicators
+	if (GetCharacterOwner()->IsLocallyControlled())
+	{
+		ClearHelp(EHelpIndicatorType::LoadAmmo);
+
+		if (bIsSlideLockActive)
+		{
+			ShowHelp(EHelpIndicatorType::ReleaseSlideLock, 0.f);
+		}
+		else if (bIsChamberEmpty)
+		{
+			ShowHelp(EHelpIndicatorType::ChamberAmmo, 0.f);
+		}		
+	}
+
 	if (LoadAmmoSound)
 	{
 		UGameplayStatics::SpawnSoundAttached(LoadAmmoSound, GetMesh()); // #AtomTodo Use custom loading socket
@@ -526,6 +557,11 @@ void AAtomFirearm::ReleaseSlideLock()
 		UGameplayStatics::SpawnSoundAttached(ChamberingSounds[LastChamberingSoundIndex], GetMesh(), ChamberingHandleSocket);
 	}
 
+	if (GetCharacterOwner()->IsLocallyControlled())
+	{
+		ClearHelp(EHelpIndicatorType::ReleaseSlideLock);
+	}
+
 	GetMesh<USkeletalMeshComponent>()->GetAnimInstance()->Montage_Resume(FiringMontage);
 	ReloadChamber(false);
 }
@@ -551,6 +587,45 @@ void AAtomFirearm::GenerateShotRecoil(uint8 Seed)
 	bIsRecoilActive = true;
 }
 
+void AAtomFirearm::ShowHelp(EHelpIndicatorType Type, const float Lifetime)
+{
+	const uint8 HandleIndex = static_cast<uint8>(Type);
+	if (HelpHandles[HandleIndex].IsValid())
+		return;
+
+	check(GetCharacterOwner()->IsLocallyControlled());
+	auto PlayerController = static_cast<AAtomPlayerController*>(GetCharacterOwner()->GetController());	
+
+	switch (Type)
+	{
+	case EHelpIndicatorType::ChamberAmmo:
+		PlayerController->ShowHelpIndicator(HelpHandles[HandleIndex], HelpTextChamberAmmo, GetMesh(), ChamberingHandleSocket, 
+			Lifetime, HelpIndicatorDelay);
+		break;
+	case EHelpIndicatorType::LoadAmmo:
+		PlayerController->ShowHelpIndicator(HelpHandles[HandleIndex], HelpTextReload, GetMesh(), ReloadIndicatorSocket,
+			Lifetime, HelpIndicatorDelay);
+		break;
+	case EHelpIndicatorType::ReleaseSlideLock:
+		PlayerController->ShowHelpIndicator(HelpHandles[HandleIndex], HelpTextSlideLock, GetMesh(), SlideLockIndicatorSocket,
+			Lifetime, HelpIndicatorDelay);
+		break;
+	}
+}
+
+void AAtomFirearm::ClearHelp(EHelpIndicatorType Type)
+{
+	check(GetCharacterOwner()->IsLocallyControlled());
+
+	const uint8 HandleIndex = static_cast<uint8>(Type);
+
+	if (HelpHandles[HandleIndex].IsValid())
+	{
+		auto PlayerController = static_cast<AAtomPlayerController*>(GetCharacterOwner()->GetController());
+		PlayerController->ClearHelpIndicator(HelpHandles[HandleIndex]);
+	}	
+}
+
 void AAtomFirearm::ReloadChamber(bool bIsFired)
 {
 	// Eject first if not empty
@@ -573,12 +648,22 @@ void AAtomFirearm::ReloadChamber(bool bIsFired)
 			ActivateSlideLock();
 		}
 
+		if (GetCharacterOwner()->IsLocallyControlled())
+		{
+			ShowHelp(EHelpIndicatorType::LoadAmmo, 0.f);
+		}		
+
 		AmmoLoader->OnAmmoCountChanged.ExecuteIfBound(); // Ammo count changed, but not from AmmoLoader
 	}
 	else
 	{		
 		bIsChamberEmpty = false;
 		AmmoLoader->ConsumeAmmo();
+
+		if (GetCharacterOwner()->IsLocallyControlled())
+		{
+			ClearHelp(EHelpIndicatorType::ChamberAmmo);
+		}
 
 		CartridgeMeshComponent->SetVisibility(true);
 		CartridgeMeshComponent->SetStaticMesh(CartridgeUnfiredMesh);

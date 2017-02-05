@@ -8,11 +8,13 @@ public class ProjectAtomVR : ModuleRules
 	{
         PrivateIncludePaths.AddRange(
             new string[] {
-                        "ProjectAtomVR/Private",
-                        "ProjectAtomVR/Private/Characters",
-                        "ProjectAtomVR/Private/Characters/Movement",
-                        "ProjectAtomVR/Private/Player",
-                        "ProjectAtomVR/Private/MotionComponents",
+                "ProjectAtomVR/Private",
+                "ProjectAtomVR/Private/Character",
+                "ProjectAtomVR/Private/Equippables",
+                "ProjectAtomVR/Private/GameModes",
+                "ProjectAtomVR/Private/MotionComponents",
+                "ProjectAtomVR/Private/Online",
+                "ProjectAtomVR/Private/Player",
             });
 
         PublicDependencyModuleNames.AddRange(
@@ -20,31 +22,24 @@ public class ProjectAtomVR : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"InputCore"
+				"InputCore",
 			});
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
+                "OnlineSubsystem",
+                "OnlineSubsystemUtils",
+                "Slate",
+                "SlateCore",
 				"HeadMountedDisplay",
-				"UMG"
-			});
-
-		// Uncomment if you are using Slate UI
-		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
-		// Uncomment if you are using online features
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"OnlineSubsystem",
-				"OnlineSubsystemUtils"
-			});
+				"UMG",
+            });
 
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"OnlineSubsystemNull",
-				"OnlineSubsystemSteam"
+				"OnlineSubsystemSteam",
 			});
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }

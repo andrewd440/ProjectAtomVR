@@ -77,6 +77,15 @@ class PROJECTATOMVR_API AAtomFirearm : public AAtomEquippable
 {
 	GENERATED_BODY()
 
+protected:
+	enum class EHelpIndicatorType : uint8
+	{
+		LoadAmmo,
+		ReleaseSlideLock,
+		ChamberAmmo,
+		MAX_COUNT
+	};
+
 public:	
 	AAtomFirearm(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 	
@@ -142,6 +151,10 @@ protected:
 	void ReleaseSlideLock();
 
 	void GenerateShotRecoil(uint8 Seed);
+
+	void ShowHelp(EHelpIndicatorType Type, const float Lifetime);
+
+	void ClearHelp(EHelpIndicatorType Type);
 
 	/**
 	* Ejects a cartridge and reloads the chamber.
@@ -330,6 +343,8 @@ private:
 
 	/** True when there is active recoil and needs to return to the original location/rotation */
 	uint32 bIsRecoilActive : 1;
+
+	FHelpIndicatorHandle HelpHandles[static_cast<uint8>(EHelpIndicatorType::MAX_COUNT)];
 };
 
 FORCEINLINE UEquippableState* AAtomFirearm::GetFiringState() const { return FiringState; }

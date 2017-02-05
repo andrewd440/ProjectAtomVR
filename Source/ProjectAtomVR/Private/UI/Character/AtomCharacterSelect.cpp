@@ -18,7 +18,7 @@ AAtomCharacterSelect::AAtomCharacterSelect()
 
 	SelectionWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("SelectionWidgetComponent"));
 	SelectionWidgetComponent->SetupAttachment(Mesh);
-	SelectionWidgetComponent->bCastDynamicShadow = false;
+	SelectionWidgetComponent->SetCastShadow(false);
 }
 
 TSubclassOf<AAtomCharacter> AAtomCharacterSelect::GetCharacterClass() const
@@ -28,10 +28,10 @@ TSubclassOf<AAtomCharacter> AAtomCharacterSelect::GetCharacterClass() const
 
 void AAtomCharacterSelect::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();	
+	Super::PostInitializeComponents();
 	
 	if(UCharacterSelectWidget* SelectionWidget = Cast<UCharacterSelectWidget>(SelectionWidgetComponent->GetUserWidgetObject()))
 	{		
-		SelectionWidget->SetOwner(this);
+		SelectionWidget->SetCharacterClass(CharacterClass);
 	}
 }

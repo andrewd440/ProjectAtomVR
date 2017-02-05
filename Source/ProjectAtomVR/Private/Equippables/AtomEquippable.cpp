@@ -502,7 +502,7 @@ void AAtomEquippable::PreReplication(IRepChangedPropertyTracker & ChangedPropert
 
 void AAtomEquippable::Destroyed()
 {
-	if (StateStack.Top())
+	if (StateStack.Num() > 0 && StateStack.Top())
 	{
 		StateStack.Top()->Deactivate();
 	}

@@ -52,6 +52,11 @@ public:
 
 	bool IsPawnInputIgnored() const;	
 
+	void ShowHelpIndicator(FHelpIndicatorHandle& Handle, const FText& Text, USceneComponent* AttachParent,
+		const FName AttachSocket, const float Lifetime, const float Delay);
+
+	void ClearHelpIndicator(FHelpIndicatorHandle& Handle);
+
 protected:
 	void OnMenuButtonPressed();
 

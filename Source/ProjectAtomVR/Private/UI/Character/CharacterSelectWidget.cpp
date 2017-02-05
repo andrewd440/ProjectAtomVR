@@ -18,46 +18,39 @@ UCharacterSelectWidget::UCharacterSelectWidget(const FObjectInitializer& ObjectI
 
 }
 
-void UCharacterSelectWidget::SetOwner(AAtomCharacterSelect* InOwner)
+void UCharacterSelectWidget::SetCharacterClass(TSubclassOf<AAtomCharacter> Character)
 {
-	check(InOwner);
+	CharacterClass = Character;
 
-	Owner = InOwner;
-}
-
-AAtomCharacterSelect* UCharacterSelectWidget::GetOwner() const
-{
-	return Owner.Get();
+	RebuildWidget();
 }
 
 void UCharacterSelectWidget::OnCharacterSelected()
 {	
-	check(Owner.IsValid());
-
-	if (TSubclassOf<AAtomCharacter> Character = Owner->GetCharacterClass())
+	if (CharacterClass)
 	{
 		UGameInstance* GameInstance = GetWorld()->GetGameInstance();
 		if (AAtomPlayerController* Controller = Cast<AAtomPlayerController>(GameInstance->GetFirstLocalPlayerController()))
 		{
-			Controller->ServerRequestCharacterChange(Character);
+			Controller->ServerRequestCharacterChange(CharacterClass);
 		}
 	}
 }
 
-FText UCharacterSelectWidget::GetClassEnumText(ECharacterClass CharacterClass) const
+FText UCharacterSelectWidget::GetClassEnumText(ECharacterClass InClass) const
 {
-	switch (CharacterClass)
+	switch (InClass)
 	{
-	case ECharacterClass::Assault:
-		return FText::FromName(TEXT("Assault"));
-	case ECharacterClass::Defense:
-		return FText::FromName(TEXT("Defense"));
-	case ECharacterClass::Support:
-		return FText::FromName(TEXT("Support"));
-	case ECharacterClass::Repair:
-		return FText::FromName(TEXT("Repair"));
-	default:
-		return FText::FromName(TEXT("None"));
+		case ECharacterClass::Assault:
+			return FText::FromName(TEXT("Assault"));
+		case ECharacterClass::Defense:
+			return FText::FromName(TEXT("Defense"));
+		case ECharacterClass::Support:
+			return FText::FromName(TEXT("Support"));
+		case ECharacterClass::Repair:
+			return FText::FromName(TEXT("Repair"));
+		default:
+			return FText::FromName(TEXT("None"));
 	}
 }
 
@@ -65,11 +58,9 @@ void UCharacterSelectWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	check(Owner.IsValid());
-
-	if (Owner->GetCharacterClass() != nullptr && TextWidgetClass != nullptr)
+	if (CharacterClass != nullptr && TextWidgetClass != nullptr)
 	{
-		AAtomCharacter* CharacterCDO = Owner->GetCharacterClass()->GetDefaultObject<AAtomCharacter>();
+		AAtomCharacter* CharacterCDO = CharacterClass->GetDefaultObject<AAtomCharacter>();
 
 		FString CharacterName = CharacterCDO->GetClass()->GetName();
 		UAtomUtilsFunctionLibrary::TrimClassName(CharacterName);

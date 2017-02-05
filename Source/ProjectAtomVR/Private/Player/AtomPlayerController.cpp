@@ -246,6 +246,22 @@ bool AAtomPlayerController::IsPawnInputIgnored() const
 	return (IgnorePawnInput > 0);
 }
 
+void AAtomPlayerController::ShowHelpIndicator(FHelpIndicatorHandle& Handle, const FText& Text, USceneComponent* AttachParent, const FName AttachSocket, const float Lifetime, const float Delay)
+{
+	if (VRHUD != nullptr)
+	{
+		VRHUD->ShowHelpIndicator(Handle, Text, AttachParent, AttachSocket, Lifetime, Delay);
+	}
+}
+
+void AAtomPlayerController::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
+{
+	if (VRHUD != nullptr)
+	{
+		VRHUD->ClearHelpIndicator(Handle);
+	}
+}
+
 void AAtomPlayerController::SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)
 {
 	Super::SetCinematicMode(bInCinematicMode, bAffectsMovement, bAffectsTurning);

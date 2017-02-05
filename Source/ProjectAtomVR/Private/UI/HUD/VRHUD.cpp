@@ -7,12 +7,26 @@
 #include "AtomLoadout.h"
 #include "AtomLoadoutTemplate.h"
 #include "EquippableHUDActor.h"
+#include "IConsoleManager.h"
+#include "Engine/World.h"
+#include "AtomFloatingText.h"
+#include "AtomCharacter.h"
+#include "HMDCameraComponent.h"
 
 DEFINE_LOG_CATEGORY(LogVRHUD);
 
+
+namespace
+{
+	static TAutoConsoleVariable<int32> ShowObjectHelpIndicators(TEXT("HUD.ShowObjectHelpIndicators"), 1, TEXT("Toggles if object help indicators are shown."));
+}
+
 AVRHUD::AVRHUD()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
+	bShowHelp = true;
 }
 
 AAtomPlayerController* AVRHUD::GetPlayerController() const
@@ -32,7 +46,59 @@ void AVRHUD::Destroyed()
 {
 	DestroyLoadoutActors(GetCharacter());
 
+	// Destroy all indicators and clear pending ones
+	for (auto& ActiveIndicator : ActiveHelpIndicators)
+	{
+		if (ActiveIndicator.Indicator.IsValid())
+		{
+			ActiveIndicator.Indicator->Destroy();
+			ActiveIndicator.Indicator = nullptr;
+		}
+	}
+
+	FTimerManager& TimerManager = GetWorldTimerManager();
+
+	for (auto& PendingIndicator : PendingHelpIndicators)
+	{
+		TimerManager.ClearTimer(PendingIndicator.TimerHandle);
+	}
+
 	Super::Destroyed();
+}
+
+void AVRHUD::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// Update active help with head position
+	APawn* Pawn = PlayerController->GetPawn();
+	if (Pawn && GEngine->HMDDevice.IsValid() && ActiveHelpIndicators.Num() > 0)
+	{
+		FVector RoomSpaceHeadLocation;
+		FQuat RoomSpaceHeadOrientation;
+		GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation);
+	
+		FTransform HeadTransform = FTransform(
+			RoomSpaceHeadOrientation,
+			RoomSpaceHeadLocation,
+			FVector(1.0f));
+
+		HeadTransform = HeadTransform * Pawn->GetTransform(); // Get world transform
+
+		for (int32 i = 0; i < ActiveHelpIndicators.Num();)
+		{
+			if (ActiveHelpIndicators[i].Indicator.IsValid())
+			{
+				ActiveHelpIndicators[i].Indicator->Update(HeadTransform.GetLocation());
+				++i;
+			}
+			else
+			{
+				// Remove any expired indicators
+				ActiveHelpIndicators.RemoveAt(i);
+			}
+		}	
+	}
 }
 
 AAtomCharacter* AVRHUD::GetCharacter() const
@@ -50,6 +116,100 @@ void AVRHUD::OnCharacterChanged(AAtomCharacter* OldCharacter)
 		{
 			SpawnLoadoutActors();
 		}			
+	}
+}
+
+void AVRHUD::ShowHelpIndicator(FHelpIndicatorHandle& HelpHandle, const FText& Text, USceneComponent* AttachParent, 
+	const FName AttachSocket, const float Lifetime, const float Delay)
+{
+	HelpHandle.Handle = NextHelpIndicatorHandle++;
+
+	if (Delay > 0)
+	{
+		const int32 Index = PendingHelpIndicators.Emplace(HelpHandle, Text, AttachParent, AttachSocket, Lifetime);
+	 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &AVRHUD::CreatePendingHelpIndicator, HelpHandle.Handle);
+		GetWorldTimerManager().SetTimer(PendingHelpIndicators[Index].TimerHandle, TimerDelegate, Delay, false);
+	}
+	else
+	{
+		CreateActiveHelpIndicator(HelpHandle, Text, AttachParent, AttachSocket, Lifetime);
+	}
+}
+
+void AVRHUD::CreatePendingHelpIndicator(const uint64 Handle)
+{
+	const int32 Index = PendingHelpIndicators.IndexOfByPredicate([Handle](auto& Indicator) 
+	{ 
+		return Indicator.HelpHandle.Handle == Handle; 
+	});
+
+	check(Index != INDEX_NONE);
+
+	const FPendingHelpIndicator& Indicator = PendingHelpIndicators[Index];
+	CreateActiveHelpIndicator(Indicator.HelpHandle, Indicator.Text, Indicator.AttachParent, Indicator.AttachSocket, Indicator.LifeTime);
+	PendingHelpIndicators.RemoveAt(Index);
+}
+
+void AVRHUD::CreateActiveHelpIndicator(const FHelpIndicatorHandle& Handle, const FText& Text, USceneComponent* AttachParent, const FName AttachSocket, const float Lifetime)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.ObjectFlags |= RF_Transient;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAtomFloatingText* HelpIndicator = GetWorld()->SpawnActor<AAtomFloatingText>(SpawnParams);
+	HelpIndicator->AttachToComponent(AttachParent, FAttachmentTransformRules::SnapToTargetNotIncludingScale, AttachSocket);
+	HelpIndicator->SetText(Text);
+
+	HelpIndicator->SetLifeSpan(Lifetime);
+
+	// Make sure this handle does not already exist
+	check(ActiveHelpIndicators.FindByPredicate([Handle](const FActiveHelpIndicator& ActiveIndicator) { return ActiveIndicator.HelpHandle == Handle; }) == nullptr);
+	ActiveHelpIndicators.Emplace(HelpIndicator, Handle);
+}
+
+void AVRHUD::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
+{
+	if (Handle.IsValid())
+	{
+		// First check pending indicators
+		const int32 PendingIndex = PendingHelpIndicators.IndexOfByPredicate([Handle](const FPendingHelpIndicator& PendingIndicator)
+		{
+			return PendingIndicator.HelpHandle == Handle;
+		});
+
+		if (PendingIndex != INDEX_NONE)
+		{
+			FPendingHelpIndicator& PendingIndicator = PendingHelpIndicators[PendingIndex];
+
+			if (PendingIndicator.TimerHandle.IsValid())
+			{
+				GetWorldTimerManager().ClearTimer(PendingIndicator.TimerHandle);
+			}		
+
+			PendingHelpIndicators.RemoveAt(PendingIndex);
+		}
+		else
+		{
+			// Not in pending indicators, check active indicators
+			const int32 ActiveIndex = ActiveHelpIndicators.IndexOfByPredicate([Handle](const FActiveHelpIndicator& ActiveIndicator)
+			{
+				return ActiveIndicator.HelpHandle == Handle;
+			});
+
+			if (ActiveIndex != INDEX_NONE)
+			{
+				FActiveHelpIndicator& ActiveIndicator = ActiveHelpIndicators[ActiveIndex];
+
+				if (ActiveIndicator.Indicator.IsValid())
+				{
+					ActiveIndicator.Indicator->Destroy();
+					ActiveHelpIndicators.RemoveAt(ActiveIndex);
+				}
+			}
+		}
+
+		Handle.Reset();
 	}
 }
 

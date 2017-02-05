@@ -91,3 +91,46 @@ enum class ECharacterClass : uint8
 	Repair,
 	Support
 };
+
+// Unique handle that can be used to distinguish help indicators that have been set.
+USTRUCT(BlueprintType)
+struct FHelpIndicatorHandle
+{
+	GENERATED_BODY()
+
+	friend class AVRHUD;
+
+	FHelpIndicatorHandle()
+		: Handle(0)
+	{
+	}
+
+	bool IsValid() const
+	{
+		return Handle != 0;
+	}
+
+	void Reset()
+	{
+		Handle = 0;
+	}
+
+	bool operator==(const FHelpIndicatorHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FHelpIndicatorHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%ull"), Handle);
+	}
+
+private:
+	UPROPERTY(Transient)
+	uint64 Handle;
+};
