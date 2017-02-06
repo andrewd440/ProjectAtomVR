@@ -28,7 +28,7 @@ void AAtomLobbyGameMode::InitGame(const FString& MapName, const FString& Options
 	{
 		check(Cast<UAtomGameInstance>(GameInstance));
 
-		UAtomGameInstance* AtomGameInstance = static_cast<UAtomGameInstance*>(GameInstance);
+		UAtomGameInstance* AtomGameInstance = CastChecked<UAtomGameInstance>(GameInstance);
 		const FPlaylistItem& NextMatch = AtomGameInstance->GetPlaylistManager()->CyclePlaylist();
 
 		MinPlayers = NextMatch.MinPlayers;
@@ -48,11 +48,8 @@ void AAtomLobbyGameMode::InitGameState()
 
 	if (UGameInstance* const GameInstance = GetGameInstance())
 	{
-		check(Cast<AAtomLobbyGameState>(GameState));
-		check(Cast<UAtomGameInstance>(GameInstance));
-
-		AAtomLobbyGameState* LobbyState = static_cast<AAtomLobbyGameState*>(GameState);
-		UAtomGameInstance* AtomGameInstance = static_cast<UAtomGameInstance*>(GameInstance);
+		AAtomLobbyGameState* LobbyState = CastChecked<AAtomLobbyGameState>(GameState);
+		UAtomGameInstance* AtomGameInstance = CastChecked<UAtomGameInstance>(GameInstance);
 
 		LobbyState->SetNextPlaylistItem(AtomGameInstance->GetPlaylistManager()->CurrentItem());
 	}
@@ -65,7 +62,7 @@ void AAtomLobbyGameMode::Tick(float DeltaSeconds)
 	if (GetMatchState() == MatchState::InProgress)
 	{
 		check(Cast<AAtomLobbyGameState>(GameState));
-		AAtomLobbyGameState* const LobbyState = static_cast<AAtomLobbyGameState*>(GameState);
+		AAtomLobbyGameState* const LobbyState = CastChecked<AAtomLobbyGameState>(GameState);
 
 		const bool bHasMinPlayers = LobbyState->PlayerArray.Num() >= MinPlayers;
 		const bool bPreGameStarted = LobbyState->GetPreGameStartTimeStamp() != 0;
@@ -97,7 +94,7 @@ void AAtomLobbyGameMode::TravelToNextMatch()
 {
 	check(Cast<AAtomLobbyGameState>(GameState));
 
-	AAtomLobbyGameState* LobbyState = static_cast<AAtomLobbyGameState*>(GameState);
+	AAtomLobbyGameState* LobbyState = CastChecked<AAtomLobbyGameState>(GameState);
 	const FPlaylistItem& NextGame = LobbyState->GetNextPlaylistItem();
 
 	const FString Url = FString::Printf(TEXT("/Game/Maps/%s?game=%s?listen?bUsePlaylist=1"), *NextGame.MapName.ToString(), *NextGame.GameMode.ToString());

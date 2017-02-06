@@ -522,7 +522,7 @@ void AAtomCharacter::MovementTeleport(const FVector& DestLocation, const FRotato
 
 UHMDCapsuleComponent* AAtomCharacter::GetHMDCapsuleComponent() const
 {
-	return static_cast<UHMDCapsuleComponent*>(GetCapsuleComponent());
+	return CastChecked<UHMDCapsuleComponent>(GetCapsuleComponent());
 }
 
 void AAtomCharacter::ApplyPlayerSettings(const FAtomPlayerSettings& PlayerSettings)

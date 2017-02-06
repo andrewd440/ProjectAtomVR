@@ -73,9 +73,15 @@ public:
 	virtual void SetOwner(AActor* NewOwner) override;
 	virtual void Destroyed() override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void BeginPlay() override;
+
+	virtual void PostInitializeComponents() override;
+
 	/** AActor Interface End */
 
 protected:
+	void DefaultTimer();
+
 	/** Removes a pending help indicator from the list and creates an active indicator. */
 	void CreatePendingHelpIndicator(const uint64 Handle);
 
@@ -93,6 +99,8 @@ protected:
 	*/
 	void DestroyLoadoutActors(AAtomCharacter* OldCharacter);
 
+	virtual TSharedRef<SWidget> CreateGameStatusWidget();
+
 private:
 	void OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex);
 
@@ -101,13 +109,23 @@ protected:
 
 	TArray<FActiveHelpIndicator> ActiveHelpIndicators;
 
+	/** If help indicators should be shown. */
 	uint32 bShowHelp : 1;
+
+	/** UI used to display game status informations. (Countdown, Intermission, Waiting for objective, etc.) */
+	UPROPERTY(Transient)
+	class AAtomFloatingUI* GameStatusUI = nullptr;
+
+	TWeakPtr<class STextBlock> GameStatusTextBlock = nullptr;
 
 private:
 	AAtomPlayerController* PlayerController = nullptr;
 
+	/** Incremented handle for help indicators. */
 	uint64 NextHelpIndicatorHandle = 1;
 
 	UPROPERTY()
 	TArray<class AEquippableHUDActor*> LoadoutActors;			
+
+	FTimerHandle TimerHandle_DefaultTimer;
 };

@@ -13,19 +13,19 @@ class PROJECTATOMVR_API AAtomFloatingUI : public AActor
 {
 	GENERATED_BODY()
 	
-	enum class EDockMode : uint8
-	{
-		Player, // Docked on the player
-		World // Docked in the world
-	};
-
 public:	
 	// Sets default values for this actor's properties
 	AAtomFloatingUI();
 
-	void SetUMGWidget(TSubclassOf<UUserWidget> Widget);
+	void SetUMGWidget(TSubclassOf<UUserWidget> WidgetClass, const FVector2D InResolution, const float InScale);
 
-	void SetSlateWidget(const TSharedRef<SWidget>& Widget);
+	void SetSlateWidget(const TSharedRef<SWidget>& Widget, const FVector2D InResolution, const float InScale);
+
+	/** Set visibility of the UI. */
+	void ShowUI(const bool bShow);
+
+	/** Get visibility of the UI. */
+	bool GetShowUI() const;
 
 	/** AActor Interface Begin */
 	virtual void Destroyed() override;
@@ -41,6 +41,10 @@ protected:
 
 	UPROPERTY()
 	UUserWidget* UMGWidget;
+
+	FVector2D Resolution;
+
+	float Scale;
 
 private:
 	UPROPERTY()

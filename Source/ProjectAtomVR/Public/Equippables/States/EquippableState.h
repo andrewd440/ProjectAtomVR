@@ -50,8 +50,7 @@ public:
 	template <typename EquippableType = AAtomEquippable>
 	EquippableType* GetEquippable() const
 	{
-		check(EquippableType::StaticClass()->IsChildOf(Equippable->StaticClass()) && "Owner Equippable is not of the requested type.");
-		return static_cast<EquippableType*>(Equippable);
+		return CastChecked<EquippableType>(Equippable);
 	}
 
 	/** UObject Interface Begin */

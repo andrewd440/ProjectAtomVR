@@ -52,7 +52,7 @@ void AAtomGameMode::InitGame(const FString& MapName, const FString& Options, FSt
 		{
 			check(Cast<UAtomGameInstance>(GameInstance));
 
-			UAtomGameInstance* AtomGameInstance = static_cast<UAtomGameInstance*>(GameInstance);
+			UAtomGameInstance* AtomGameInstance = CastChecked<UAtomGameInstance>(GameInstance);
 			const FPlaylistItem& Playlist = AtomGameInstance->GetPlaylistManager()->CurrentItem();
 
 			ApplyPlaylistSettings(Playlist);
@@ -116,7 +116,7 @@ void AAtomGameMode::InitGameState()
 {
 	Super::InitGameState();
 
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 	AtomGameState->ScoreLimit = ScoreLimit;
 	AtomGameState->TimeLimit = TimeLimit;
 	AtomGameState->Rounds = Rounds;
@@ -127,7 +127,7 @@ void AAtomGameMode::RegisterKill(AController* Killer, AController* Victim)
 {
 	const bool bIsSuicide = (Killer == Victim);
 
-	AAtomGameState* const AtomGameState = GetAtomGameState();
+	AAtomGameState* const AtomGameState = CastChecked<AAtomGameState>(GameState);
 	AAtomPlayerState* KillerState = Cast<AAtomPlayerState>(Killer->PlayerState);
 	AAtomPlayerState* VictimState = Cast<AAtomPlayerState>(Victim->PlayerState);
 
@@ -230,7 +230,7 @@ void AAtomGameMode::CheckGameTime()
 
 	if (MatchState != MatchState::InProgress)
 	{
-		AAtomGameState* AtomGameState = GetAtomGameState();
+		AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 
 		if (MatchState == MatchState::Countdown)
 		{
@@ -268,7 +268,7 @@ void AAtomGameMode::TravelToNextMatch()
 	// Travel back to lobby by default
 	check(Cast<UAtomGameInstance>(GetGameInstance()));
 
-	UAtomGameInstance* const GameInstance = static_cast<UAtomGameInstance*>(GetGameInstance());
+	UAtomGameInstance* const GameInstance = CastChecked<UAtomGameInstance>(GetGameInstance());
 
 	const FString URLString = FString::Printf(TEXT("/Game/Maps/%s?listen?game=%s?bUsePlaylist=0"), *GameInstance->GetLobbyMap().ToString(),
 		*GameInstance->GetLobbyGameMode().ToString());
@@ -277,7 +277,7 @@ void AAtomGameMode::TravelToNextMatch()
 
 void AAtomGameMode::InitRound()
 {
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 
 	InitGameStateForRound(AtomGameState);
 
@@ -314,7 +314,7 @@ void AAtomGameMode::HandleMatchHasStarted()
 	}
 
 	// Set match timer
-	GetAtomGameState()->RemainingTime = TimeLimit;
+	CastChecked<AAtomGameState>(GameState)->RemainingTime = TimeLimit;
 }
 
 void AAtomGameMode::HandleMatchEnteredCountdown()
@@ -368,13 +368,13 @@ void AAtomGameMode::HandleMatchEnteredCountdown()
 		GetGameInstance()->StartRecordingReplay(GetWorld()->GetMapName(), GetWorld()->GetMapName());
 	}	
 
-	GetAtomGameState()->RemainingTime = CountdownTime;
+	CastChecked<AAtomGameState>(GameState)->RemainingTime = CountdownTime;
 	bFirstRoundInitialized = true;
 }
 
 bool AAtomGameMode::IsMatchFinished() const
 {
-	return GetAtomGameState()->CurrentRound >= Rounds;
+	return CastChecked<AAtomGameState>(GameState)->CurrentRound >= Rounds;
 }
 
 void AAtomGameMode::EndRound()
@@ -397,7 +397,7 @@ void AAtomGameMode::HandleMatchEnteredIntermission()
 		(*Iterator)->SetCinematicMode(true, false, false, true, false);
 	}
 
-	GetAtomGameState()->RemainingTime = IntermissionTime;
+	CastChecked<AAtomGameState>(GameState)->RemainingTime = IntermissionTime;
 }
 
 void AAtomGameMode::HandleMatchLeavingIntermission()
@@ -413,7 +413,7 @@ void AAtomGameMode::HandleMatchLeavingIntermission()
 		}
 	}
 
-	++GetAtomGameState()->CurrentRound;
+	++CastChecked<AAtomGameState>(GameState)->CurrentRound;
 	SetMatchState(MatchState::Countdown);
 }
 
@@ -423,7 +423,7 @@ void AAtomGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scorer)
 	{
 		if (Scorer->Score > ScoreLimit)
 		{
-			GetAtomGameState()->SetGameWinner(Scorer);
+			CastChecked<AAtomGameState>(GameState)->SetGameWinner(Scorer);
 		}
 	}
 }

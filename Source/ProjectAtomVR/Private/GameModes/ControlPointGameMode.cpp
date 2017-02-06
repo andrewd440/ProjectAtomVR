@@ -22,7 +22,7 @@ AControlPointGameMode::AControlPointGameMode()
 void AControlPointGameMode::OnControlPointCaptured()
 {
 	// Get team members and add captured score
-	auto CPGameState = static_cast<AControlPointGameState*>(GameState);
+	auto CPGameState = CastChecked<AControlPointGameState>(GameState);
 	AAtomControlPoint* ControlPoint = CPGameState->GetActiveControlPoint();
 	check(ControlPoint);
 
@@ -45,7 +45,7 @@ void AControlPointGameMode::DefaultTimer()
 	// Add capture score to controlling team
 	if (MatchState == MatchState::InProgress)
 	{
-		auto CPGameState = static_cast<AControlPointGameState*>(GameState);
+		auto CPGameState = CastChecked<AControlPointGameState>(GameState);
 		if (auto ControlPoint = CPGameState->GetActiveControlPoint())
 		{
 			if (ControlPoint->IsCaptured())
@@ -70,7 +70,7 @@ void AControlPointGameMode::InitGameStateForRound(AAtomGameState* InGameState)
 {
 	Super::InitGameStateForRound(InGameState);
 
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 
 	const int32 CurrentRound = ControlPointGameState->CurrentRound;
 	const int32 NumControlPoints = GameControlPoints.Num();
@@ -89,7 +89,7 @@ void AControlPointGameMode::HandleMatchHasStarted()
 {
 	Super::HandleMatchHasStarted();
 
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
 	{
 		ControlPoint->Activate(ObjectiveSpawnDelay);
@@ -99,7 +99,7 @@ void AControlPointGameMode::HandleMatchHasStarted()
 void AControlPointGameMode::HandleMatchLeavingIntermission()
 {
 	// Reset current control point
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
 	{	
 		ControlPoint->Reset();
@@ -111,7 +111,7 @@ void AControlPointGameMode::HandleMatchLeavingIntermission()
 void AControlPointGameMode::HandleMatchEnteredIntermission()
 {
 	// Deactivate current control point
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
 	{
 		ControlPoint->Deactivate();
@@ -125,7 +125,7 @@ void AControlPointGameMode::HandleMatchEnteredIntermission()
 void AControlPointGameMode::HandleMatchHasEnded()
 {
 	// Deactivate current control point
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
 	{
 		ControlPoint->Deactivate();
@@ -155,7 +155,7 @@ void AControlPointGameMode::InitGame(const FString& MapName, const FString& Opti
 void AControlPointGameMode::ScoreKill_Implementation(AAtomPlayerState* Killer, AAtomPlayerState* Victim)
 {
 	// Check if killer or victim is in control point
-	auto ControlPointGameState = static_cast<AControlPointGameState*>(GameState);
+	auto ControlPointGameState = CastChecked<AControlPointGameState>(GameState);
 	AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint();
 	auto CPPlayerState = Cast<AControlPointPlayerState>(Killer);
 

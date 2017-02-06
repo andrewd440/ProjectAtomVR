@@ -94,7 +94,7 @@ TArray<AAtomPlayerState*> AAtomControlPoint::GetActiveControllingTeamMembers() c
 
 	for (AActor* InitialOverlap : ActiveOverlaps)
 	{
-		auto PlayerState = Cast<AAtomPlayerState>(static_cast<AAtomCharacter*>(InitialOverlap)->PlayerState);
+		auto PlayerState = Cast<AAtomPlayerState>(CastChecked<AAtomCharacter>(InitialOverlap)->PlayerState);
 
 		if (PlayerState && PlayerState->GetTeam() == ControllingTeam)
 		{
@@ -287,7 +287,7 @@ void AAtomControlPoint::OnActivated()
 
 	for (AActor* InitialOverlap : InitalOverlaps)
 	{
-		auto Character = static_cast<AAtomCharacter*>(InitialOverlap);
+		auto Character = CastChecked<AAtomCharacter>(InitialOverlap);
 		auto PlayerState = Cast<AAtomPlayerState>(Character->PlayerState);
 
 		if (PlayerState && PlayerState->GetTeam())

@@ -21,8 +21,6 @@ public:
 	virtual void RequestCharacterChange(AAtomPlayerController* Controller, TSubclassOf<class AAtomCharacter> Character);
 
 	TSubclassOf<class AVRHUD> GetVRHUDClass() const;
-	
-	AAtomGameState* GetAtomGameState() const;
 
 	bool ShouldDelayCharacterLoadoutCreation() const;	
 
@@ -59,9 +57,3 @@ protected:
 private:
 	FTimerHandle TimerHandle_DefaultTimer;
 };
-
-FORCEINLINE AAtomGameState* AAtomBaseGameMode::GetAtomGameState() const
-{
-	check(Cast<AAtomGameState>(GameState));
-	return static_cast<AAtomGameState*>(GameState);
-}

@@ -12,19 +12,28 @@
 #include "AtomFloatingText.h"
 #include "AtomCharacter.h"
 #include "HMDCameraComponent.h"
+#include "AtomFloatingUI.h"
+#include "SBorder.h"
+#include "UMGStyle.h"
 
 DEFINE_LOG_CATEGORY(LogVRHUD);
 
+#define LOCTEXT_NAMESPACE "VRHUD"
 
 namespace
 {
 	static TAutoConsoleVariable<int32> ShowObjectHelpIndicators(TEXT("HUD.ShowObjectHelpIndicators"), 1, TEXT("Toggles if object help indicators are shown."));
+
+	constexpr float MatchStateUIScale = 40;
+	static const FVector2D MatchStateUIRes{ 1024, 300 };
 }
 
 AVRHUD::AVRHUD()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+
+	bCanBeDamaged = false;
 
 	bShowHelp = true;
 }
@@ -61,6 +70,11 @@ void AVRHUD::Destroyed()
 	for (auto& PendingIndicator : PendingHelpIndicators)
 	{
 		TimerManager.ClearTimer(PendingIndicator.TimerHandle);
+	}
+
+	if (TimerHandle_DefaultTimer.IsValid())
+	{
+		TimerManager.ClearTimer(TimerHandle_DefaultTimer);
 	}
 
 	Super::Destroyed();
@@ -101,6 +115,37 @@ void AVRHUD::Tick(float DeltaSeconds)
 	}
 }
 
+void AVRHUD::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Create UI for match state info
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.ObjectFlags |= RF_Transient;
+
+	GameStatusUI = GetWorld()->SpawnActor<AAtomFloatingUI>(SpawnParams);				
+	GameStatusUI->SetSlateWidget(CreateGameStatusWidget(), MatchStateUIRes, MatchStateUIScale);		
+
+	if (GetCharacter())
+	{
+		GameStatusUI->AttachToComponent(GetCharacter()->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		GameStatusUI->SetActorRelativeTransform(FTransform{ FRotator{ 30, 180, 0 }, FVector{ 60, 0, 50 } });
+		GameStatusUI->ShowUI(true);
+	}
+	else
+	{
+		GameStatusUI->ShowUI(false);
+	}
+}
+
+void AVRHUD::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AVRHUD::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+}
+
 AAtomCharacter* AVRHUD::GetCharacter() const
 {
 	return PlayerController ? PlayerController->GetCharacter() : nullptr;
@@ -116,6 +161,14 @@ void AVRHUD::OnCharacterChanged(AAtomCharacter* OldCharacter)
 		{
 			SpawnLoadoutActors();
 		}			
+	}
+
+	if (GetCharacter() && GameStatusUI)
+	{
+		// #AtomTodo Determine base thing to attach to. GetPlayerAttach in PlayerController?
+		GameStatusUI->AttachToComponent(GetCharacter()->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		GameStatusUI->SetActorRelativeTransform(FTransform{ FRotator{ 30, 180, 0 }, FVector{ 60, 0, 50 } });
+		GameStatusUI->ShowUI(true);
 	}
 }
 
@@ -133,6 +186,19 @@ void AVRHUD::ShowHelpIndicator(FHelpIndicatorHandle& HelpHandle, const FText& Te
 	else
 	{
 		CreateActiveHelpIndicator(HelpHandle, Text, AttachParent, AttachSocket, Lifetime);
+	}
+}
+
+void AVRHUD::DefaultTimer()
+{
+	// Update game state text
+	auto GameStatusTextPin = GameStatusTextBlock.Pin();
+	if (GameStatusTextPin.IsValid())
+	{
+		if (auto GameState = GetWorld()->GetGameState<AAtomGameState>())
+		{
+			GameStatusTextPin->SetText(GameState->GetGameStatusText());
+		}		
 	}
 }
 
@@ -234,7 +300,7 @@ void AVRHUD::SpawnLoadoutActors()
 		// Create the UI only if the item is created. If not, (i.e. not replicated yet) wait until the item changed
 		// event tells us it is there.
 		if (LoadoutSlot.Item && EquippableUIClass)
-		{		
+		{
 			auto LoadoutActor = GetWorld()->SpawnActorDeferred<AEquippableHUDActor>(EquippableUIClass, FTransform::Identity, this);
 			LoadoutActor->SetFlags(RF_Transient);
 			LoadoutActor->SetEquippable(LoadoutSlot.Item);
@@ -272,6 +338,19 @@ void AVRHUD::DestroyLoadoutActors(AAtomCharacter* OldCharacter)
 			Slot.OnSlotChanged.RemoveAll(this);
 		}
 	}
+}
+
+TSharedRef<SWidget> AVRHUD::CreateGameStatusWidget()
+{
+	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
+		.Text(LOCTEXT("GameStatus", "Game Status"))
+		.AutoWrapText(true)
+		.Font(FSlateFontInfo{ FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 96 })
+		.Justification(ETextJustify::Center);
+
+	GameStatusTextBlock = TextBlock;
+
+	return TextBlock;
 }
 
 void AVRHUD::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)
@@ -324,3 +403,5 @@ void AVRHUD::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIn
 		HUDActor->OnLoadoutChanged(Change, LoadoutSlots[LoadoutIndex]);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

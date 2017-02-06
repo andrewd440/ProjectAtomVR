@@ -168,9 +168,8 @@ void UMagazineAmmoLoader::LoadAmmo(UObject* LoadObject)
 	Super::LoadAmmo(LoadObject);
 
 	ensure(Magazine == nullptr);
-	check(Cast<AFirearmMagazine>(LoadObject));
 
-	Magazine = static_cast<AFirearmMagazine*>(LoadObject);
+	Magazine = CastChecked<AFirearmMagazine>(LoadObject);
 
 	ensureMsgf(Magazine->IsA(MagazineTemplate),
 		TEXT("Attached HeroFirearm magazine is not compatible with assigned type. Was %s, while MagazineTemplate is %s"), 
@@ -221,7 +220,7 @@ void UMagazineAmmoLoader::OnMagazineEnteredReloadTrigger(UPrimitiveComponent* Ov
 	check(Cast<AFirearmMagazine>(OtherActor) && "FirearmMagazine should be the only response to this trigger.");
 	check(GetFirearm()->IsEquipped() && "Overlap events should be unbound when not the HeroFirearm is not equipped.");
 
-	AFirearmMagazine* OverlapMagazine = static_cast<AFirearmMagazine*>(OtherActor);
+	AFirearmMagazine* OverlapMagazine = CastChecked<AFirearmMagazine>(OtherActor);
 	AAtomFirearm* MyFirearm = GetFirearm();
 
 	if (OverlapMagazine->GetCharacterOwner() == MyFirearm->GetCharacterOwner() &&

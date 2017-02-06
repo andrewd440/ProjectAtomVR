@@ -230,8 +230,7 @@ public:
 	template <typename MeshType = UMeshComponent>
 	MeshType* GetMesh() const
 	{
-		check(MeshType::StaticClass()->IsChildOf(Mesh->StaticClass()) && "Mesh Component is not of the requested type.");
-		return static_cast<MeshType*>(Mesh);
+		return CastChecked<MeshType>(Mesh);
 	}
 
 protected:

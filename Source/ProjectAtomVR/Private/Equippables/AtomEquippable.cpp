@@ -89,7 +89,7 @@ void AAtomEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 	if (CharacterOwner->IsLocallyControlled())
 	{
 		// Enable input if locally controlled.
-		EnableInput(static_cast<APlayerController*>(CharacterOwner->GetController()));
+		EnableInput(CastChecked<APlayerController>(CharacterOwner->GetController()));
 		SetupInputComponent(InputComponent);
 	}
 
@@ -155,7 +155,7 @@ void AAtomEquippable::Unequip(const EEquipType EquipType)
 	{
 		// Disable input if locally controlled.
 		check(InputComponent);
-		DisableInput(static_cast<APlayerController*>(CharacterOwner->GetController()));
+		DisableInput(CastChecked<APlayerController>(CharacterOwner->GetController()));
 		InputComponent->DestroyComponent();
 		InputComponent = nullptr;
 	}

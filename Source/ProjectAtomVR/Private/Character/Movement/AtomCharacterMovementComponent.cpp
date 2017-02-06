@@ -246,7 +246,7 @@ void FSavedMove_AtomCharacter::PrepMoveFor(ACharacter* C)
 	Super::PrepMoveFor(C);
 
 	check(Cast<UAtomCharacterMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
-	UAtomCharacterMovementComponent* const MoveComponent = static_cast<UAtomCharacterMovementComponent*>(C->GetMovementComponent());
+	UAtomCharacterMovementComponent* const MoveComponent = CastChecked<UAtomCharacterMovementComponent>(C->GetMovementComponent());
 	MoveComponent->bWantsToTeleport = bWantsToTeleport;
 	MoveComponent->PendingTeleportDestination = TeleportLocation;
 }
@@ -256,7 +256,7 @@ void FSavedMove_AtomCharacter::SetMoveFor(ACharacter* C, float InDeltaTime, FVec
 	Super::SetMoveFor(C, InDeltaTime, NewAccel, ClientData);
 
 	check(Cast<UAtomCharacterMovementComponent>(C->GetMovementComponent()) && "AHeroBase requires a UHeroMovementComponent");
-	UAtomCharacterMovementComponent* const MoveComponent = static_cast<UAtomCharacterMovementComponent*>(C->GetMovementComponent());
+	UAtomCharacterMovementComponent* const MoveComponent = CastChecked<UAtomCharacterMovementComponent>(C->GetMovementComponent());
 	bWantsToTeleport = MoveComponent->bWantsToTeleport;
 	TeleportLocation = MoveComponent->PendingTeleportDestination;
 }

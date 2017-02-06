@@ -25,7 +25,7 @@ void UCartridgeAmmoLoader::LoadAmmo(UObject* LoadObject)
 
 	if (LoadObject != nullptr)
 	{
-		AAtomEquippable* Cartridge = static_cast<AAtomEquippable*>(LoadObject);		
+		AAtomEquippable* Cartridge = CastChecked<AAtomEquippable>(LoadObject);
 
 		if (GetFirearm()->HasAuthority())
 		{
@@ -100,7 +100,7 @@ void UCartridgeAmmoLoader::OnHandEnteredReloadTrigger(UPrimitiveComponent* Overl
 	check(Cast<AAtomCharacter>(OtherActor) && "HeroBase should be the only response to this trigger.");
 	check(GetFirearm()->IsEquipped() && "Overlap events should be unbound when not the HeroFirearm is not equipped.");
 
-	AAtomCharacter* OverlapHero = static_cast<AAtomCharacter*>(OtherActor);
+	AAtomCharacter* OverlapHero = CastChecked<AAtomCharacter>(OtherActor);
 	AAtomFirearm* MyFirearm = GetFirearm();	
 
 	if (OverlapHero == MyFirearm->GetCharacterOwner()) // This is our hero

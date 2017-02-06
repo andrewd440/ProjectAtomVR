@@ -49,7 +49,7 @@ void AAtomPlayerState::ServerRequestTeamChange_Implementation(int32 RequestedTea
 	
 	if (Controller && GameMode)
 	{
-		AAtomGameState* GameState = GameMode->GetAtomGameState();
+		AAtomGameState* GameState = CastChecked<AAtomGameState>(GameMode->GameState);
 
 		if (RequestedTeam == AAtomTeamInfo::INDEX_NO_TEAM)
 		{			

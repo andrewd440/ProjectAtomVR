@@ -21,11 +21,11 @@ AAtomTeamGameMode::AAtomTeamGameMode()
 
 bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
 {
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 	check(AtomGameState->Teams.IsValidIndex(TeamId));
 
 	check(Cast<AAtomPlayerState>(Controller->PlayerState));
-	AAtomPlayerState* PlayerState = static_cast<AAtomPlayerState*>(Controller->PlayerState);
+	AAtomPlayerState* PlayerState = CastChecked<AAtomPlayerState>(Controller->PlayerState);
 	
 	AAtomTeamInfo* OldTeam = PlayerState->GetTeam();
 	AAtomTeamInfo* NewTeam = AtomGameState->Teams[TeamId];
@@ -41,7 +41,7 @@ bool AAtomTeamGameMode::ChangeTeams(AController* Controller, int32 TeamId)
 	for (auto TeamMember : NewTeam->GetTeamMembers())
 	{
 		check(Cast<AAtomPlayerState>(TeamMember->PlayerState));
-		AAtomPlayerState* TeamMemberState = static_cast<AAtomPlayerState*>(TeamMember->PlayerState);
+		AAtomPlayerState* TeamMemberState = CastChecked<AAtomPlayerState>(TeamMember->PlayerState);
 
 		if (TeamMemberState->GetPendingTeamChange() == OldTeam->TeamId)
 		{
@@ -63,7 +63,7 @@ void AAtomTeamGameMode::GetSeamlessTravelActorList(bool bToTransition, TArray<AA
 	// Save teams when traveling to transition level. When the final level is loaded, new teams will be created.
 	if (bToTransition)
 	{
-		const TArray<AAtomTeamInfo*> Teams = GetAtomGameState()->Teams;
+		const TArray<AAtomTeamInfo*> Teams = CastChecked<AAtomGameState>(GameState)->Teams;
 		for (auto Team : Teams)
 		{
 			ActorList.Add(Team);
@@ -111,7 +111,7 @@ bool AAtomTeamGameMode::IsMatchFinished() const
 	int32 TopTeamWins = 0;
 	int32 SecondTeamWins = 0;
 
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 
 	for (auto Team : AtomGameState->Teams)
 	{
@@ -130,7 +130,7 @@ bool AAtomTeamGameMode::IsMatchFinished() const
 
 void AAtomTeamGameMode::HandleMatchLeavingIntermission()
 {
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 
 	// Reset team scores
 	for (auto Team : AtomGameState->Teams)
@@ -147,7 +147,7 @@ void AAtomTeamGameMode::HandleMatchLeavingIntermission()
 void AAtomTeamGameMode::EndRound()
 {
 	// Increment rounds won for winning team
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 	AAtomTeamInfo* WinningTeam = AtomGameState->GameWinner ? AtomGameState->GameWinner->GetTeam() : nullptr;
 	if (WinningTeam)
 	{
@@ -186,7 +186,7 @@ void AAtomTeamGameMode::Logout(AController* Exiting)
 
 AAtomTeamInfo* AAtomTeamGameMode::ChooseBestTeam(const AController* Controller) const
 {
-	const TArray<AAtomTeamInfo*>& Teams = GetAtomGameState()->Teams;
+	const TArray<AAtomTeamInfo*>& Teams = CastChecked<AAtomGameState>(GameState)->Teams;
 
 	// Get teams with the lowest player count
 	TArray<AAtomTeamInfo*, TInlineAllocator<2>> LowestPlayerCounts;
@@ -247,7 +247,7 @@ void AAtomTeamGameMode::UpdateGameplayMuteList(APlayerController* aPlayer)
 
 	const auto& PlayerNetId = aPlayer->PlayerState->UniqueId;
 	
-	auto& Teams = GetAtomGameState()->Teams;
+	auto& Teams = CastChecked<AAtomGameState>(GameState)->Teams;
 	for (int32 i = 0; i < Teams.Num(); ++i)
 	{
 		if (i != TeamId)
@@ -292,7 +292,7 @@ void AAtomTeamGameMode::InitGameState()
 	Super::InitGameState();
 
 	// Setup teams
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 	AtomGameState->bIsTeamGame = true;
 
 	AtomGameState->Teams.SetNum(TeamCount);
@@ -334,7 +334,7 @@ void AAtomTeamGameMode::CheckForGameWinner_Implementation(AAtomPlayerState* Scor
 	if (ScoreLimit <= 0)
 		return;
 
-	AAtomGameState* AtomGameState = GetAtomGameState();
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 	AAtomTeamInfo* ScoringTeam = Scorer->GetTeam();
 	
 	if (ScoringTeam->Score >= ScoreLimit)
@@ -361,7 +361,7 @@ void AAtomTeamGameMode::InitSeamlessTravelPlayer(AController* NewController)
 	// Assign team before Super for things that rely on teams (mute list, player start)
 	if (auto PlayerState = Cast<AAtomPlayerState>(NewController->PlayerState))
 	{
-		auto& Teams = GetAtomGameState()->Teams;
+		auto& Teams = CastChecked<AAtomGameState>(GameState)->Teams;
 
 		// Assign team if not assigned
 		if (Teams.IsValidIndex(PlayerState->GetSavedTeamId()))

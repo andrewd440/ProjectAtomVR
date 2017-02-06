@@ -16,6 +16,8 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogFirearm, Log, All);
 
+#define LOCTEXT_NAMESPACE "Firearm" 
+
 namespace
 {
 	// Emitter names
@@ -32,9 +34,9 @@ namespace
 	static const FName SlideLockSection{ TEXT("SlideLock") };
 
 	// Help text
-	static const FText HelpTextReload{ FText::FromName(TEXT("Reload Ammo")) };
-	static const FText HelpTextChamberAmmo{ FText::FromName(TEXT("Pull Back")) };
-	static const FText HelpTextSlideLock{ FText::FromName(TEXT("Release Lock")) };
+	static const FText HelpTextReload{ LOCTEXT("HelpReload", "Reload Ammo") };
+	static const FText HelpTextChamberAmmo{ LOCTEXT("HelpChamberAmmo", "Pull Back") };
+	static const FText HelpTextSlideLock{ LOCTEXT("HelpSlideLock", "Release Lock") };
 
 	// Help sockets
 	static const FName ReloadIndicatorSocket{ TEXT("ReloadIndicator") };
@@ -621,7 +623,7 @@ void AAtomFirearm::ClearHelp(EHelpIndicatorType Type)
 
 	if (HelpHandles[HandleIndex].IsValid())
 	{
-		auto PlayerController = static_cast<AAtomPlayerController*>(GetCharacterOwner()->GetController());
+		auto PlayerController = CastChecked<AAtomPlayerController>(GetCharacterOwner()->GetController());
 		PlayerController->ClearHelpIndicator(HelpHandles[HandleIndex]);
 	}	
 }
@@ -867,3 +869,5 @@ void AAtomFirearm::Destroyed()
 
 	Super::Destroyed();
 }
+
+#undef LOCTEXT_NAMESPACE

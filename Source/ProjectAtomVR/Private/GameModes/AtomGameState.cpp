@@ -6,6 +6,7 @@
 #include "AtomPlayerState.h"
 #include "AtomTeamInfo.h"
 
+#define LOCTEXT_NAMESPACE "AtomGameState"
 
 AAtomGameState::AAtomGameState()
 {
@@ -26,6 +27,23 @@ void AAtomGameState::SetGameWinner(AAtomPlayerState* Winner)
 AAtomPlayerState* AAtomGameState::GetGameWinner() const
 {
 	return GameWinner;
+}
+
+FText AAtomGameState::GetGameStatusText() const
+{
+	if (!IsMatchInProgress())
+	{
+		if (MatchState == MatchState::Countdown)
+		{
+			return FText::Format(LOCTEXT("GameStatusCountdown", "Countdown: {0}"), FText::AsNumber(RemainingTime));
+		}
+		else if (MatchState == MatchState::Intermission)
+		{
+			return FText::Format(LOCTEXT("GameStatusIntermission", "Intermission: {0}"), FText::AsNumber(RemainingTime));
+		}
+	}
+
+	return FText::GetEmpty();
 }
 
 void AAtomGameState::DefaultTimer()
@@ -52,3 +70,5 @@ void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_CONDITION(AAtomGameState, TimeLimit, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomGameState, Rounds, COND_InitialOnly);
 }
+
+#undef LOCTEXT_NAMESPACE

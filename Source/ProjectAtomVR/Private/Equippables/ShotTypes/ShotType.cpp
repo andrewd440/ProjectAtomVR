@@ -17,5 +17,5 @@ class UWorld* UShotType::GetWorld() const
 
 class AAtomFirearm* UShotType::GetFirearm() const
 {
-	return static_cast<AAtomFirearm*>(GetOuter());
+	return CastChecked<AAtomFirearm>(GetOuter());
 }

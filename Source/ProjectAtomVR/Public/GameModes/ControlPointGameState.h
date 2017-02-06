@@ -24,7 +24,8 @@ public:
 
 	/** AtomGameState Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	/** AtomGameState Interface End */	
+	virtual FText GetGameStatusText() const override;
+	/** AtomGameState Interface End */
 
 protected:
 	UPROPERTY(Replicated, Transient, BlueprintReadOnly, Category = ControlPointGameState)

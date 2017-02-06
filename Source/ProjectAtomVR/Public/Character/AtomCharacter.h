@@ -294,7 +294,7 @@ AAtomEquippable* AAtomCharacter::GetEquippable() const
 
 FORCEINLINE UAtomCharacterMovementComponent* AAtomCharacter::GetHeroMovementComponent() const
 {
-	return static_cast<UAtomCharacterMovementComponent*>(GetMovementComponent());
+	return CastChecked<UAtomCharacterMovementComponent>(GetMovementComponent());
 }
 
 FORCEINLINE USphereComponent* AAtomCharacter::GetHandTrigger(EHand Hand) const

@@ -84,7 +84,7 @@ void AAtomPlayerController::SetPlayer(UPlayer* InPlayer)
 	if (AtomLocalPlayer)
 	{
 		check(Cast<UAtomGameUserSettings>(GEngine->GameUserSettings));
-		UAtomGameUserSettings* GameUserSettings = static_cast<UAtomGameUserSettings*>(GEngine->GameUserSettings);
+		UAtomGameUserSettings* GameUserSettings = CastChecked<UAtomGameUserSettings>(GEngine->GameUserSettings);
 
 		// Set player settings before Super::SetPlayer to setup input correctly
 		PlayerSettings = GameUserSettings->GetPlayerSettings();
