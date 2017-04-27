@@ -117,6 +117,9 @@ protected:
 	/** AGameModeBase Interface End */
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Messages)
+	TSubclassOf<class UAtomDeathLocalMessage> DeathMessageClass;
+
 	/** Game time limit in seconds. 0 = No time limit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;

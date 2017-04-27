@@ -11,3 +11,6 @@ Saved
 *.xcodeproj
 *.xcworkspace
 Content/GameTextures
+Content/SuperGrid
+Content/StarterContent
+Build

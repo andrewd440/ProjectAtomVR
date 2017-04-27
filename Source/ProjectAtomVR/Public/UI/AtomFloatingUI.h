@@ -17,7 +17,7 @@ public:
 	// Sets default values for this actor's properties
 	AAtomFloatingUI();
 
-	void SetUMGWidget(TSubclassOf<UUserWidget> WidgetClass, const FVector2D InResolution, const float InScale);
+	void SetUMGWidget(UUserWidget* Widget, const FVector2D InResolution, const float InScale);
 
 	void SetSlateWidget(const TSharedRef<SWidget>& Widget, const FVector2D InResolution, const float InScale);
 
@@ -36,8 +36,6 @@ protected:
 
 protected:
 	TSharedPtr<SWidget> SlateWidget;
-
-	TSubclassOf<UUserWidget> UMGWidgetClass;
 
 	UPROPERTY()
 	UUserWidget* UMGWidget;

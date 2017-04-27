@@ -15,6 +15,9 @@
 #include "AtomFloatingUI.h"
 #include "SBorder.h"
 #include "UMGStyle.h"
+#include "Messages/AtomLocalMessage.h"
+#include "UserWidget.h"
+#include "AtomHUDLocalMessageWidget.h"
 
 DEFINE_LOG_CATEGORY(LogVRHUD);
 
@@ -24,8 +27,19 @@ namespace
 {
 	static TAutoConsoleVariable<int32> ShowObjectHelpIndicators(TEXT("HUD.ShowObjectHelpIndicators"), 1, TEXT("Toggles if object help indicators are shown."));
 
-	constexpr float MatchStateUIScale = 40;
-	static const FVector2D MatchStateUIRes{ 1024, 300 };
+	namespace GameStatusTransform
+	{
+		constexpr float Scale = 40;
+		static const FVector2D Res{ 1024, 300 };
+		static const FVector Location{ 60, 0, 50 };
+		static const FRotator Rotation{ 30, 180, 0 };
+	}
+
+	namespace MessageTransform
+	{
+		constexpr float Scale = 30;
+		static const FVector2D Res{ 1024, 1024 };
+	}	
 }
 
 AVRHUD::AVRHUD()
@@ -98,12 +112,13 @@ void AVRHUD::Tick(float DeltaSeconds)
 			FVector(1.0f));
 
 		HeadTransform = HeadTransform * Pawn->GetTransform(); // Get world transform
+		const FVector HeadLocation = HeadTransform.GetLocation();
 
 		for (int32 i = 0; i < ActiveHelpIndicators.Num();)
 		{
 			if (ActiveHelpIndicators[i].Indicator.IsValid())
 			{
-				ActiveHelpIndicators[i].Indicator->Update(HeadTransform.GetLocation());
+				ActiveHelpIndicators[i].Indicator->Update(HeadLocation);
 				++i;
 			}
 			else
@@ -125,12 +140,13 @@ void AVRHUD::BeginPlay()
 	SpawnParams.ObjectFlags |= RF_Transient;
 
 	GameStatusUI = GetWorld()->SpawnActor<AAtomFloatingUI>(SpawnParams);				
-	GameStatusUI->SetSlateWidget(CreateGameStatusWidget(), MatchStateUIRes, MatchStateUIScale);		
+	GameStatusUI->SetSlateWidget(CreateGameStatusWidget(), GameStatusTransform::Res, GameStatusTransform::Scale);
 
+	// Attach game status ui
 	if (GetCharacter())
 	{
-		GameStatusUI->AttachToComponent(GetCharacter()->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		GameStatusUI->SetActorRelativeTransform(FTransform{ FRotator{ 30, 180, 0 }, FVector{ 60, 0, 50 } });
+		GameStatusUI->AttachToComponent(GetCharacter()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		GameStatusUI->SetActorRelativeTransform(FTransform{ GameStatusTransform::Rotation, GameStatusTransform::Location });
 		GameStatusUI->ShowUI(true);
 	}
 	else
@@ -163,11 +179,11 @@ void AVRHUD::OnCharacterChanged(AAtomCharacter* OldCharacter)
 		}			
 	}
 
+	// Attach game status ui
 	if (GetCharacter() && GameStatusUI)
 	{
-		// #AtomTodo Determine base thing to attach to. GetPlayerAttach in PlayerController?
-		GameStatusUI->AttachToComponent(GetCharacter()->GetBodyMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		GameStatusUI->SetActorRelativeTransform(FTransform{ FRotator{ 30, 180, 0 }, FVector{ 60, 0, 50 } });
+		GameStatusUI->AttachToComponent(GetCharacter()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+		GameStatusUI->SetActorRelativeTransform(FTransform{ GameStatusTransform::Rotation, GameStatusTransform::Location });
 		GameStatusUI->ShowUI(true);
 	}
 }
@@ -276,6 +292,48 @@ void AVRHUD::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
 		}
 
 		Handle.Reset();
+	}
+}
+
+void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, 
+	const FText& MessageText, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject)
+{
+	UE_LOG(LogVRHUD, Log, TEXT("%s"), *MessageText.ToString());
+	const UAtomLocalMessage* const DefaultMessage = MessageClass->GetDefaultObject<UAtomLocalMessage>();
+
+	if (DefaultMessage->HUDWidget != nullptr)
+	{
+		auto Widget = CreateWidget<UUserWidget>(PlayerController, DefaultMessage->HUDWidget);
+
+		if (auto LocalMessageWidget = Cast<UAtomHUDLocalMessageWidget>(Widget))
+		{
+			LocalMessageWidget->InitializeWithMessage(MessageClass, MessageIndex, MessageText, RelatedPlayerState_1, 
+				RelatedPlayerState_2, OptionalObject);
+		}
+
+		// Make sure we never leave lifespan at 0
+		const float Lifespan = DefaultMessage->DisplayTime > 0 ? DefaultMessage->DisplayTime : 1.0f;
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.ObjectFlags |= RF_Transient;
+
+		auto MessageFloatingUI = GetWorld()->SpawnActor<AAtomFloatingUI>(SpawnParams);
+		MessageFloatingUI->SetUMGWidget(Widget, MessageTransform::Res, MessageTransform::Scale);
+		MessageFloatingUI->SetLifeSpan(Lifespan);
+
+		// Set position relative to view location
+		FVector CameraLoc; FRotator CameraRot;
+		PlayerController->GetPlayerViewPoint(CameraLoc, CameraRot);
+
+		const FRotationMatrix CameraRotMat{ CameraRot };
+		
+		FVector UILoc = CameraLoc;
+		UILoc += DefaultMessage->HUDWidgetLocationOffset.X * CameraRotMat.GetScaledAxis(EAxis::X).GetSafeNormal2D();
+		UILoc += DefaultMessage->HUDWidgetLocationOffset.Y * CameraRotMat.GetScaledAxis(EAxis::Y).GetSafeNormal2D() + 
+			DefaultMessage->HUDWidgetLocationOffset.Z * FVector::UpVector;
+
+		MessageFloatingUI->SetActorLocationAndRotation(UILoc, (CameraLoc - UILoc).ToOrientationQuat());
 	}
 }
 

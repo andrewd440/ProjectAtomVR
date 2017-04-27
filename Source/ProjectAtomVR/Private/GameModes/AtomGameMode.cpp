@@ -13,6 +13,7 @@
 #include "Engine/EngineTypes.h"
 #include "AtomPlaylistManager.h"
 #include "AtomGameObjective.h"
+#include "Messages/AtomDeathLocalMessage.h"
 
 namespace MatchState
 {
@@ -25,6 +26,8 @@ namespace MatchState
 AAtomGameMode::AAtomGameMode()
 {
 	bFirstRoundInitialized = false;
+
+	DeathMessageClass = UAtomDeathLocalMessage::StaticClass();
 }
 
 void AAtomGameMode::Tick(float DeltaSeconds)
@@ -141,6 +144,11 @@ void AAtomGameMode::RegisterKill(AController* Killer, AController* Victim)
 	if (VictimState)
 	{
 		ScoreDeath(KillerState, VictimState);
+	}	
+
+	if (DeathMessageClass)
+	{
+		BroadcastLocalized(this, DeathMessageClass, 0, KillerState, VictimState);
 	}	
 }
 

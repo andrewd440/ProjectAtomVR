@@ -262,6 +262,11 @@ void AAtomPlayerController::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
 	}
 }
 
+class AVRHUD* AAtomPlayerController::GetVRHUD() const
+{
+	return VRHUD;
+}
+
 void AAtomPlayerController::SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)
 {
 	Super::SetCinematicMode(bInCinematicMode, bAffectsMovement, bAffectsTurning);

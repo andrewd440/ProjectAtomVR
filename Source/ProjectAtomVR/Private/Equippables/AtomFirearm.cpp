@@ -46,6 +46,7 @@ namespace
 	constexpr float ActiveRecoilRotationTolerance = 0.003f;
 	constexpr float ActiveRecoilOffsetTolerance = 0.1f;
 
+	// Seconds before help indicators are displayed.
 	constexpr float HelpIndicatorDelay = 5.f;
 }
 
@@ -261,6 +262,11 @@ float AAtomFirearm::GetChamberingProgress() const
 bool AAtomFirearm::IsHoldingChamberingHandle() const
 {
 	return bIsHoldingChamberHandle;
+}
+
+bool AAtomFirearm::IsSlideLockActive() const
+{
+	return bIsSlideLockActive;
 }
 
 bool AAtomFirearm::CanFire() const

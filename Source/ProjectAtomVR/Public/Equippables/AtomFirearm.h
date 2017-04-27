@@ -70,6 +70,7 @@ struct FFirearmBlockFireVolume
 };
 
 /**
+ * Class for all firearm type equippable items.
  * Shots are fired from the socket name "Muzzle" on the firearm mesh.
  */
 UCLASS(Abstract)
@@ -100,31 +101,43 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsChamberEmpty() const;
 
-	UFUNCTION(BlueprintCallable, Category = Firearm)
+	/** Gets the progress of the chambering position of the firearm. [0-1] */
+	UFUNCTION(BlueprintCallable, Category = Firearm)	
 	float GetChamberingProgress() const;
 
+	/** Checks if the chambering handle is held. */
 	UFUNCTION(BlueprintCallable, Category = Firearm)
 	bool IsHoldingChamberingHandle() const;
 
 	UFUNCTION(BlueprintCallable, Category = Firearm)
-	bool IsSlideLockActive() const { return bIsSlideLockActive; }
+	bool IsSlideLockActive() const;
 
 	bool CanFire() const;
 
 	bool IsMuzzleInGeometry() const;
 
+	/** Loads ammo for the firearm. Usually only used by the active ammo loader for the firearm for RPC support. */
 	void LoadAmmo(UObject* LoadObject, bool bForceLocalOnly = false);
 
+	/** Discards ammo for the firearm, if supported by the active ammo loader. */
 	virtual void DiscardAmmo();
 
 	const FFirearmStats& GetFirearmStats() const;
 
+	/** Fires a shot based on the active shot type. */
 	void FireShot();
 
+	/** Dry fires the firearm. Plays audio effect. */
 	virtual void DryFire();
 
+	/**
+	* Starts the sequence for entering a firing state. (i.e. plays trigger pull anim)
+	*/
 	virtual void StartFiringSequence();
 
+	/**
+	* Stops all active firing sequences. (i.e. muzzle effects, firing sounds, etc.)
+	*/
 	virtual void StopFiringSequence();
 
 	UEquippableState* GetFiringState() const;
@@ -132,28 +145,38 @@ public:
 
 	UAmmoLoader* GetAmmoLoader() const;
 
+	/** 
+	 * Activates the slide lock. 
+	 * The assigned FiringMontage must have a SlideLock section. 
+	 */
 	void ActivateSlideLock();
 
 protected:
+	/** Updates the positioning and progress of the chambering handle when held. */
 	void UpdateChamberingHandle();
+
+	/** Updates the recoil offset of the firearm each frame recoil is active. */
 	void UpdateRecoilOffset(float DeltaSeconds);
 
+	/** Plays all effects for a single shot. */
 	virtual void PlaySingleShotSequence();
 
 	virtual void OnOppositeHandTriggerPressed();
 	virtual void OnOppositeHandTriggerReleased();
 
+	/** Checks if the owning character's hand is in a position to grip the chambering handle. */
 	bool CanGripChamberingHandle() const;
+
 	void OnChamberingHandleGrabbed();
 	void OnChamberingHandleReleased();
-	void OnSlideLockPressed();
 
+	void OnSlideLockPressed();
 	void ReleaseSlideLock();
 
+	/** Generates active shot recoil based on an input seed. Generated recoil is directly applied to RecoilVelocity. */
 	void GenerateShotRecoil(uint8 Seed);
 
 	void ShowHelp(EHelpIndicatorType Type, const float Lifetime);
-
 	void ClearHelp(EHelpIndicatorType Type);
 
 	/**
@@ -163,8 +186,10 @@ protected:
 	*/
 	void ReloadChamber(bool bIsFired);
 
+	/** Callback for cartridge eject particle system to play collision audio. */
 	UFUNCTION()
-	void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
+	void OnEjectedCartridgeCollide(FName EventName, float EmitterTime, int32 ParticleTime, FVector Location, FVector Velocity, 
+		FVector Direction, FVector Normal, FName BoneName, UPhysicalMaterial* PhysMat);
 
 	UFUNCTION()
 	void OnRep_IsHoldingChamberHandle();
@@ -219,19 +244,19 @@ protected:
 	} RecoilVelocity;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	class UAmmoLoader* AmmoLoader;
+	class UAmmoLoader* AmmoLoader = nullptr;
 
 	/**
 	* Shots type for this firearm. Shots are fired from the socket name "Muzzle" on the mesh.
 	*/
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	class UShotType* ShotType;
+	class UShotType* ShotType = nullptr;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
 	UEquippableState* FiringState;
 
 	UPROPERTY(Instanced, EditDefaultsOnly, BlueprintReadOnly, Category = States)
-	UEquippableState* ChargingState;
+	UEquippableState* ChargingState = nullptr;
 	
 	/** 
 	 * Particle system used to eject shells from the firearm. The emitter named "CartridgeFired" will be
@@ -257,11 +282,11 @@ protected:
 
 	/** Mesh attached to "CartridgeAttach" socket for fired cartridges */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	UStaticMesh* CartridgeFiredMesh;
+	UStaticMesh* CartridgeFiredMesh = nullptr;
 
 	/** Mesh attached to "CartridgeAttach" socket for unfired cartridges */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Firearm)
-	UStaticMesh* CartridgeUnfiredMesh;
+	UStaticMesh* CartridgeUnfiredMesh = nullptr;
 
 	UPROPERTY(transient)
 	UStaticMeshComponent* CartridgeMeshComponent = nullptr;

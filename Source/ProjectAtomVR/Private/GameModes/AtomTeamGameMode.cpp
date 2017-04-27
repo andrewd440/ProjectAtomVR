@@ -162,7 +162,9 @@ bool AAtomTeamGameMode::CanDamage_Implementation(AController* Inflictor, AContro
 	AAtomPlayerState* InflictorState = Inflictor ? Cast<AAtomPlayerState>(Inflictor->PlayerState) : nullptr;
 	AAtomPlayerState* RecieverState = Reciever ? Cast<AAtomPlayerState>(Reciever->PlayerState) : nullptr;
 
-	if (InflictorState && RecieverState && InflictorState->GetTeam() == RecieverState->GetTeam())
+	if (InflictorState && RecieverState && 
+		InflictorState != RecieverState && 
+		InflictorState->GetTeam() == RecieverState->GetTeam())
 	{
 		return false;
 	}

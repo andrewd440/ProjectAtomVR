@@ -7,18 +7,24 @@
 
 class UEquippableState;
 
+/**
+ * Indicates the replication procedure used for un/equipping.
+ */
 UENUM()
 enum class EEquipType : uint8
 {
-	Normal,
-	Deferred
+	Normal, // Immediately replicates action on un/equip
+	Deferred // Allows un/equipping to be replicated outside calls to Equip/Unequip
 };
 
+/**
+ * Represents the equip state of an Equippable.
+ */
 UENUM()
 enum class EEquipState : uint8
 {
-	Unequipped,
-	Equipped,
+	Unequipped, // In loadout
+	Equipped, 
 	Dropped
 };
 
@@ -35,7 +41,7 @@ struct FEquipStatus
 
 	UPROPERTY(BlueprintReadOnly)
 	EEquipState State;
-
+	
 	void ForceReplication()
 	{
 		++ForceRepCounter;
@@ -46,6 +52,10 @@ private:
 	uint32 ForceRepCounter : 1;
 };
 
+/**
+ * Base class for all equippable items. 
+ * Provides functionality for equipping, unequipping and dropping items, as well as management for states and transitions.
+ */
 UCLASS()
 class PROJECTATOMVR_API AAtomEquippable : public AActor
 {
@@ -58,36 +68,62 @@ protected:
 
 public:
 	DECLARE_DELEGATE(FEquippedStatusChangedUI)
-	FEquippedStatusChangedUI OnEquippedStatusChangedUI;		
+	FEquippedStatusChangedUI OnEquippedStatusChangedUI;
 
 public:
 	// Sets default values for this actor's properties
 	AAtomEquippable(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	/**
+	* Equips this to a specified hand of the owning character.
+	* @param Hand The hand to equip to.
+	* @param EquipType The equip replication type.
+	*/
 	virtual void Equip(const EHand Hand, const EEquipType EquipType = EEquipType::Normal);
 
+	/**
+	* Checks if this can equip to a specified hand of the owning character.
+	* @param Hand The hand to check.
+	* @returns True if this can be equipped.
+	*/
 	virtual bool CanEquip(const EHand Hand) const;
 
+	/**
+	* Equips this to a specified hand of the owning character.
+	* @param EquipType The unequip replication type.
+	*/
 	virtual void Unequip(const EEquipType EquipType = EEquipType::Normal);
 
+	/**
+	* Drops this from the character's hand if equipped.
+	*/
 	virtual void Drop();
 
+	/**
+	* Updates the attach parent of the owning character. Used to update visuals when changing from first person to 
+	* third person for players.
+	*/
 	virtual void UpdateCharacterAttachment();
 
-	/**
-	* Control the behavior of this Equippable on Unequip. If true the Equippable will be returned to the
-	* loadout when unequipped. If false, the Equippable will just be detached from the attached parent.
-	*/
-	void Remove();
-
+	/** Checks if this is equipped. */
 	bool IsEquipped() const;
 
+	/** Gets the equipped hand, if equipped. */
 	EHand GetEquippedHand() const;
 
+	/** Gets the active state. */
 	UEquippableState* GetCurrentState() const;
 
+	/**
+	 * Pops the current state.
+	 * @param InPopState The state that should be popped. Only currently used as a sanity check to ensure stack validity.
+	 **/
 	void PopState(UEquippableState* InPopState);
 
+	/**
+	* Pushes a new state.
+	* @param InPushState The state that should be pushed.
+	**/
 	void PushState(UEquippableState* InPushState);
 
 	/**
@@ -100,19 +136,30 @@ public:
 	*/
 	virtual void OnUnequipped();
 
+	/** Checks if the character's secondary hand is attached to this. */
 	bool IsSecondaryHandAttached() const;
 
+	/** Gets the HUD type that represents this. */
 	virtual TSubclassOf<class AEquippableHUDActor> GetHUDActor() const;
 
+	/** Sets if attachment should be replicated. */
 	void SetReplicatesAttachment(bool bShouldReplicate);
 
+	/** Gets the type of loadout item this is. */
 	ELoadoutType GetLoadoutType() const;
 
 protected:
+	/** Sets up input for this item from the owning character. */
 	virtual void SetupInputComponent(UInputComponent* InputComponent);
 
+	/**
+	* Gets the SceneComponent that should be used when an offset needs to be applied to this object.
+	* Useful for things such as recoil, which should be simulated by affecting this object.
+	*/
 	USceneComponent* GetOffsetTarget() const;
 
+	
+	/** Gets the original transform information for OffsetTarget. */
 	void GetOriginalOffsetTargetLocationAndRotation(FVector& LocationOut, FRotator& RotationOut) const;
 
 	UFUNCTION()
@@ -148,7 +195,6 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
 	virtual void GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList) override;
-	virtual void Tick(float DeltaSeconds) override;
 	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
 	virtual void Destroyed() override;
 
@@ -222,6 +268,7 @@ private:
 
 	uint32 bReplicatesAttachment : 1;
 
+	// True when this object is simulating events from replication.
 	uint32 bIsSimulatingReplication : 1;
 
 public:

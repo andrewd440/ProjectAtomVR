@@ -74,14 +74,10 @@ void AAtomEquippable::BeginPlay()
 	}
 }
 
-void AAtomEquippable::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-}
-
 void AAtomEquippable::Equip(const EHand Hand, const EEquipType EquipType)
 {
-	check(StateStack.Num() > 0 && StateStack.Top() == InactiveState && "StateStack should only have the InactiveState when equipping.");
+	check(StateStack.Num() > 0 && StateStack.Top() == InactiveState && 
+		"StateStack should only have the InactiveState when equipping.");
 	
 	EquipStatus.Hand = Hand;
 	EquipStatus.State = EEquipState::Equipped;
@@ -167,7 +163,7 @@ void AAtomEquippable::Drop()
 	{
 		CharacterOwner->DiscardFromLoadout(this);
 	}
-
+	
 	Unequip(EEquipType::Deferred);
 
 	EquipStatus.State = EEquipState::Dropped;
@@ -291,7 +287,8 @@ void AAtomEquippable::OnRep_EquipStatus()
 
 		if (ReplicatedEquipStatus.State == EEquipState::Equipped)
 		{
-			ensureMsgf(StateStack.Top() == InactiveState, TEXT("StateStack should only have the InactiveState when equipping."));
+			ensureMsgf(StateStack.Top() == InactiveState, 
+				TEXT("StateStack should only have the InactiveState when equipping."));
 
 			Equip(ReplicatedEquipStatus.Hand);
 		}
@@ -344,7 +341,8 @@ void AAtomEquippable::OnUnequipped()
 
 	if (bIsSecondaryHandAttached)
 	{
-		check(CharacterOwner->GetEquippable(!EquipStatus.Hand) == this && "Other hand should have this equipped if second hand is attached.");
+		check(CharacterOwner->GetEquippable(!EquipStatus.Hand) == this && 
+			"Other hand should have this equipped if second hand is attached.");
 
 		bIsSecondaryHandAttached = false;
 		CharacterOwner->StopHandAnimation(!EquipStatus.Hand, AnimSecondaryHandEquip);

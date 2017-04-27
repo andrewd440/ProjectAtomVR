@@ -24,11 +24,11 @@ AAtomFloatingUI::AAtomFloatingUI()
 	WidgetComponent->SetTwoSided(true);
 }
 
-void AAtomFloatingUI::SetUMGWidget(TSubclassOf<UUserWidget> WidgetClass, const FVector2D InResolution, const float InScale)
+void AAtomFloatingUI::SetUMGWidget(UUserWidget* Widget, const FVector2D InResolution, const float InScale)
 {
 	check(!SlateWidget.IsValid() && "Multiple widget sets are not supported.");
 
-	UMGWidgetClass = WidgetClass;
+	UMGWidget = Widget;
 
 	Resolution = InResolution;
 	Scale = InScale;
@@ -38,7 +38,7 @@ void AAtomFloatingUI::SetUMGWidget(TSubclassOf<UUserWidget> WidgetClass, const F
 
 void AAtomFloatingUI::SetSlateWidget(const TSharedRef<SWidget>& Widget, const FVector2D InResolution, const float InScale)
 {
-	check(UMGWidgetClass == nullptr && "Multiple widget sets are not supported.");
+	check(UMGWidget == nullptr && "Multiple widget sets are not supported.");
 
 	SlateWidget = Widget;
 
@@ -61,9 +61,8 @@ void AAtomFloatingUI::UpdateWidgetComponent()
 	{
 		WidgetComponent->SetSlateWidget(SlateWidget);
 	}
-	else if (UMGWidgetClass != nullptr)
+	else if (UMGWidget != nullptr)
 	{
-		UMGWidget = CreateWidget<UUserWidget>(GetWorld(), UMGWidgetClass);
 		WidgetComponent->SetWidget(UMGWidget);
 	}
 

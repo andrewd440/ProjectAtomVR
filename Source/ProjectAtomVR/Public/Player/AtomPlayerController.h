@@ -57,6 +57,8 @@ public:
 
 	void ClearHelpIndicator(FHelpIndicatorHandle& Handle);
 
+	class AVRHUD* GetVRHUD() const;
+
 protected:
 	void OnMenuButtonPressed();
 
@@ -89,7 +91,7 @@ protected:
 	uint8 IgnorePawnInput = 0;
 
 private:
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = AtomPlayerController, meta = (AllowPrivateAccess = "true"))
 	class AVRHUD* VRHUD = nullptr;
 
 	AAtomCharacter* AtomCharacter = nullptr;
