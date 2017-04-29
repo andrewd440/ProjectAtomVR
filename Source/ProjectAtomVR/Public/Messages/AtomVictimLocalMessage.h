@@ -6,7 +6,7 @@
 #include "AtomVictimLocalMessage.generated.h"
 
 /**
- * 
+ * Message type used by when the active player dies.
  */
 UCLASS()
 class PROJECTATOMVR_API UAtomVictimLocalMessage : public UAtomLocalMessage

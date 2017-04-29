@@ -15,7 +15,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogAtomPlayerController, Log, All);
 
 AAtomPlayerController::AAtomPlayerController()
 {
-
+	// Add camera to be used with HMD while inactive/dead
+	auto Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetIsReplicated(false);
+	Camera->bLockToHmd = true;
+	Camera->SetupAttachment(RootComponent);
 }
 
 void AAtomPlayerController::execChangeTeams()
@@ -143,6 +147,12 @@ void AAtomPlayerController::SetupInputComponent()
 	InputComponent->BindAction(MenuClickAction, IE_Released, this, &AAtomPlayerController::OnMenuClickReleased).bConsumeInput = false;
 }
 
+void AAtomPlayerController::SetupInactiveStateInputComponent(UInputComponent* InComponent)
+{
+	check(InComponent);
+	// No controls while inactive... at the moment
+}
+
 void AAtomPlayerController::OnMenuButtonPressed()
 {
 	if (WidgetInteraction->IsActive())
@@ -265,6 +275,23 @@ void AAtomPlayerController::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
 class AVRHUD* AAtomPlayerController::GetVRHUD() const
 {
 	return VRHUD;
+}
+
+void AAtomPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
+{
+	// Need actor behavior to use hmd with camera component
+	AActor::CalcCamera(DeltaTime, OutResult);
+}
+
+void AAtomPlayerController::PawnPendingDestroy(APawn* inPawn)
+{
+	const FVector ViewLocation = inPawn->GetActorLocation();
+	const FRotator ViewRotation = inPawn->GetActorRotation();
+
+	Super::PawnPendingDestroy(inPawn);
+
+	SetInitialLocationAndRotation(ViewLocation, ViewRotation);
+	SetViewTarget(this);
 }
 
 void AAtomPlayerController::SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning)

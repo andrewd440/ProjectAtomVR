@@ -95,6 +95,18 @@ void UAtomLoadout::SpawnLoadout()
 	}
 }
 
+void UAtomLoadout::DisableLoadout()
+{
+	if (CharacterOwner == nullptr || !CharacterOwner->IsLocallyControlled())
+		return;
+
+	for (auto& Slot : Loadout)
+	{
+		if (Slot.StorageTrigger)
+			Slot.StorageTrigger->Deactivate();
+	}
+}
+
 void UAtomLoadout::DestroyLoadout()
 {
 	for (FAtomLoadoutSlot& Slot : Loadout)

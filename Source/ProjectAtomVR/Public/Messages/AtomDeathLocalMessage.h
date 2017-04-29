@@ -6,7 +6,9 @@
 #include "AtomDeathLocalMessage.generated.h"
 
 /**
- * 
+ * Message type used for all death messages.
+ * Targeted message types are assignable for players that are in the generated death event with specific killer and 
+ * victim message types.
  */
 UCLASS()
 class PROJECTATOMVR_API UAtomDeathLocalMessage : public UAtomLocalMessage

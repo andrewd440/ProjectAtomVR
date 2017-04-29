@@ -37,6 +37,8 @@ FText UAtomLocalMessage::GetRawText(const int32 MessageIndex, const FString& Mes
 void UAtomLocalMessage::GetRawTextArgs(FFormatNamedArguments& TextArgs, APlayerState* RelatedPlayerState_1,
 	APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const
 {
-	TextArgs.Add(TEXT("RelatedPlayerState_1"), RelatedPlayerState_1 != nullptr ? FText::FromString(RelatedPlayerState_1->PlayerName) : FText::GetEmpty());
-	TextArgs.Add(TEXT("RelatedPlayerState_2"), RelatedPlayerState_2 != nullptr ? FText::FromString(RelatedPlayerState_2->PlayerName) : FText::GetEmpty());
+	TextArgs.Add(TEXT("RelatedPlayerState_1"), RelatedPlayerState_1 != nullptr ? 
+		FText::FromString(RelatedPlayerState_1->PlayerName) : FText::GetEmpty());
+	TextArgs.Add(TEXT("RelatedPlayerState_2"), RelatedPlayerState_2 != nullptr ? 
+		FText::FromString(RelatedPlayerState_2->PlayerName) : FText::GetEmpty());
 }

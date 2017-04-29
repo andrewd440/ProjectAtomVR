@@ -6,7 +6,7 @@
 #include "AtomKillerLocalMessage.generated.h"
 
 /**
- * 
+ * Message type used by when the active player scores a kill.
  */
 UCLASS()
 class PROJECTATOMVR_API UAtomKillerLocalMessage : public UAtomLocalMessage

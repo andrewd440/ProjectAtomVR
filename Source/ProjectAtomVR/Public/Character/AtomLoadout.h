@@ -64,6 +64,12 @@ public:
 	 */
 	void SpawnLoadout();
 
+
+	/**
+	* Disables the loadout. Turns off interaction.
+	*/
+	void DisableLoadout();
+
 	/**
 	* Destroys all loadout items. Should be called when the owning character is destroyed.
 	*/

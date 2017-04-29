@@ -147,7 +147,7 @@ protected:
 	int32 IntermissionTime = 10; // Seconds for Intermission match state
 
 	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
-	int32 CountdownTime = 10; // Seconds for Countdown match state
+	int32 CountdownTime = 3; // Seconds for Countdown match state
 	
 	uint32 bFirstRoundInitialized : 1;
 };

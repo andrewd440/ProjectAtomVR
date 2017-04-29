@@ -416,6 +416,7 @@ void AAtomCharacter::Die(AController* Killer)
 void AAtomCharacter::OnDeath()
 {
 	Loadout->OnCharacterControllerChanged();
+	Loadout->DisableLoadout();
 
 	// Stop any existing montages
 	StopAnimMontage();
@@ -426,7 +427,7 @@ void AAtomCharacter::OnDeath()
 
 	SetActorEnableCollision(true);
 
-	// Active ragdoll
+	// Activate ragdoll
 	if (GetMesh()->GetPhysicsAsset())
 	{
 		// Set all bodies of the mesh component to simulate

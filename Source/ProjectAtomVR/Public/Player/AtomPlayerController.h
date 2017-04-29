@@ -57,7 +57,7 @@ public:
 
 	void ClearHelpIndicator(FHelpIndicatorHandle& Handle);
 
-	class AVRHUD* GetVRHUD() const;
+	class AVRHUD* GetVRHUD() const;	
 
 protected:
 	void OnMenuButtonPressed();
@@ -81,10 +81,17 @@ public:
 	virtual void SpawnDefaultHUD() override;
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<class AActor *>& ActorList) override;
 	virtual void ClientTravelInternal_Implementation(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid()) override;
-	virtual void SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning) override;
+	virtual void SetCinematicMode(bool bInCinematicMode, bool bAffectsMovement, bool bAffectsTurning) override;	
+	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 protected:
 	virtual void SetupInputComponent() override;
+	virtual void SetupInactiveStateInputComponent(UInputComponent* InComponent) override;
 	/** APlayerController Interface End */
+
+	/** AController Interface Begin */
+public:
+	virtual void PawnPendingDestroy(APawn* inPawn) override;
+	/** AController Interface End */
 
 protected:
 	/** Ignores pawn input. Stacked state storage, Use accessor function IgnorePawnInput() */
