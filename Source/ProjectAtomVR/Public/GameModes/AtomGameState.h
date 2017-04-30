@@ -28,6 +28,8 @@ public:
 	virtual FText GetGameStatusText() const;
 
 	/** AGameState Interface Begin */
+	virtual void AddPlayerState(APlayerState* PlayerState) override;
+	virtual void RemovePlayerState(APlayerState* PlayerState) override;
 	virtual void DefaultTimer() override;
 	/** AGameState Interface End */
 

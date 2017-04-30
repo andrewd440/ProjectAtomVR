@@ -8,6 +8,8 @@
 enum class ELoadoutSlotChangeType : uint8;
 class AAtomPlayerController;
 class AAtomCharacter;
+class UAtomPlayerNameWidget;
+class AAtomPlayerState;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogVRHUD, Log, All);
 
@@ -45,6 +47,18 @@ public:
 	void ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, const FText& MessageText,
 		APlayerState* RelatedPlayerState_1,	APlayerState* RelatedPlayerState_2, UObject* OptionalObject);
 
+	/**
+	* Called when a player has joined the game.
+	*/
+	void NotifyPlayerJoined(AAtomPlayerState* ChangedPlayer);
+
+	/**
+	* Called when a player has left the game.
+	*/
+	void NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer);
+
+	void NotifyPlayerChangedTeams(AAtomPlayerState* Player);
+
 	/** AActor Interface Begin */
 	virtual void SetOwner(AActor* NewOwner) override;
 	virtual void Destroyed() override;
@@ -55,6 +69,8 @@ public:
 
 protected:
 	void DefaultTimer();
+
+	void OnPlayerTalkingStateChanged(TSharedRef<const FUniqueNetId> TalkerId, bool bIsTalking);
 
 	/** Removes a pending help indicator from the list and creates an active indicator. */
 	void CreatePendingHelpIndicator(const uint64 Handle);
@@ -116,11 +132,16 @@ protected:
 	/** If help indicators should be shown. */
 	uint32 bShowHelp : 1;
 
+	uint32 bShowNames : 1;
+
 	/** UI used to display game status informations. (Countdown, Intermission, Waiting for objective, etc.) */
 	UPROPERTY(Transient)
 	class AAtomFloatingUI* GameStatusUI = nullptr;
 
 	TWeakPtr<class STextBlock> GameStatusTextBlock = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, Category = VRHUD)
+	TSubclassOf<UAtomPlayerNameWidget> PlayerNameWidgetClass;
 
 private:
 	AAtomPlayerController* PlayerController = nullptr;
@@ -131,5 +152,9 @@ private:
 	UPROPERTY()
 	TArray<class AEquippableHUDActor*> LoadoutActors;			
 
+	UPROPERTY()
+	TArray<class UAtomPlayerHUDProxy*> PlayerHUDProxies;
+
 	FTimerHandle TimerHandle_DefaultTimer;
+	FDelegateHandle OnPlayerTalkingStateChangedHandle;
 };

@@ -7,6 +7,7 @@
 #include "AtomPlayerController.generated.h"
 
 class AAtomCharacter;
+class AAtomPlayerState;
 
 /**
  * 
@@ -58,6 +59,21 @@ public:
 	void ClearHelpIndicator(FHelpIndicatorHandle& Handle);
 
 	class AVRHUD* GetVRHUD() const;	
+
+	/**
+	* Called when a player has joined the game.
+	*/
+	void NotifyPlayerJoined(AAtomPlayerState* ChangedPlayer);
+	
+	/**
+	* Called when a player has left the game.
+	*/
+	void NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer);
+
+	/**
+	* Called when a player in the game has changed teams.
+	*/
+	void NotifyPlayerChangedTeams(AAtomPlayerState* ChangedPlayer);
 
 protected:
 	void OnMenuButtonPressed();

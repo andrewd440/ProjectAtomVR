@@ -277,6 +277,30 @@ class AVRHUD* AAtomPlayerController::GetVRHUD() const
 	return VRHUD;
 }
 
+void AAtomPlayerController::NotifyPlayerJoined(AAtomPlayerState* ChangedPlayer)
+{
+	if (VRHUD != nullptr)
+	{
+		VRHUD->NotifyPlayerJoined(ChangedPlayer);
+	}
+}
+
+void AAtomPlayerController::NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer)
+{
+	if (VRHUD != nullptr)
+	{
+		VRHUD->NotifyPlayerLeft(ChangedPlayer);
+	}
+}
+
+void AAtomPlayerController::NotifyPlayerChangedTeams(AAtomPlayerState* ChangedPlayer)
+{
+	if (VRHUD)
+	{
+		VRHUD->NotifyPlayerChangedTeams(ChangedPlayer);
+	}
+}
+
 void AAtomPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
 {
 	// Need actor behavior to use hmd with camera component

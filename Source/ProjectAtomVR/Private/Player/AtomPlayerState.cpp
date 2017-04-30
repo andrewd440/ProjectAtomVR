@@ -97,6 +97,15 @@ void AAtomPlayerState::NotifyTeamChanged()
 	{
 		Character->NotifyTeamChanged();
 	}
+
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		const auto Controller = *Iterator;
+		if (auto AtomController = Cast<AAtomPlayerController>(Controller.Get()))
+		{
+			AtomController->NotifyPlayerChangedTeams(this);
+		}
+	}
 }
 
 AAtomCharacter* AAtomPlayerState::GetAtomCharacter() const
