@@ -14,6 +14,8 @@ class PROJECTATOMVR_API UAtomLocalMessage : public ULocalMessage
 	GENERATED_BODY()
 		
 public:
+	UAtomLocalMessage();
+
 	virtual void ClientReceive(const FClientReceiveData& ClientData) const override;
 
 	FText GetFormattedText(const int32 MessageIndex, const FString& MessageString, APlayerState* RelatedPlayerState_1,
@@ -29,6 +31,9 @@ protected:
 	virtual void GetRawTextArgs(FFormatNamedArguments& TextArgs, APlayerState* RelatedPlayerState_1, 
 		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const;
 
+	/** Returns true if this message should be displayed in the status HUD UI */
+	virtual bool IsStatusMessage(const int32 MessageIndex) const;
+
 public:
 	/** Seconds to display the message */
 	UPROPERTY(EditDefaultsOnly, Category = AtomLocalMessage)
@@ -41,4 +46,8 @@ public:
 	/** Location offset to spawn the HUD widget for this message in relation to the camera. */
 	UPROPERTY(EditDefaultsOnly, Category = AtomLocalMessage)
 	FVector HUDWidgetLocationOffset;
+
+	/** True if this message should be output to the console */
+	UPROPERTY(EditDefaultsOnly, Category = AtomLocalMessage)
+	uint32 bIsConsoleMessage : 1;
 };

@@ -6,6 +6,7 @@
 #include "VRHUD.generated.h"
 
 enum class ELoadoutSlotChangeType : uint8;
+enum class EAtomEngineMessageIndex : uint8;
 class AAtomPlayerController;
 class AAtomCharacter;
 class UAtomPlayerNameWidget;
@@ -47,17 +48,7 @@ public:
 	void ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, const FText& MessageText,
 		APlayerState* RelatedPlayerState_1,	APlayerState* RelatedPlayerState_2, UObject* OptionalObject);
 
-	/**
-	* Called when a player has joined the game.
-	*/
-	void NotifyPlayerJoined(AAtomPlayerState* ChangedPlayer);
-
-	/**
-	* Called when a player has left the game.
-	*/
-	void NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer);
-
-	void NotifyPlayerChangedTeams(AAtomPlayerState* Player);
+	void NotifyPlayerChangedTeams(AAtomPlayerState* InPlayer);
 
 	/** AActor Interface Begin */
 	virtual void SetOwner(AActor* NewOwner) override;
@@ -69,6 +60,19 @@ public:
 
 protected:
 	void DefaultTimer();
+
+	void HandleEngineMessage(const class UAtomEngineMessage* DefaultMessage, const EAtomEngineMessageIndex MessageIndex, const FText& MessageText,
+		AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject);
+
+	/**
+	* Called when a player has joined the game.
+	*/
+	void OnPlayerJoinedGame(AAtomPlayerState* InPlayer);
+
+	/**
+	* Called when a player has left the game.
+	*/
+	void OnPlayerLeftGame(AAtomPlayerState* InPlayer);
 
 	void OnPlayerTalkingStateChanged(TSharedRef<const FUniqueNetId> TalkerId, bool bIsTalking);
 

@@ -30,23 +30,6 @@ AAtomPlayerState* AAtomGameState::GetGameWinner() const
 	return GameWinner;
 }
 
-FText AAtomGameState::GetGameStatusText() const
-{
-	if (!IsMatchInProgress())
-	{
-		if (MatchState == MatchState::Countdown)
-		{
-			return FText::Format(LOCTEXT("GameStatusCountdown", "Countdown: {0}"), FText::AsNumber(RemainingTime));
-		}
-		else if (MatchState == MatchState::Intermission)
-		{
-			return FText::Format(LOCTEXT("GameStatusIntermission", "Intermission: {0}"), FText::AsNumber(RemainingTime));
-		}
-	}
-
-	return FText::GetEmpty();
-}
-
 void AAtomGameState::DefaultTimer()
 {
 	if (MatchState == MatchState::InProgress || MatchState == MatchState::Intermission || MatchState == MatchState::Countdown)
@@ -70,56 +53,6 @@ void AAtomGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_CONDITION(AAtomGameState, ScoreLimit, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomGameState, TimeLimit, COND_InitialOnly);
 	DOREPLIFETIME_CONDITION(AAtomGameState, Rounds, COND_InitialOnly);
-}
-
-void AAtomGameState::AddPlayerState(APlayerState* PlayerState)
-{
-	const bool bJustJoined = !PlayerArray.Contains(PlayerState);
-
-	Super::AddPlayerState(PlayerState);
-
-	// Guard against multiple player joins
-	if (bJustJoined)
-	{
-		if (auto AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
-		{
-			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
-			{
-				if ((*Iterator)->PlayerState == PlayerState)
-					continue;
-
-				if (auto AtomPC = Cast<AAtomPlayerController>(*Iterator))
-				{
-					AtomPC->NotifyPlayerJoined(AtomPlayerState);
-				}
-			}
-		}
-	}
-}
-
-void AAtomGameState::RemovePlayerState(APlayerState* PlayerState)
-{
-	const bool bJustLeft = PlayerArray.Contains(PlayerState);
-
-	Super::RemovePlayerState(PlayerState);
-
-	// Guard against multiple player leaves
-	if (bJustLeft)
-	{
-		if (auto AtomPlayerState = Cast<AAtomPlayerState>(PlayerState))
-		{
-			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
-			{
-				if ((*Iterator)->PlayerState == PlayerState)
-					continue;
-
-				if (auto AtomPC = Cast<AAtomPlayerController>(*Iterator))
-				{
-					AtomPC->NotifyPlayerLeft(AtomPlayerState);
-				}
-			}
-		}
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -15,6 +15,6 @@ class PROJECTATOMVR_API UAtomHUDLocalMessageWidget : public UUserWidget
 	
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = AtomHUDLocalMessageWidget)
-	void InitializeWithMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex,
-		const FText& MessageText, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject);
+	void InitializeWithMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, const FText& MessageText, 
+		class AAtomPlayerState* RelatedPlayerState_1, class AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject);
 };

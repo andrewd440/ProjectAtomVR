@@ -13,6 +13,8 @@
 AAtomPlayerState::AAtomPlayerState()
 {
 	bReplicates = true;
+
+	EngineMessageClass = UAtomEngineMessage::StaticClass();
 }
 
 AAtomTeamInfo* AAtomPlayerState::GetTeam() const

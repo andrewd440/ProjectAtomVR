@@ -24,7 +24,7 @@ public:
 
 	/** AtomGameState Interface Begin */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual FText GetGameStatusText() const override;
+	//virtual FText GetGameStatusText() const override;
 	/** AtomGameState Interface End */
 
 protected:

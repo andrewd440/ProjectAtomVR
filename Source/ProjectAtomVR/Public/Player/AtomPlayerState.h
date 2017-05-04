@@ -34,7 +34,7 @@ public:
 	void SetPendingTeamChange(uint32 InTeamId);
 
 	/** Gets the team id for a pending team changes that has been requested. */
-	uint32 GetPendingTeamChange() const;
+	uint32 GetPendingTeamChange() const;	
 
 protected:
 	UFUNCTION()

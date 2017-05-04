@@ -76,7 +76,13 @@ void UAtomPlayerHUDProxy::SetPlayerTalkingState(bool bIsTalking)
 	}
 }
 
-void UAtomPlayerHUDProxy::PlayerChangedTeams()
+void UAtomPlayerHUDProxy::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, 
+	const FText& MessageText, AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject)
+{
+
+}
+
+void UAtomPlayerHUDProxy::NotifyPlayerChangedTeams()
 {
 	if (NameWidget)
 	{

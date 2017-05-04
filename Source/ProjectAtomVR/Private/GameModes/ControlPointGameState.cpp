@@ -28,16 +28,16 @@ void AControlPointGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
 	DOREPLIFETIME(AControlPointGameState, ActiveControlPoint);
 }
 
-FText AControlPointGameState::GetGameStatusText() const
-{
-	if (MatchState == MatchState::InProgress && 
-		ActiveControlPoint != nullptr && 
-		!ActiveControlPoint->IsActive())
-	{
-		return LOCTEXT("GameStatusWaitingObjective", "Waiting for Objective");
-	}
-
-	return Super::GetGameStatusText();
-}
+//FText AControlPointGameState::GetGameStatusText() const
+//{
+//	if (MatchState == MatchState::InProgress && 
+//		ActiveControlPoint != nullptr && 
+//		!ActiveControlPoint->IsActive())
+//	{
+//		return LOCTEXT("GameStatusWaitingObjective", "Waiting for Objective");
+//	}
+//
+//	return Super::GetGameStatusText();
+//}
 
 #undef LOCTEXT_NAMESPACE

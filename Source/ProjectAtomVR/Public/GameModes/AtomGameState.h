@@ -23,13 +23,7 @@ public:
 	void SetGameWinner(AAtomPlayerState* Winner);
 	AAtomPlayerState* GetGameWinner() const;
 
-	/** Gets text description of current game status. Usually used to display information on player HUD. */
-	UFUNCTION(BlueprintCallable, Category = AtomGameState)
-	virtual FText GetGameStatusText() const;
-
 	/** AGameState Interface Begin */
-	virtual void AddPlayerState(APlayerState* PlayerState) override;
-	virtual void RemovePlayerState(APlayerState* PlayerState) override;
 	virtual void DefaultTimer() override;
 	/** AGameState Interface End */
 

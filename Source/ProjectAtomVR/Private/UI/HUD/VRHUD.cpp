@@ -25,6 +25,7 @@
 #include "CoreOnline.h"
 #include "AtomPlayerHUDProxy.h"
 #include "AtomLobbyGameState.h"
+#include "Messages/AtomEngineMessage.h"
 
 DEFINE_LOG_CATEGORY(LogVRHUD);
 
@@ -237,14 +238,14 @@ void AVRHUD::ShowHelpIndicator(FHelpIndicatorHandle& HelpHandle, const FText& Te
 void AVRHUD::DefaultTimer()
 {
 	// Update game state text
-	auto GameStatusTextPin = GameStatusTextBlock.Pin();
-	if (GameStatusTextPin.IsValid())
-	{
-		if (auto GameState = GetWorld()->GetGameState<AAtomGameState>())
-		{
-			GameStatusTextPin->SetText(GameState->GetGameStatusText());
-		}		
-	}
+	//auto GameStatusTextPin = GameStatusTextBlock.Pin();
+	//if (GameStatusTextPin.IsValid())
+	//{
+	//	if (auto GameState = GetWorld()->GetGameState<AAtomGameState>())
+	//	{
+	//		GameStatusTextPin->SetText(GameState->GetGameStatusText());
+	//	}		
+	//}
 }
 
 void AVRHUD::OnPlayerTalkingStateChanged(TSharedRef<const FUniqueNetId> TalkerId, bool bIsTalking)
@@ -341,8 +342,11 @@ void AVRHUD::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
 void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, 
 	const FText& MessageText, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject)
 {
+	auto AtomPlayerState_1 = CastChecked<AAtomPlayerState>(RelatedPlayerState_1, ECastCheckedType::NullAllowed);
+	auto AtomPlayerState_2 = CastChecked<AAtomPlayerState>(RelatedPlayerState_2, ECastCheckedType::NullAllowed);
+
 	UE_LOG(LogVRHUD, Log, TEXT("%s"), *MessageText.ToString());
-	const UAtomLocalMessage* const DefaultMessage = MessageClass->GetDefaultObject<UAtomLocalMessage>();
+	const auto DefaultMessage = MessageClass->GetDefaultObject<UAtomLocalMessage>();
 
 	if (DefaultMessage->HUDWidget != nullptr)
 	{
@@ -350,8 +354,8 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 
 		if (auto LocalMessageWidget = Cast<UAtomHUDLocalMessageWidget>(Widget))
 		{
-			LocalMessageWidget->InitializeWithMessage(MessageClass, MessageIndex, MessageText, RelatedPlayerState_1, 
-				RelatedPlayerState_2, OptionalObject);
+			LocalMessageWidget->InitializeWithMessage(MessageClass, MessageIndex, MessageText, AtomPlayerState_1,
+				AtomPlayerState_2, OptionalObject);
 		}
 
 		// Make sure we never leave lifespan at 0
@@ -378,40 +382,60 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 
 		MessageFloatingUI->SetActorLocationAndRotation(UILoc, (CameraLoc - UILoc).ToOrientationQuat());
 	}
+
+	if (auto EngineMessage = Cast<const UAtomEngineMessage>(DefaultMessage))
+	{
+		HandleEngineMessage(EngineMessage, static_cast<EAtomEngineMessageIndex>(MessageIndex), MessageText,
+			AtomPlayerState_1, AtomPlayerState_2, OptionalObject);
+	}
 }
 
-void AVRHUD::NotifyPlayerJoined(AAtomPlayerState* ChangedPlayer)
+void AVRHUD::HandleEngineMessage(const UAtomEngineMessage* DefaultMessage, const EAtomEngineMessageIndex MessageIndex,
+	const FText& MessageText, AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject)
 {
-	check(PlayerHUDProxies.FindByPredicate([ChangedPlayer](UAtomPlayerHUDProxy* Proxy)
+	switch (MessageIndex)
 	{
-		return Proxy->GetPlayer() == ChangedPlayer;
+	case EAtomEngineMessageIndex::Entered:
+		OnPlayerJoinedGame(RelatedPlayerState_1);
+		break;
+	case EAtomEngineMessageIndex::Left:
+		OnPlayerLeftGame(RelatedPlayerState_1);
+		break;
+	}
+}
+
+void AVRHUD::OnPlayerJoinedGame(AAtomPlayerState* Player)
+{
+	check(PlayerHUDProxies.FindByPredicate([Player](UAtomPlayerHUDProxy* Proxy)
+	{
+		return Proxy->GetPlayer() == Player;
 	}) == nullptr && "New players should not have a proxy already");
 
-	UE_LOG(LogVRHUD, Log, TEXT("Creating HUD proxy for %d"), ChangedPlayer->PlayerId);
+	UE_LOG(LogVRHUD, Log, TEXT("Creating HUD proxy for %d"), Player->PlayerId);
 
 	auto Proxy = NewObject<UAtomPlayerHUDProxy>(this);
-	Proxy->Initialize(ChangedPlayer, PlayerNameWidgetClass);
+	Proxy->Initialize(Player, PlayerNameWidgetClass);
 
 	// Show name in lobby and for same team
 	bool bNameVisible = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);
 
 	if (!bNameVisible)
 	{
-		auto MyState = Cast<AAtomPlayerState>(PlayerController->PlayerState);
-		bNameVisible = (!MyState || MyState->GetTeam() == ChangedPlayer->GetTeam());
+		auto MyState = CastChecked<AAtomPlayerState>(PlayerController->PlayerState, ECastCheckedType::NullAllowed);
+		bNameVisible = (!MyState || MyState->GetTeam() == Player->GetTeam());
 	}
 
 	Proxy->SetNameVisible(bShowNames && bNameVisible);
 	PlayerHUDProxies.Push(Proxy);
 }
 
-void AVRHUD::NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer)
+void AVRHUD::OnPlayerLeftGame(AAtomPlayerState* Player)
 {
-	UE_LOG(LogVRHUD, Log, TEXT("Destroying HUD proxy for %d"), ChangedPlayer->PlayerId);
+	UE_LOG(LogVRHUD, Log, TEXT("Destroying HUD proxy for %d"), Player->PlayerId);
 
-	int32 Index = PlayerHUDProxies.IndexOfByPredicate([ChangedPlayer](UAtomPlayerHUDProxy* Proxy)
+	int32 Index = PlayerHUDProxies.IndexOfByPredicate([Player](UAtomPlayerHUDProxy* Proxy)
 	{
-		return Proxy->GetPlayer() == ChangedPlayer;
+		return Proxy->GetPlayer() == Player;
 	});
 
 	if (Index != INDEX_NONE)
@@ -422,9 +446,9 @@ void AVRHUD::NotifyPlayerLeft(AAtomPlayerState* ChangedPlayer)
 		Proxy->ConditionalBeginDestroy();
 	}	
 
-	check(PlayerHUDProxies.IndexOfByPredicate([ChangedPlayer](UAtomPlayerHUDProxy* Proxy)
+	check(PlayerHUDProxies.IndexOfByPredicate([Player](UAtomPlayerHUDProxy* Proxy)
 	{
-		return Proxy->GetPlayer() == ChangedPlayer;
+		return Proxy->GetPlayer() == Player;
 	}) == INDEX_NONE && "No players should match by pointer at this point");
 }
 
@@ -439,7 +463,7 @@ void AVRHUD::NotifyPlayerChangedTeams(AAtomPlayerState* Player)
 		return;
 
 	UAtomPlayerHUDProxy* Proxy = *Found;
-	Proxy->PlayerChangedTeams();
+	Proxy->NotifyPlayerChangedTeams();
 	
 	// Show name in lobby and for same team
 	bool bNameVisible = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);

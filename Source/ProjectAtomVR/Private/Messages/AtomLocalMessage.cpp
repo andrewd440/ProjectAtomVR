@@ -4,18 +4,40 @@
 #include "Messages/AtomLocalMessage.h"
 #include "AtomPlayerController.h"
 #include "UI/HUD/VRHUD.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/Console.h"
+
+UAtomLocalMessage::UAtomLocalMessage()
+	: Super()
+	, bIsConsoleMessage(false)
+{
+	
+}
 
 void UAtomLocalMessage::ClientReceive(const FClientReceiveData& ClientData) const
 {
 	if (auto AtomPC = Cast<AAtomPlayerController>(ClientData.LocalPC))
 	{
-		if (auto VRHUD = AtomPC->GetVRHUD())
-		{
-			const FText MessageText = GetFormattedText(ClientData.MessageIndex, ClientData.MessageString, ClientData.RelatedPlayerState_1,
-				ClientData.RelatedPlayerState_2, ClientData.OptionalObject);
+		const FText MessageText = GetFormattedText(ClientData.MessageIndex, ClientData.MessageString, ClientData.RelatedPlayerState_1,
+			ClientData.RelatedPlayerState_2, ClientData.OptionalObject);
 
+		if (auto VRHUD = AtomPC->GetVRHUD())
+		{			
 			VRHUD->ReceiveLocalMessage(GetClass(), ClientData.MessageIndex, MessageText, ClientData.RelatedPlayerState_1,
 				ClientData.RelatedPlayerState_2, ClientData.OptionalObject);
+		}
+
+		if (bIsConsoleMessage)
+		{
+			auto LocalPlayer = Cast<ULocalPlayer>(AtomPC->Player);
+
+			if (MessageText.IsEmpty() == false &&
+				LocalPlayer != nullptr &&
+				LocalPlayer->ViewportClient != nullptr &&
+				LocalPlayer->ViewportClient->ViewportConsole != nullptr)
+			{
+				LocalPlayer->ViewportClient->ViewportConsole->OutputText(MessageText.ToString());
+			}
 		}
 	}
 }
@@ -41,4 +63,9 @@ void UAtomLocalMessage::GetRawTextArgs(FFormatNamedArguments& TextArgs, APlayerS
 		FText::FromString(RelatedPlayerState_1->PlayerName) : FText::GetEmpty());
 	TextArgs.Add(TEXT("RelatedPlayerState_2"), RelatedPlayerState_2 != nullptr ? 
 		FText::FromString(RelatedPlayerState_2->PlayerName) : FText::GetEmpty());
+}
+
+bool UAtomLocalMessage::IsStatusMessage(const int32 MessageIndex) const
+{
+	return false;
 }

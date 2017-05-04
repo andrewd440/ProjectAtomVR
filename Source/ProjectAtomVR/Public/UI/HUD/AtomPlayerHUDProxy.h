@@ -24,9 +24,12 @@ public:
 
 	void SetPlayerTalkingState(bool bIsTalking);
 
-	void PlayerChangedTeams();
+	void NotifyPlayerChangedTeams();
 
-	class AAtomPlayerState* GetPlayer() { return PlayerState.Get(); }
+	void ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, const FText& MessageText,
+		class AAtomPlayerState* RelatedPlayerState_1, class AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject);
+
+	class AAtomPlayerState* GetPlayer() const { return PlayerState.Get(); }
 
 	/** UObject Interface Begin */
 	virtual class UWorld* GetWorld() const override;
