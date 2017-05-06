@@ -19,15 +19,4 @@ public:
 
 	/** Gets the UI system. May be null in editor. */
 	AVRHUD* GetHUD() const;
-
-	const TArray<UUserWidget*> GetWidgets() const;
-
-	/** AActor Interface Begin */
-	virtual void PostInitializeComponents() override;
-	virtual void Destroyed() override;
-	/** AActor Interface End */
-
-private:
-	/** All widgets contained within any widget components. */
-	TArray<UUserWidget*> Widgets;
 };

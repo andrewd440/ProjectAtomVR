@@ -42,14 +42,31 @@ void AEquippableHUDActor::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	const TArray<UUserWidget*>& MyWidgets = GetWidgets();
-	for (UUserWidget* Widget : MyWidgets)
+	TInlineComponentArray<UWidgetComponent*> WidgetComponents;
+	GetComponents<UWidgetComponent>(WidgetComponents);
+
+	for (UWidgetComponent* WidgetComponent : WidgetComponents)
 	{
-		if (UEquippableWidget* EquippableWidget = Cast<UEquippableWidget>(Widget))
+		// Set owner for all equippable user widgets
+		UUserWidget* Widget = WidgetComponent->GetUserWidgetObject();
+
+		// Add all widgets to internal list
+		if (Widget != nullptr)
 		{
-			EquippableWidgets.Add(EquippableWidget);
-			EquippableWidget->SetOwner(this);
-		}	
+			if (auto EquippableWidget = Cast<UEquippableWidget>(Widget))
+			{
+				EquippableWidgets.Add(EquippableWidget);
+				EquippableWidget->SetOwner(this);
+			}
+
+			Widget->WidgetTree->ForEachWidget([this](UWidget* TreeWidget)
+			{
+				if (auto Widget = Cast<UEquippableWidget>(TreeWidget))
+				{
+					EquippableWidgets.Add(Widget);
+				}
+			});
+		}
 	}
 
 	if (Equippable.IsValid())
