@@ -183,6 +183,11 @@ void AVRHUD::BeginPlay()
 	auto OnPlayerTalkingDelegate = FOnPlayerTalkingStateChangedDelegate::CreateUObject(this, &AVRHUD::OnPlayerTalkingStateChanged);
 	OnPlayerTalkingStateChangedHandle = VoiceInt->AddOnPlayerTalkingStateChangedDelegate_Handle(OnPlayerTalkingDelegate);
 
+	// Add all player join events if our playerstate is initialized
+	if (PlayerController->PlayerState != nullptr)
+	{
+		AddAllPlayerStateProxies();
+	}
 }
 
 void AVRHUD::PostInitializeComponents()
@@ -237,15 +242,16 @@ void AVRHUD::ShowHelpIndicator(FHelpIndicatorHandle& HelpHandle, const FText& Te
 
 void AVRHUD::DefaultTimer()
 {
-	// Update game state text
-	//auto GameStatusTextPin = GameStatusTextBlock.Pin();
-	//if (GameStatusTextPin.IsValid())
-	//{
-	//	if (auto GameState = GetWorld()->GetGameState<AAtomGameState>())
-	//	{
-	//		GameStatusTextPin->SetText(GameState->GetGameStatusText());
-	//	}		
-	//}
+
+}
+
+void AVRHUD::PostGameStatus(const FText& Status)
+{
+	auto GameStatusTextPin = GameStatusTextBlock.Pin();
+	if (GameStatusTextPin.IsValid())
+	{
+		GameStatusTextPin->SetText(Status);
+	}
 }
 
 void AVRHUD::OnPlayerTalkingStateChanged(TSharedRef<const FUniqueNetId> TalkerId, bool bIsTalking)
@@ -388,6 +394,11 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 		HandleEngineMessage(EngineMessage, static_cast<EAtomEngineMessageIndex>(MessageIndex), MessageText,
 			AtomPlayerState_1, AtomPlayerState_2, OptionalObject);
 	}
+
+	if (DefaultMessage->IsStatusMessage(MessageIndex))
+	{
+		PostGameStatus(MessageText);
+	}
 }
 
 void AVRHUD::HandleEngineMessage(const UAtomEngineMessage* DefaultMessage, const EAtomEngineMessageIndex MessageIndex,
@@ -404,8 +415,39 @@ void AVRHUD::HandleEngineMessage(const UAtomEngineMessage* DefaultMessage, const
 	}
 }
 
+void AVRHUD::AddAllPlayerStateProxies()
+{
+	ensureMsgf(PlayerController->PlayerState != nullptr, 
+		TEXT("PlayerState should be valid before adding proxies to prevent making a proxy for yourself."));
+
+	TArray<APlayerState*> Players = GetWorld()->GetGameState()->PlayerArray;
+	for (auto Player : Players)
+	{
+		auto AtomPlayer = (Player != PlayerController->PlayerState) ? Cast<AAtomPlayerState>(Player) : nullptr;
+		if (AtomPlayer)
+		{
+			OnPlayerJoinedGame(AtomPlayer);
+		}
+	}
+}
+
+void AVRHUD::HandleTeamChange()
+{
+	const bool bIsLobby = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);
+	auto MyState = CastChecked<AAtomPlayerState>(PlayerController->PlayerState, ECastCheckedType::NullAllowed);
+
+	for (auto Proxy : PlayerHUDProxies)
+	{
+		const bool bIsSameTeam = !MyState || MyState->GetTeam() == Proxy->GetPlayer()->GetTeam();
+		Proxy->SetNameVisible(bShowNames && (bIsLobby || bIsSameTeam));
+	}
+}
+
 void AVRHUD::OnPlayerJoinedGame(AAtomPlayerState* Player)
 {
+	if (!HasActorBegunPlay() || PlayerController->PlayerState == nullptr)
+		return; // Wait for player state replication and begin play
+
 	check(PlayerHUDProxies.FindByPredicate([Player](UAtomPlayerHUDProxy* Proxy)
 	{
 		return Proxy->GetPlayer() == Player;
@@ -414,7 +456,7 @@ void AVRHUD::OnPlayerJoinedGame(AAtomPlayerState* Player)
 	UE_LOG(LogVRHUD, Log, TEXT("Creating HUD proxy for %d"), Player->PlayerId);
 
 	auto Proxy = NewObject<UAtomPlayerHUDProxy>(this);
-	Proxy->Initialize(Player, PlayerNameWidgetClass);
+	Proxy->Initialize(this, Player, PlayerNameWidgetClass);
 
 	// Show name in lobby and for same team
 	bool bNameVisible = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);
@@ -454,27 +496,41 @@ void AVRHUD::OnPlayerLeftGame(AAtomPlayerState* Player)
 
 void AVRHUD::NotifyPlayerChangedTeams(AAtomPlayerState* Player)
 {
+	if (Player == PlayerController->PlayerState)
+	{
+		HandleTeamChange();
+		return;
+	}
+
 	auto Found = PlayerHUDProxies.FindByPredicate([Player](auto Proxy)
 	{
 		return Proxy->GetPlayer() == Player;
 	});
 	
-	if (!Found)
-		return;
-
-	UAtomPlayerHUDProxy* Proxy = *Found;
-	Proxy->NotifyPlayerChangedTeams();
-	
-	// Show name in lobby and for same team
-	bool bNameVisible = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);
-
-	if (!bNameVisible)
+	if (Found)
 	{
-		auto MyState = Cast<AAtomPlayerState>(PlayerController->PlayerState);
-		bNameVisible = (!MyState || MyState->GetTeam() == Player->GetTeam());
-	}
+		UAtomPlayerHUDProxy* Proxy = *Found;
+		Proxy->NotifyPlayerChangedTeams();
 
-	Proxy->SetNameVisible(bShowNames && bNameVisible);
+		// Show name in lobby and for same team
+		bool bNameVisible = (GetWorld()->GetGameState<AAtomLobbyGameState>() != nullptr);
+
+		if (!bNameVisible)
+		{
+			auto MyState = Cast<AAtomPlayerState>(PlayerController->PlayerState);
+			bNameVisible = (!MyState || MyState->GetTeam() == Player->GetTeam());
+		}
+
+		Proxy->SetNameVisible(bShowNames && bNameVisible);
+	}
+}
+
+void AVRHUD::OnPlayerStateInitialized()
+{
+	if (HasActorBegunPlay())
+	{
+		AddAllPlayerStateProxies();
+	}	
 }
 
 void AVRHUD::SpawnLoadoutActors()

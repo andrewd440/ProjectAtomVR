@@ -50,6 +50,8 @@ public:
 
 	void NotifyPlayerChangedTeams(AAtomPlayerState* InPlayer);
 
+	void OnPlayerStateInitialized();
+
 	/** AActor Interface Begin */
 	virtual void SetOwner(AActor* NewOwner) override;
 	virtual void Destroyed() override;
@@ -61,8 +63,20 @@ public:
 protected:
 	void DefaultTimer();
 
+	void PostGameStatus(const FText& Status);
+
 	void HandleEngineMessage(const class UAtomEngineMessage* DefaultMessage, const EAtomEngineMessageIndex MessageIndex, const FText& MessageText,
 		AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject);
+
+	/**
+	* Adds hud proxies for all players in the game.
+	*/
+	void AddAllPlayerStateProxies();
+
+	/**
+	* Handles event for when the owning player switches teams.
+	*/
+	void HandleTeamChange();
 
 	/**
 	* Called when a player has joined the game.

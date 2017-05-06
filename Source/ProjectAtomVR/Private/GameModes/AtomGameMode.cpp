@@ -14,6 +14,7 @@
 #include "AtomPlaylistManager.h"
 #include "AtomGameObjective.h"
 #include "Messages/AtomDeathLocalMessage.h"
+#include "Messages/AtomCountdownMessage.h"
 
 namespace MatchState
 {
@@ -28,6 +29,7 @@ AAtomGameMode::AAtomGameMode()
 	bFirstRoundInitialized = false;
 
 	DeathMessageClass = UAtomDeathLocalMessage::StaticClass();
+	CountdownMessageClass = UAtomCountdownMessage::StaticClass();
 }
 
 void AAtomGameMode::Tick(float DeltaSeconds)
@@ -242,10 +244,14 @@ void AAtomGameMode::CheckGameTime()
 
 		if (MatchState == MatchState::Countdown)
 		{
-			if (AtomGameState->RemainingTime <= 0)
+			// Send countdown message
+			BroadcastLocalized(this, CountdownMessageClass, Countdown);
+
+			if (Countdown <= 0)
 			{
 				SetMatchState(MatchState::InProgress);
 			}
+			--Countdown;
 		}
 		else if (MatchState == MatchState::Intermission)
 		{
@@ -327,6 +333,8 @@ void AAtomGameMode::HandleMatchHasStarted()
 
 void AAtomGameMode::HandleMatchEnteredCountdown()
 {	
+	Countdown = CountdownTime;
+
 	if (!bFirstRoundInitialized)
 	{
 		GameSession->HandleMatchHasStarted();

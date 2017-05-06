@@ -5,6 +5,7 @@
 #include "Components/WidgetComponent.h"
 #include "AtomPlayerState.h"
 #include "AtomPlayerNameWidget.h"
+#include "VRHUD.h"
 
 namespace PlayerNameTransform
 {
@@ -17,8 +18,9 @@ UAtomPlayerHUDProxy::UAtomPlayerHUDProxy()
 
 }
 
-void UAtomPlayerHUDProxy::Initialize(class AAtomPlayerState* Player, TSubclassOf<class UAtomPlayerNameWidget> WidgetClass)
+void UAtomPlayerHUDProxy::Initialize(AVRHUD* HUD, AAtomPlayerState* Player, TSubclassOf<class UAtomPlayerNameWidget> WidgetClass)
 {
+	OwningHUD = HUD;
 	PlayerState = Player;
 
 	NameWidgetComponent = NewObject<UWidgetComponent>(GetOuter());	
@@ -27,8 +29,10 @@ void UAtomPlayerHUDProxy::Initialize(class AAtomPlayerState* Player, TSubclassOf
 	NameWidgetComponent->bAbsoluteLocation = true;
 	NameWidgetComponent->bAbsoluteRotation = true;
 	NameWidgetComponent->bAbsoluteScale = true;
-
+	
+	// Setup size to represent disired world resolution/scale
 	NameWidgetComponent->SetDrawSize(PlayerNameTransform::Res);
+
 	const float Aspect = PlayerNameTransform::Res.X / PlayerNameTransform::Res.Y;
 	NameWidgetComponent->SetRelativeScale3D(
 		FVector{ 1.f, 1.f / PlayerNameTransform::Res.X, 1.f / PlayerNameTransform::Res.Y / Aspect } * PlayerNameTransform::Scale);
@@ -44,16 +48,19 @@ void UAtomPlayerHUDProxy::Initialize(class AAtomPlayerState* Player, TSubclassOf
 void UAtomPlayerHUDProxy::TickHUD(float DeltaTime)
 {
 	check(NameWidgetComponent && "UAtomPlayerHUDProxy has not been initialized.");
-	if (NameWidgetComponent->IsVisible())
-	{
-		// Check for attachment update
-		AAtomCharacter* Character = PlayerState.IsValid() ? PlayerState->GetAtomCharacter() : nullptr;
-		if (Character)
-		{
-			NameWidgetComponent->SetWorldLocationAndRotation(Character->GetActorLocation() + FVector{ 0,0,200 }, FRotator::ZeroRotator);
-		}
 
-		UE_LOG(LogAtom, Log, TEXT("HUD Name position %s"), *NameWidgetComponent->RelativeLocation.ToString());
+	APlayerController* PlayerController = GetLocalPlayerController();
+	AAtomCharacter* Character = PlayerState.IsValid() ? PlayerState->GetAtomCharacter() : nullptr;
+	if (NameWidgetComponent->IsVisible() && PlayerController && Character)
+	{
+		FVector EyeLocation; FRotator EyeRotation;
+		PlayerController->GetActorEyesViewPoint(EyeLocation, EyeRotation);
+
+		FVector NameWidgetTarget = Character->GetPawnViewLocation();
+		NameWidgetTarget.Z += 35.f;
+
+		const FQuat LookQuat = (EyeLocation - NameWidgetTarget).ToOrientationQuat();
+		NameWidgetComponent->SetWorldLocationAndRotation(NameWidgetTarget, LookQuat);		
 	}
 }
 
@@ -79,7 +86,7 @@ void UAtomPlayerHUDProxy::SetPlayerTalkingState(bool bIsTalking)
 void UAtomPlayerHUDProxy::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageClass, const int32 MessageIndex, 
 	const FText& MessageText, AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject)
 {
-
+	// Nothing at the moment...
 }
 
 void UAtomPlayerHUDProxy::NotifyPlayerChangedTeams()
@@ -110,4 +117,9 @@ void UAtomPlayerHUDProxy::BeginDestroy()
 	}
 
 	Super::BeginDestroy();
+}
+
+APlayerController* UAtomPlayerHUDProxy::GetLocalPlayerController() const
+{
+	return OwningHUD->GetPlayerController();
 }

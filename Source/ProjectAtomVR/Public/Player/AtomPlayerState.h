@@ -49,6 +49,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void ClientInitialize(class AController* C) override;
 	virtual void Reset() override;
+	virtual void OnRep_PlayerName() override;
 protected:
 	virtual void CopyProperties(APlayerState* PlayerState) override;
 	/** APlayerState Interface End */

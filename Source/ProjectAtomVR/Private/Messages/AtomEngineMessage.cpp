@@ -71,10 +71,10 @@ FText UAtomEngineMessage::GetRawText(const int32 MessageIndex, const FString& Me
 	return LocalMessage;
 }
 
-void UAtomEngineMessage::GetRawTextArgs(FFormatNamedArguments& TextArgs, APlayerState* RelatedPlayerState_1, 
+void UAtomEngineMessage::GetRawTextArgs(FFormatNamedArguments& TextArgs, const int32 MessageIndex, APlayerState* RelatedPlayerState_1,
 	APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const
 {
-	Super::GetRawTextArgs(TextArgs, RelatedPlayerState_1, RelatedPlayerState_2, OptionalObject);
+	Super::GetRawTextArgs(TextArgs, MessageIndex, RelatedPlayerState_1, RelatedPlayerState_2, OptionalObject);
 
 	TextArgs.Add(TEXT("RelatedPlayerState_1_Old"), RelatedPlayerState_1 != nullptr ?
 		FText::FromString(RelatedPlayerState_1->OldName) : FText::GetEmpty());

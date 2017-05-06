@@ -44,6 +44,44 @@ uint32 AAtomPlayerState::GetPendingTeamChange() const
 	return PendingTeamChange;
 }
 
+void AAtomPlayerState::OnRep_PlayerName()
+{
+	OldName = PlayerName;
+
+	// new player or name change
+	if (bHasBeenWelcomed)
+	{
+		if (ShouldBroadCastWelcomeMessage())
+		{
+			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* PlayerController = *Iterator;
+				if (PlayerController)
+				{
+					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, 2, this);
+				}
+			}
+		}
+	}
+	else
+	{
+		const int32 WelcomeMessageNum = bOnlySpectator ? 16 : 1;
+		bHasBeenWelcomed = true;
+
+		if (GetWorld()->TimeSeconds < 2 && ShouldBroadCastWelcomeMessage())
+		{
+			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+			{
+				APlayerController* PlayerController = *Iterator;
+				if (PlayerController)
+				{
+					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, WelcomeMessageNum, this);
+				}
+			}
+		}
+	}
+}
+
 void AAtomPlayerState::ServerRequestTeamChange_Implementation(int32 RequestedTeam)
 {
 	AController* Controller = Cast<AController>(GetOwner());

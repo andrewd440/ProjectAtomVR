@@ -18,4 +18,15 @@ public:
 
 public:
 	FText CountdownMessage;
+	FText CountdownEnd;
+
+	/** UAtomLocalMessage Interface Begin */
+public:
+	virtual bool IsStatusMessage(const int32 MessageIndex) const override;
+protected:
+	virtual FText GetRawText(const int32 MessageIndex, const FString& MessageString, APlayerState* RelatedPlayerState_1, 
+		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const override;
+	virtual void GetRawTextArgs(FFormatNamedArguments& TextArgs, const int32 MessageIndex, APlayerState* RelatedPlayerState_1, 
+		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const override;
+	/** UAtomLocalMessage Interface End */
 };

@@ -21,6 +21,9 @@ public:
 	FText GetFormattedText(const int32 MessageIndex, const FString& MessageString, APlayerState* RelatedPlayerState_1,
 		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const;
 
+	/** Returns true if this message should be displayed in the status HUD UI */
+	virtual bool IsStatusMessage(const int32 MessageIndex) const;
+
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = AtomLocalMessage)
 	void OnClientReceive(const FClientReceiveData& ClientData) const;
@@ -28,11 +31,8 @@ protected:
 	virtual FText GetRawText(const int32 MessageIndex, const FString& MessageString, APlayerState* RelatedPlayerState_1,
 		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const;
 
-	virtual void GetRawTextArgs(FFormatNamedArguments& TextArgs, APlayerState* RelatedPlayerState_1, 
+	virtual void GetRawTextArgs(FFormatNamedArguments& TextArgs, const int32 MessageIndex, APlayerState* RelatedPlayerState_1, 
 		APlayerState* RelatedPlayerState_2, UObject* OptionalObject) const;
-
-	/** Returns true if this message should be displayed in the status HUD UI */
-	virtual bool IsStatusMessage(const int32 MessageIndex) const;
 
 public:
 	/** Seconds to display the message */

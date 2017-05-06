@@ -285,6 +285,16 @@ class AVRHUD* AAtomPlayerController::GetVRHUD() const
 	return VRHUD;
 }
 
+void AAtomPlayerController::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	if (VRHUD)
+	{
+		VRHUD->OnPlayerStateInitialized();
+	}
+}
+
 void AAtomPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
 {
 	// Need actor behavior to use hmd with camera component

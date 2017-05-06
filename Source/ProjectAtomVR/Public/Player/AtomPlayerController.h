@@ -93,6 +93,7 @@ protected:
 
 	/** AController Interface Begin */
 public:
+	virtual void OnRep_PlayerState() override;
 	virtual void PawnPendingDestroy(APawn* inPawn) override;
 	/** AController Interface End */
 

@@ -5,6 +5,9 @@
 #include "UObject/NoExportTypes.h"
 #include "AtomPlayerHUDProxy.generated.h"
 
+class AVRHUD;
+class AAtomPlayerState;
+
 /**
  * Proxy object that handles the HUD representation of a player within the game.
  */
@@ -16,7 +19,7 @@ class PROJECTATOMVR_API UAtomPlayerHUDProxy : public UObject
 public:
 	UAtomPlayerHUDProxy();
 
-	void Initialize(class AAtomPlayerState* Player, TSubclassOf<class UAtomPlayerNameWidget> WidgetClass);
+	void Initialize(AVRHUD* HUD, AAtomPlayerState* Player, TSubclassOf<class UAtomPlayerNameWidget> WidgetClass);
 
 	void TickHUD(float DeltaTime);
 
@@ -36,6 +39,9 @@ public:
 	virtual void BeginDestroy() override;
 	/** UObject Interface End */
 
+protected:
+	APlayerController* GetLocalPlayerController() const;
+
 private:
 	UPROPERTY(Transient)
 	class UAtomPlayerNameWidget* NameWidget = nullptr;
@@ -44,4 +50,6 @@ private:
 	class UWidgetComponent* NameWidgetComponent = nullptr;
 
 	TWeakObjectPtr<class AAtomPlayerState> PlayerState = nullptr;
+
+	AVRHUD* OwningHUD = nullptr;
 };

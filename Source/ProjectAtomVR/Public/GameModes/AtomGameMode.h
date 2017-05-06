@@ -120,6 +120,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Messages)
 	TSubclassOf<class UAtomDeathLocalMessage> DeathMessageClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Messages)
+	TSubclassOf<class UAtomCountdownMessage> CountdownMessageClass;
+
 	/** Game time limit in seconds. 0 = No time limit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;
@@ -146,8 +149,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
 	int32 IntermissionTime = 10; // Seconds for Intermission match state
 
-	UPROPERTY(BlueprintReadOnly, Config, Category = AtomGameMode)
-	int32 CountdownTime = 3; // Seconds for Countdown match state
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AtomGameMode)
+	int32 CountdownTime = 5; // Seconds for Countdown match state
 	
+	int32 Countdown = 0; // Used to maintain active countdowns
+
 	uint32 bFirstRoundInitialized : 1;
 };
