@@ -123,20 +123,10 @@ void AVRHUD::Tick(float DeltaSeconds)
 	}
 
 	// Update active help with head position
-	APawn* Pawn = PlayerController->GetPawn();
-	if (Pawn && GEngine->HMDDevice.IsValid() && ActiveHelpIndicators.Num() > 0)
+	if (PlayerController != nullptr)
 	{
-		FVector RoomSpaceHeadLocation;
-		FQuat RoomSpaceHeadOrientation;
-		GEngine->HMDDevice->GetCurrentOrientationAndPosition( /* Out */ RoomSpaceHeadOrientation, /* Out */ RoomSpaceHeadLocation);
-	
-		FTransform HeadTransform = FTransform(
-			RoomSpaceHeadOrientation,
-			RoomSpaceHeadLocation,
-			FVector(1.0f));
-
-		HeadTransform = HeadTransform * Pawn->GetTransform(); // Get world transform
-		const FVector HeadLocation = HeadTransform.GetLocation();
+		FVector HeadLocation; FRotator HeadRot;
+		PlayerController->GetActorEyesViewPoint(HeadLocation, HeadRot);
 
 		for (int32 i = 0; i < ActiveHelpIndicators.Num();)
 		{
