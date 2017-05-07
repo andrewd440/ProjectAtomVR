@@ -17,7 +17,6 @@
 #include "UMGStyle.h"
 #include "Messages/AtomLocalMessage.h"
 #include "UserWidget.h"
-#include "AtomHUDLocalMessageWidget.h"
 #include "AtomPlayerState.h"
 #include "AtomPlayerNameWidget.h"
 #include "OnlineSubsystemUtils.h"
@@ -26,6 +25,8 @@
 #include "AtomPlayerHUDProxy.h"
 #include "AtomLobbyGameState.h"
 #include "Messages/AtomEngineMessage.h"
+#include "AtomLocalMessageInterface.h"
+#include "AtomWidgetDock.h"
 
 DEFINE_LOG_CATEGORY(LogVRHUD);
 
@@ -33,14 +34,17 @@ DEFINE_LOG_CATEGORY(LogVRHUD);
 
 namespace
 {
-	static TAutoConsoleVariable<int32> ShowObjectHelpIndicators(TEXT("HUD.ShowObjectHelpIndicators"), 1, TEXT("Toggles if object help indicators are shown."));
+	static TAutoConsoleVariable<int32> ShowObjectHelpIndicators(TEXT("HUD.ShowObjectHelpIndicators"), 1, 
+		TEXT("Toggles if object help indicators are shown."));
 
-	namespace GameStatusTransform
+	namespace GameStatusDockParams
 	{
-		constexpr float Scale = 40;
-		static const FVector2D Res{ 1024, 300 };
-		static const FVector Location{ 60, 0, 50 };
-		static const FRotator Rotation{ 30, 180, 0 };
+		static constexpr float LineLength = 20.f;
+		static constexpr float ExtensionSpeed = 30.f;
+		static constexpr float LineRadius = 0.15f;
+		static constexpr float Scale = 25.f;
+		static const FVector2D Res{ 1024, 512 };
+		static const FVector Location{ 10.f, 25.f, -0.30f }; // Z is scaled by player height
 	}
 
 	namespace MessageTransform
@@ -124,7 +128,7 @@ void AVRHUD::Tick(float DeltaSeconds)
 
 	// Update active help with head position
 	if (PlayerController != nullptr)
-	{
+	{	
 		FVector HeadLocation; FRotator HeadRot;
 		PlayerController->GetActorEyesViewPoint(HeadLocation, HeadRot);
 
@@ -132,7 +136,7 @@ void AVRHUD::Tick(float DeltaSeconds)
 		{
 			if (ActiveHelpIndicators[i].Indicator.IsValid())
 			{
-				ActiveHelpIndicators[i].Indicator->Update(HeadLocation);
+				ActiveHelpIndicators[i].Indicator->Update(DeltaSeconds, HeadLocation);
 				++i;
 			}
 			else
@@ -140,7 +144,27 @@ void AVRHUD::Tick(float DeltaSeconds)
 				// Remove any expired indicators
 				ActiveHelpIndicators.RemoveAt(i);
 			}
-		}	
+		}
+
+		if (GameStatusDock)
+		{
+			GameStatusDock->Update(DeltaSeconds, HeadLocation);
+		}
+
+		if (GameStatusDock)
+		{			
+			// Update game status dock with location and eased rotation
+			const FRotator YawOnly{ 0.f, HeadRot.Yaw, 0.f };
+			const float InteropYaw = FMath::FInterpTo(GameStatusDock->GetActorRotation().Yaw, HeadRot.Yaw, DeltaSeconds, 5.f);
+
+			const FVector Forward = YawOnly.Vector();
+			const FVector Right = FVector::CrossProduct(Forward, FVector::UpVector);			
+			GameStatusDock->SetActorLocationAndRotation(HeadLocation + 
+				Forward * GameStatusDockParams::Location.X + 
+				Right * GameStatusDockParams::Location.Y + 
+				FVector::UpVector * GameStatusDockParams::Location.Z * PlayerController->GetPlayerSettings().PlayerHeight, 
+				FRotator{ 0.f, InteropYaw, 0.f });
+		}		
 	}
 }
 
@@ -152,21 +176,6 @@ void AVRHUD::BeginPlay()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
 	SpawnParams.ObjectFlags |= RF_Transient;
-
-	GameStatusUI = GetWorld()->SpawnActor<AAtomFloatingUI>(SpawnParams);				
-	GameStatusUI->SetSlateWidget(CreateGameStatusWidget(), GameStatusTransform::Res, GameStatusTransform::Scale);
-
-	// Attach game status ui
-	if (GetCharacter())
-	{
-		GameStatusUI->AttachToComponent(GetCharacter()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		GameStatusUI->SetActorRelativeTransform(FTransform{ GameStatusTransform::Rotation, GameStatusTransform::Location });
-		GameStatusUI->ShowUI(true);
-	}
-	else
-	{
-		GameStatusUI->ShowUI(false);
-	}
 
 	// Hook into voice change events
 	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(GetWorld());
@@ -185,6 +194,22 @@ void AVRHUD::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AVRHUD::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+
+	// Create game status dock
+	if (GameStatusWidgetClass)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.ObjectFlags |= RF_Transient;
+
+		GameStatusDock = GetWorld()->SpawnActor<AAtomWidgetDock>(SpawnParams);		
+		GameStatusDock->SetFirstLineLength(GameStatusDockParams::LineLength);
+		GameStatusDock->SetLineRadius(GameStatusDockParams::LineRadius);
+		GameStatusDock->SetExtensionSpeed(GameStatusDockParams::ExtensionSpeed);
+
+		auto Widget = CreateWidget<UUserWidget>(PlayerController, GameStatusWidgetClass);
+		GameStatusDock->SetUMGWidget(Widget, GameStatusDockParams::Res, GameStatusDockParams::Scale);
+	}
 }
 
 AAtomCharacter* AVRHUD::GetCharacter() const
@@ -202,14 +227,6 @@ void AVRHUD::OnCharacterChanged(AAtomCharacter* OldCharacter)
 		{
 			SpawnLoadoutActors();
 		}			
-	}
-
-	// Attach game status ui
-	if (GetCharacter() && GameStatusUI)
-	{
-		GameStatusUI->AttachToComponent(GetCharacter()->GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-		GameStatusUI->SetActorRelativeTransform(FTransform{ GameStatusTransform::Rotation, GameStatusTransform::Location });
-		GameStatusUI->ShowUI(true);
 	}
 }
 
@@ -233,15 +250,6 @@ void AVRHUD::ShowHelpIndicator(FHelpIndicatorHandle& HelpHandle, const FText& Te
 void AVRHUD::DefaultTimer()
 {
 
-}
-
-void AVRHUD::PostGameStatus(const FText& Status)
-{
-	auto GameStatusTextPin = GameStatusTextBlock.Pin();
-	if (GameStatusTextPin.IsValid())
-	{
-		GameStatusTextPin->SetText(Status);
-	}
 }
 
 void AVRHUD::OnPlayerTalkingStateChanged(TSharedRef<const FUniqueNetId> TalkerId, bool bIsTalking)
@@ -284,6 +292,7 @@ void AVRHUD::CreateActiveHelpIndicator(const FHelpIndicatorHandle& Handle, const
 	HelpIndicator->SetText(Text);
 
 	HelpIndicator->SetLifeSpan(Lifetime);
+	HelpIndicator->Activate();
 
 	// Make sure this handle does not already exist
 	check(ActiveHelpIndicators.FindByPredicate([Handle](const FActiveHelpIndicator& ActiveIndicator) { return ActiveIndicator.HelpHandle == Handle; }) == nullptr);
@@ -325,8 +334,7 @@ void AVRHUD::ClearHelpIndicator(FHelpIndicatorHandle& Handle)
 
 				if (ActiveIndicator.Indicator.IsValid())
 				{
-					ActiveIndicator.Indicator->Destroy();
-					ActiveHelpIndicators.RemoveAt(ActiveIndex);
+					ActiveIndicator.Indicator->SetLifeSpan(.1f); // Allow time for deactivation
 				}
 			}
 		}
@@ -348,10 +356,10 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 	{
 		auto Widget = CreateWidget<UUserWidget>(PlayerController, DefaultMessage->HUDWidget);
 
-		if (auto LocalMessageWidget = Cast<UAtomHUDLocalMessageWidget>(Widget))
+		if (Widget->GetClass()->ImplementsInterface(UAtomLocalMessageInterface::StaticClass()))
 		{
-			LocalMessageWidget->InitializeWithMessage(MessageClass, MessageIndex, MessageText, AtomPlayerState_1,
-				AtomPlayerState_2, OptionalObject);
+			IAtomLocalMessageInterface::Execute_RecieveLocalMessage(Widget, MessageClass, MessageIndex, MessageText, 
+				AtomPlayerState_1, AtomPlayerState_2, OptionalObject);
 		}
 
 		// Make sure we never leave lifespan at 0
@@ -387,7 +395,10 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 
 	if (DefaultMessage->IsStatusMessage(MessageIndex))
 	{
-		PostGameStatus(MessageText);
+		GameStatusDock->Activate();
+		GameStatusDock->RecieveLocalMessage(MessageClass, MessageIndex, MessageText, AtomPlayerState_1, 
+			AtomPlayerState_2, OptionalObject);
+		GameStatusDock->Deactivate(DefaultMessage->DisplayTime);
 	}
 }
 
@@ -582,19 +593,6 @@ void AVRHUD::DestroyLoadoutActors(AAtomCharacter* OldCharacter)
 			Slot.OnSlotChanged.RemoveAll(this);
 		}
 	}
-}
-
-TSharedRef<SWidget> AVRHUD::CreateGameStatusWidget()
-{
-	TSharedRef<STextBlock> TextBlock = SNew(STextBlock)
-		.Text(LOCTEXT("GameStatus", "Game Status"))
-		.AutoWrapText(true)
-		.Font(FSlateFontInfo{ FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 96 })
-		.Justification(ETextJustify::Center);
-
-	GameStatusTextBlock = TextBlock;
-
-	return TextBlock;
 }
 
 void AVRHUD::OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex)

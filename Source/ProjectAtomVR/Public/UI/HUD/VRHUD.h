@@ -63,8 +63,6 @@ public:
 protected:
 	void DefaultTimer();
 
-	void PostGameStatus(const FText& Status);
-
 	void HandleEngineMessage(const class UAtomEngineMessage* DefaultMessage, const EAtomEngineMessageIndex MessageIndex, const FText& MessageText,
 		AAtomPlayerState* RelatedPlayerState_1, AAtomPlayerState* RelatedPlayerState_2, UObject* OptionalObject);
 
@@ -107,11 +105,6 @@ protected:
 	*/
 	void DestroyLoadoutActors(AAtomCharacter* OldCharacter);
 
-	/**
-	 * Creates the widget used for GameStatusUI. Must also assign GameStatusTextBlock to receive updates.
-	 */
-	virtual TSharedRef<SWidget> CreateGameStatusWidget();
-
 private:
 	void OnLoadoutSlotChanged(ELoadoutSlotChangeType Change, int32 LoadoutIndex);
 
@@ -152,14 +145,15 @@ protected:
 
 	uint32 bShowNames : 1;
 
-	/** UI used to display game status informations. (Countdown, Intermission, Waiting for objective, etc.) */
-	UPROPERTY(Transient)
-	class AAtomFloatingUI* GameStatusUI = nullptr;
+	UPROPERTY()
+	class AAtomWidgetDock* GameStatusDock = nullptr;
 
-	TWeakPtr<class STextBlock> GameStatusTextBlock = nullptr;
+	/** Widget used to display game status informations. (Countdown, Intermission, Waiting for objective, etc.) */
+	UPROPERTY(EditDefaultsOnly, Category = VRHUD)
+	TSubclassOf<UUserWidget> GameStatusWidgetClass = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = VRHUD)
-	TSubclassOf<UAtomPlayerNameWidget> PlayerNameWidgetClass;
+	TSubclassOf<UAtomPlayerNameWidget> PlayerNameWidgetClass = nullptr;
 
 private:
 	AAtomPlayerController* PlayerController = nullptr;

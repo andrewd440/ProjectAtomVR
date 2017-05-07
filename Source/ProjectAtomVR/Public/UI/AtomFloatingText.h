@@ -30,6 +30,13 @@ protected:
 	/** Call this every frame to orientate the text toward the specified transform */
 	void UpdateInternal(const FVector& OrientateToward, const FQuat& TowardRotation) override;
 
+	/** AtomFloatingDock Interface Begin */
+public:
+	virtual void Deactivate(const float Delay) override;
+protected:
+	virtual void PostExtended() override;
+	/** AtomFloatingDock Interface End */	
+
 private:
 
 	/** The 3D text we're drawing.  Positioned at the end of the second line. */

@@ -5,7 +5,7 @@
 
 UAtomCountdownMessage::UAtomCountdownMessage()
 {
-	DisplayTime = .95f;
+	DisplayTime = 1.05f; // Leave time for next count
 
 	CountdownMessage = NSLOCTEXT("AtomCountdownMessage", "CountdownMessage", "{Count}...");
 	CountdownEnd = NSLOCTEXT("AtomCountdownMessage", "CountdownEnd", "Ready!");

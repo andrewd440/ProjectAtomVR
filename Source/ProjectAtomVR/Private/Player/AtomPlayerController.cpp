@@ -20,6 +20,8 @@ AAtomPlayerController::AAtomPlayerController()
 	Camera->SetIsReplicated(false);
 	Camera->bLockToHmd = true;
 	Camera->SetupAttachment(RootComponent);
+
+	bAttachToPawn = true;
 }
 
 void AAtomPlayerController::execChangeTeams()

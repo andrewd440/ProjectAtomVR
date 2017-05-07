@@ -25,14 +25,49 @@ public:
 	/** Sets the opacity of the actor */
 	virtual void SetOpacity(const float Opacity);
 
+	void SetExtensionSpeed(const float Speed);
+
 	void SetLineRadius(const float Radius);
 
 	void SetFirstLineLength(const float Length);
 
+	/**
+	* Extends the dock and displays any content held in the dock.
+	*/
+	virtual void Activate();
+
+	/**
+	* True if the dock is extended and it's content is visible.
+	*/
+	bool IsActive() const;
+
+	/**
+	* Hides all dock content and retracts the dock.
+	*/
+	virtual void Deactivate(const float InDelay = 0.f);
+
 	/** Call this every frame to orientate the text toward the specified transform */
-	void Update(const FVector OrientateToward);
+	void Update(const float DeltaTime, const FVector OrientateToward);	
 
 protected:
+
+	/** 
+	 * Called on update to extend the dock. 
+	 * @return True to indicate the dock is fully extended.
+	 */
+	virtual bool StepExtension(const float DeltaTime);
+
+	/** 
+	 * Called on update to retract the dock. 
+	 * @return True to indicate the dock is fully retracted.
+	 */
+	virtual bool StepRetraction(const float DeltaTime);
+
+	/** Called when the dock has been fully extended after activation. */
+	virtual void PostExtended();
+
+	/** Called when the dock has been fully retracted after deactivation. */
+	virtual void PostRetracted();
 
 	virtual void UpdateInternal(const FVector& OrientateToward, const FQuat& TowardRotation);
 
@@ -44,13 +79,27 @@ protected:
 
 	class UStaticMeshComponent* GetSecondLineComponent() const;
 
-protected:
+	/** AActor Interface Begin */
+public:
+	virtual void LifeSpanExpired() override;
+	/** AActor Interface End */
+
+protected:	
 
 	/** Radius of lines used for the the dock. */
-	float LineRadius{ 0.1f };
+	float LineRadius = 0.1f;
 
 	/** Length of the first line that extends to the dock. */
-	float FirstLineLength{ 4.0f };
+	float FirstLineLength = 4.0f;
+
+	float ExtensionSpeed = 20.f;
+
+	FTimerHandle DeactivationTimerHandle;
+
+	// Flags to indicate current states
+	uint32 bIsActive : 1;
+	uint32 bIsExtended : 1;
+	uint32 bIsRetracted : 1;
 
 private:
 
@@ -84,3 +133,5 @@ FORCEINLINE class UStaticMeshComponent* AAtomFloatingDock::GetFirstLineComponent
 FORCEINLINE class UStaticMeshComponent* AAtomFloatingDock::GetJointSphereComponent() const { return JointSphereComponent; }
 
 FORCEINLINE class UStaticMeshComponent* AAtomFloatingDock::GetSecondLineComponent() const { return SecondLineComponent; }
+
+FORCEINLINE bool AAtomFloatingDock::IsActive() const { return bIsActive; }

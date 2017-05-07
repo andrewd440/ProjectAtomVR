@@ -39,6 +39,7 @@ AAtomFloatingText::AAtomFloatingText()
 
 		TextComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
+		TextComponent->SetHiddenInGame(true);
 		TextComponent->bGenerateOverlapEvents = false;
 		TextComponent->SetCanEverAffectNavigation(false);
 		TextComponent->bCastDynamicShadow = bAllowTextLighting;
@@ -101,6 +102,16 @@ void AAtomFloatingText::SetOpacity(const float NewOpacity)
 }
 
 
+void AAtomFloatingText::Deactivate(const float Delay)
+{
+	if (Delay <= 0)
+	{
+		TextComponent->SetHiddenInGame(true);
+	}	
+
+	Super::Deactivate();
+}
+
 void AAtomFloatingText::UpdateInternal(const FVector& OrientateToward, const FQuat& TowardRotation)
 {
 	Super::UpdateInternal(OrientateToward, TowardRotation);
@@ -109,4 +120,11 @@ void AAtomFloatingText::UpdateInternal(const FVector& OrientateToward, const FQu
 
 	TextComponent->SetWorldLocation(GetJointSphereComponent()->GetComponentLocation());
 	TextComponent->SetWorldRotation((TowardRotation * FVector::ForwardVector).ToOrientationQuat());
+}
+
+void AAtomFloatingText::PostExtended()
+{
+	Super::PostExtended();
+
+	TextComponent->SetHiddenInGame(false);
 }
