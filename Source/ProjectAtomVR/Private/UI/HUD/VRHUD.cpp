@@ -43,8 +43,10 @@ namespace
 		static constexpr float ExtensionSpeed = 30.f;
 		static constexpr float LineRadius = 0.15f;
 		static constexpr float Scale = 25.f;
-		static const FVector2D Res{ 1024, 512 };
-		static const FVector Location{ 10.f, 25.f, -0.30f }; // Z is scaled by player height
+		static constexpr float RotationSpeed = 20.f;
+		static const FVector2D Res{ 1024, 256 };
+		static const FVector Location{ 10.f, -10.f, -0.30f }; // Z is scaled by player height
+		static const FRotator Rotation{ 0.f, -25.f, 0.f };
 	}
 
 	namespace MessageTransform
@@ -128,7 +130,7 @@ void AVRHUD::Tick(float DeltaSeconds)
 
 	// Update active help with head position
 	if (PlayerController != nullptr)
-	{	
+	{
 		FVector HeadLocation; FRotator HeadRot;
 		PlayerController->GetActorEyesViewPoint(HeadLocation, HeadRot);
 
@@ -154,14 +156,15 @@ void AVRHUD::Tick(float DeltaSeconds)
 		if (GameStatusDock)
 		{			
 			// Update game status dock with location and eased rotation
-			const FRotator YawOnly{ 0.f, HeadRot.Yaw, 0.f };
-			const float InteropYaw = FMath::FInterpTo(GameStatusDock->GetActorRotation().Yaw, HeadRot.Yaw, DeltaSeconds, 5.f);
+			const float DesiredYaw = HeadRot.Yaw + GameStatusDockParams::Rotation.Yaw;
+			const float CurrentYaw = GameStatusDock->GetActorRotation().Yaw;
+			const float InteropYaw = FMath::FInterpTo(CurrentYaw, DesiredYaw, DeltaSeconds, GameStatusDockParams::RotationSpeed);
 
-			const FVector Forward = YawOnly.Vector();
-			const FVector Right = FVector::CrossProduct(Forward, FVector::UpVector);			
+			const FVector Forward = FRotator{ 0.f, InteropYaw, 0.f }.Vector();	
+			const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward);
 			GameStatusDock->SetActorLocationAndRotation(HeadLocation + 
-				Forward * GameStatusDockParams::Location.X + 
-				Right * GameStatusDockParams::Location.Y + 
+				Forward * GameStatusDockParams::Location.X +
+				Right * GameStatusDockParams::Location.Y +
 				FVector::UpVector * GameStatusDockParams::Location.Z * PlayerController->GetPlayerSettings().PlayerHeight, 
 				FRotator{ 0.f, InteropYaw, 0.f });
 		}		
@@ -349,10 +352,16 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 	auto AtomPlayerState_1 = CastChecked<AAtomPlayerState>(RelatedPlayerState_1, ECastCheckedType::NullAllowed);
 	auto AtomPlayerState_2 = CastChecked<AAtomPlayerState>(RelatedPlayerState_2, ECastCheckedType::NullAllowed);
 
-	UE_LOG(LogVRHUD, Log, TEXT("%s"), *MessageText.ToString());
 	const auto DefaultMessage = MessageClass->GetDefaultObject<UAtomLocalMessage>();
 
-	if (DefaultMessage->HUDWidget != nullptr)
+	if (DefaultMessage->IsStatusMessage(MessageIndex))
+	{
+		GameStatusDock->Activate();
+		GameStatusDock->RecieveLocalMessage(MessageClass, MessageIndex, MessageText, AtomPlayerState_1,
+			AtomPlayerState_2, OptionalObject);
+		GameStatusDock->Deactivate(DefaultMessage->GetStatusMessageDuration(MessageIndex));
+	}
+	else if (DefaultMessage->HUDWidget != nullptr)
 	{
 		auto Widget = CreateWidget<UUserWidget>(PlayerController, DefaultMessage->HUDWidget);
 
@@ -391,14 +400,6 @@ void AVRHUD::ReceiveLocalMessage(TSubclassOf<class UAtomLocalMessage> MessageCla
 	{
 		HandleEngineMessage(EngineMessage, static_cast<EAtomEngineMessageIndex>(MessageIndex), MessageText,
 			AtomPlayerState_1, AtomPlayerState_2, OptionalObject);
-	}
-
-	if (DefaultMessage->IsStatusMessage(MessageIndex))
-	{
-		GameStatusDock->Activate();
-		GameStatusDock->RecieveLocalMessage(MessageClass, MessageIndex, MessageText, AtomPlayerState_1, 
-			AtomPlayerState_2, OptionalObject);
-		GameStatusDock->Deactivate(DefaultMessage->DisplayTime);
 	}
 }
 

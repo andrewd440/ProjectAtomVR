@@ -150,7 +150,7 @@ protected:
 
 	/** Widget used to display game status informations. (Countdown, Intermission, Waiting for objective, etc.) */
 	UPROPERTY(EditDefaultsOnly, Category = VRHUD)
-	TSubclassOf<UUserWidget> GameStatusWidgetClass = nullptr;
+	TSubclassOf<class UUserWidget> GameStatusWidgetClass = nullptr;
 
 	UPROPERTY(EditDefaultsOnly, Category = VRHUD)
 	TSubclassOf<UAtomPlayerNameWidget> PlayerNameWidgetClass = nullptr;

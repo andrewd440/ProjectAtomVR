@@ -40,7 +40,7 @@ protected:
 	* @param OutArcPath	The arc path for the teleportation.
 	* @returns True if the path hit something.
 	*/
-	virtual bool TraceArcPath(FHitResult& OutHit, TArray<FVector>& OutArcPath);
+	virtual bool TraceArcPath(FHitResult& OutHit, FPredictProjectilePathResult& PathResult);
 
 	/**
 	* Updates the arc spline that represents the teleportation path.

@@ -69,3 +69,8 @@ bool UAtomLocalMessage::IsStatusMessage(const int32 MessageIndex) const
 {
 	return false;
 }
+
+int32 UAtomLocalMessage::GetStatusMessageDuration(const int32 MessageIndex) const
+{
+	return DisplayTime;
+}

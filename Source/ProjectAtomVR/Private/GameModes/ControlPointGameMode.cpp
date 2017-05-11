@@ -9,6 +9,7 @@
 #include "AtomCharacter.h"
 #include "AtomPlayerState.h"
 #include "ControlPointPlayerState.h"
+#include "AtomObjectiveMessage.h"
 
 AControlPointGameMode::AControlPointGameMode()
 {
@@ -93,6 +94,8 @@ void AControlPointGameMode::HandleMatchHasStarted()
 	if (AAtomControlPoint* ControlPoint = ControlPointGameState->GetActiveControlPoint())
 	{
 		ControlPoint->Activate(ObjectiveSpawnDelay);
+		BroadcastLocalized(this, ObjectiveMessageClass, 
+			UAtomObjectiveMessage::ConstructMessageIndex(UAtomObjectiveMessage::EType::WaitingForObjective, ObjectiveSpawnDelay));
 	}
 }
 

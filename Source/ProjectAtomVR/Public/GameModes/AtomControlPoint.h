@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameModes/AtomGameObjective.h"
+#include "AtomObjectiveMessage.h"
 #include "AtomControlPoint.generated.h"
 
 /**
@@ -59,8 +60,19 @@ public:
 	/** AActor Interface End */
 
 protected:
+	enum class EControlState : uint8
+	{
+		Lossing,
+		Contested,
+		Capturing
+	};
+
+protected:
 	UFUNCTION()
 	void OnRep_ActivationTimestamp();
+
+	UFUNCTION()
+	void OnRep_ControllingTeam();
 
 	UFUNCTION()
 	void OnRep_IsActive();
@@ -84,8 +96,15 @@ protected:
 
 	void UpdateControlState();
 
+	void SetControlState(const EControlState State);
+
+	void BroadcastTeamMessage(AAtomTeamInfo* Team, const UAtomObjectiveMessage::EType Type);
+
 protected:
-	UPROPERTY(BlueprintReadWrite, Replicated, Transient, Category = ControlPoint)
+	UPROPERTY(EditDefaultsOnly, Category = ControlPoint)
+	TSubclassOf<class UAtomObjectiveMessage> ObjectiveMessageClass;
+
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing=OnRep_ControllingTeam, Transient, Category = ControlPoint)
 	AAtomTeamInfo* ControllingTeam = nullptr; // The team in control of the point.
 
 	UPROPERTY(BlueprintReadOnly, Replicated, Transient, Category = ControlPoint)
@@ -101,19 +120,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = ControlPoint, meta = (UIMin="1"))
 	int32 MaxTeamInfluence = 3; // Max team members that can influence the capture rate.
 
-	// Indexed by team id, the number of players inside the bounds of the point.
+	// Indexed by team id, the number of players inside the bounds of the point. Only maintained on server.
 	TArray<TArray<AAtomCharacter*>> TeamOverlaps;
 
 	FOnCaptured OnCapturedEvent;
 
-	enum class EControlState : uint8
-	{
-		Lossing,
-		Neutral,
-		Capturing
-	};
-
-	EControlState ControlState = EControlState::Neutral;
+	EControlState ControlState = EControlState::Contested;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = ControlPoint, meta = (AllowPrivateAccess="true"))

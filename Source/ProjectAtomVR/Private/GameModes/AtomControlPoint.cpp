@@ -6,13 +6,14 @@
 #include "AtomPlayerState.h"
 #include "AtomTeamInfo.h"
 #include "Components/PrimitiveComponent.h"
+#include "AtomObjectiveMessage.h"
 
 AAtomControlPoint::AAtomControlPoint()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	//PrimaryActorTick.bStartWithTickEnabled = true;
-	PrimaryActorTick.TickInterval = 0.25f; // Only used to update TeamControl.
-	NetUpdateFrequency = .25f;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	//PrimaryActorTick.TickInterval = 0.05f; // Only used to update TeamControl.
+	//NetUpdateFrequency = .05f;
 
 	CaptureBounds = CreateDefaultSubobject<UBoxComponent>(TEXT("CaptureBounds"));
 	CaptureBounds->SetBoxExtent(FVector{ 250, 250, 100 }, false);
@@ -38,6 +39,8 @@ AAtomControlPoint::AAtomControlPoint()
 	OuterSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	OuterSphere->SetupAttachment(InnerSphere);
 
+	ObjectiveMessageClass = UAtomObjectiveMessage::StaticClass();
+
 	TeamOverlaps.SetNum(2); // Most, if not all, games will have 2 teams
 	bIsActive = false;
 	bIsCaptured = false;
@@ -47,8 +50,6 @@ AAtomControlPoint::AAtomControlPoint()
 
 void AAtomControlPoint::Activate(const float Delay/* = 0.f*/)
 {
-	SetActorHiddenInGame(false);
-
 	if (Delay > 0)
 	{
 		GetWorldTimerManager().SetTimer(ActivationHandle, this, &AAtomControlPoint::OnActivated, Delay);
@@ -61,8 +62,12 @@ void AAtomControlPoint::Activate(const float Delay/* = 0.f*/)
 
 void AAtomControlPoint::Deactivate()
 {
-	PrimaryActorTick.SetTickFunctionEnable(false);
+	if (HasAuthority())
+	{
+		PrimaryActorTick.SetTickFunctionEnable(false);
+	}
 
+	SetActorHiddenInGame(true);
 	GetWorldTimerManager().ClearTimer(ActivationHandle);
 	TeamOverlaps.Empty(2);
 	CaptureBounds->bGenerateOverlapEvents = false;
@@ -132,6 +137,8 @@ void AAtomControlPoint::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	check(HasAuthority() && "Only authority should be ticking!");
+
 	// Modify TeamControl based on ControlState
 	if (ControlState == EControlState::Capturing)
 	{
@@ -142,10 +149,11 @@ void AAtomControlPoint::Tick(float DeltaSeconds)
 
 		Control = FMath::Min(1.f, Control + Rate * DeltaSeconds);
 		
-		if (HasAuthority() && Control == 1.f && !bIsCaptured)
+		if (Control == 1.f && !bIsCaptured)
 		{
 			bIsCaptured = true;
 			OnCapturedChanged();
+			BroadcastTeamMessage(ControllingTeam, UAtomObjectiveMessage::EType::CapturedObjective);
 			OnCapturedEvent.Broadcast();
 		}
 	}
@@ -166,12 +174,13 @@ void AAtomControlPoint::Tick(float DeltaSeconds)
 
 		Control = FMath::Max(0.f, Control - Rate * DeltaSeconds);
 
-		if (HasAuthority() && Control == 0.f && bIsCaptured)
+		if (Control == 0.f && bIsCaptured)
 		{
 			bIsCaptured = false;
+			BroadcastTeamMessage(ControllingTeam, UAtomObjectiveMessage::EType::LostObjective);
 			ControllingTeam = nullptr;
 			UpdateControlState();
-			OnCapturedChanged();
+			OnCapturedChanged();			
 		}
 	}
 }
@@ -181,7 +190,7 @@ void AAtomControlPoint::Reset()
 	SetActorHiddenInGame(true);	
 
 	ControllingTeam = nullptr;
-	ControlState = EControlState::Neutral;
+	ControlState = EControlState::Contested;
 	Control = 0.f;
 	bIsCaptured = false;
 
@@ -193,6 +202,15 @@ void AAtomControlPoint::Reset()
 void AAtomControlPoint::OnRep_ActivationTimestamp()
 {
 
+}
+
+void AAtomControlPoint::OnRep_ControllingTeam()
+{
+	if (bIsCaptured && ControllingTeam)
+	{
+		OnCapturedChanged();
+		OnCapturedEvent.Broadcast();
+	}
 }
 
 void AAtomControlPoint::OnRep_IsActive()
@@ -208,13 +226,15 @@ void AAtomControlPoint::OnRep_IsActive()
 }
 
 void AAtomControlPoint::OnRep_IsCaptured()
-{
-	UpdateControlState();
-	OnCapturedChanged();
-
-	if (bIsCaptured)
+{		
+	if (bIsCaptured && ControllingTeam)
 	{
+		OnCapturedChanged();
 		OnCapturedEvent.Broadcast();
+	}
+	else if (!bIsCaptured)
+	{
+		OnCapturedChanged();
 	}
 }
 
@@ -278,33 +298,39 @@ void AAtomControlPoint::OnBoundsEndOverlap(UPrimitiveComponent* OverlappedCompon
 void AAtomControlPoint::OnActivated()
 {
 	bIsActive = true;
-	CaptureBounds->bGenerateOverlapEvents = true; // Activate overlaps
-	PrimaryActorTick.SetTickFunctionEnable(true);
+	SetActorHiddenInGame(false);
 
-	// Get initial overlaps
-	TArray<AActor*> InitalOverlaps;
-	CaptureBounds->GetOverlappingActors(InitalOverlaps, AAtomCharacter::StaticClass());
-
-	for (AActor* InitialOverlap : InitalOverlaps)
+	if (HasAuthority())
 	{
-		auto Character = CastChecked<AAtomCharacter>(InitialOverlap);
-		auto PlayerState = Cast<AAtomPlayerState>(Character->PlayerState);
+		CaptureBounds->bGenerateOverlapEvents = true; // Activate overlaps
+		PrimaryActorTick.SetTickFunctionEnable(true);
 
-		if (PlayerState && PlayerState->GetTeam())
+		// Get initial overlaps
+		TArray<AActor*> InitalOverlaps;
+		CaptureBounds->GetOverlappingActors(InitalOverlaps, AAtomCharacter::StaticClass());
+
+		for (AActor* InitialOverlap : InitalOverlaps)
 		{
-			const int32 TeamId = PlayerState->GetTeam()->TeamId;
+			auto Character = CastChecked<AAtomCharacter>(InitialOverlap);
+			auto PlayerState = Cast<AAtomPlayerState>(Character->PlayerState);
 
-			if (!TeamOverlaps.IsValidIndex(TeamId))
+			if (PlayerState && PlayerState->GetTeam())
 			{
-				TeamOverlaps.SetNum(TeamId + 1, false);
-			}
+				const int32 TeamId = PlayerState->GetTeam()->TeamId;
 
-			check(TeamOverlaps[TeamId].Find(Character) == INDEX_NONE);
-			TeamOverlaps[TeamId].Add(Character);
+				if (!TeamOverlaps.IsValidIndex(TeamId))
+				{
+					TeamOverlaps.SetNum(TeamId + 1, false);
+				}
+
+				check(TeamOverlaps[TeamId].Find(Character) == INDEX_NONE);
+				TeamOverlaps[TeamId].Add(Character);
+			}
 		}
+
+		UpdateControlState();
 	}
 
-	UpdateControlState();
 	RecievedActivated();
 }
 
@@ -323,6 +349,8 @@ void AAtomControlPoint::OnCapturedChanged_Implementation()
 
 void AAtomControlPoint::UpdateControlState()
 {
+	check(HasAuthority());
+
 	// Get the state of the control point with overlapping teams. If more that one team is on the point, go to neutral.
 	int32 OverlappingTeam = -1;
 	for (int32 i = 0; i < TeamOverlaps.Num(); ++i)
@@ -343,7 +371,7 @@ void AAtomControlPoint::UpdateControlState()
 
 	if (OverlappingTeam == -1)
 	{
-		ControlState = EControlState::Neutral;
+		SetControlState(EControlState::Contested);
 	}
 	else
 	{
@@ -356,18 +384,54 @@ void AAtomControlPoint::UpdateControlState()
 			{
 				check(GameState->Teams.IsValidIndex(OverlappingTeam));
 				ControllingTeam = GameState->Teams[OverlappingTeam];
-				ControlState = EControlState::Capturing;
+				SetControlState(EControlState::Capturing);
 			}			
 		}
 		else if (OverlappingTeam == ControllingTeam->TeamId)
 		{
 			// Only the controlling team is on the point
-			ControlState = EControlState::Capturing;
+			SetControlState(EControlState::Capturing);
+			
 		}
 		else
 		{
 			// Opposing teams are on the point
-			ControlState = EControlState::Lossing;
+			SetControlState(EControlState::Lossing);
+		}
+	}
+}
+
+void AAtomControlPoint::SetControlState(const EControlState State)
+{
+	if (State == ControlState)
+		return; 
+
+	ControlState = State;
+
+	// Send messages to only local players since this will be called on remotes too.
+	if (State == EControlState::Capturing)
+	{
+		BroadcastTeamMessage(ControllingTeam, UAtomObjectiveMessage::EType::CapturingObjective);
+	}
+	else if (State == EControlState::Lossing)
+	{
+		BroadcastTeamMessage(ControllingTeam, UAtomObjectiveMessage::EType::LosingObjective);
+	}
+}
+
+void AAtomControlPoint::BroadcastTeamMessage(AAtomTeamInfo* Team, const UAtomObjectiveMessage::EType Type)
+{
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* Player = Iterator->Get();
+
+		if (Player == nullptr)
+			continue;
+
+		auto PlayerState = Cast<AAtomPlayerState>(Player->PlayerState);
+		if (PlayerState && PlayerState->GetTeam() == Team)
+		{
+			Player->ClientReceiveLocalizedMessage(ObjectiveMessageClass, UAtomObjectiveMessage::ConstructMessageIndex(Type, 3.f));
 		}
 	}
 }

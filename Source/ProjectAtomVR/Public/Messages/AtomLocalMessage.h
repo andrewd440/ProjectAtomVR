@@ -24,6 +24,12 @@ public:
 	/** Returns true if this message should be displayed in the status HUD UI */
 	virtual bool IsStatusMessage(const int32 MessageIndex) const;
 
+	/** 
+	 * Returns the amount of time this message should be displayed in the status bar if it is a status message. 
+	 * Defaults to DisplayTime.
+	 */
+	virtual int32 GetStatusMessageDuration(const int32 MessageIndex) const;
+
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = AtomLocalMessage)
 	void OnClientReceive(const FClientReceiveData& ClientData) const;

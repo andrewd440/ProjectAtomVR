@@ -18,8 +18,6 @@ public:
 	UAtomGameMessage();
 
 public:
-	FText RoundStartMessage;
-
 	FText RoundNearEndMessage;
 
 	FText RoundEndMessage;	

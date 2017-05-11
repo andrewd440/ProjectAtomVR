@@ -55,7 +55,7 @@ void AAtomPlayerState::OnRep_PlayerName()
 		{
 			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if (PlayerController)
 				{
 					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, 2, this);
@@ -72,7 +72,7 @@ void AAtomPlayerState::OnRep_PlayerName()
 		{
 			for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 			{
-				APlayerController* PlayerController = *Iterator;
+				APlayerController* PlayerController = Iterator->Get();
 				if (PlayerController)
 				{
 					PlayerController->ClientReceiveLocalizedMessage(EngineMessageClass, WelcomeMessageNum, this);

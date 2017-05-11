@@ -123,6 +123,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Messages)
 	TSubclassOf<class UAtomCountdownMessage> CountdownMessageClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Messages)
+	TSubclassOf<class UAtomObjectiveMessage> ObjectiveMessageClass;
+
 	/** Game time limit in seconds. 0 = No time limit */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Config, Category = AtomGameMode)
 	float TimeLimit;
@@ -155,4 +158,5 @@ protected:
 	int32 Countdown = 0; // Used to maintain active countdowns
 
 	uint32 bFirstRoundInitialized : 1;
+	uint32 bMinuteWarningSent : 1;
 };

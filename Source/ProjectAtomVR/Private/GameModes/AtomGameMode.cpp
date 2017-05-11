@@ -15,6 +15,7 @@
 #include "AtomGameObjective.h"
 #include "Messages/AtomDeathLocalMessage.h"
 #include "Messages/AtomCountdownMessage.h"
+#include "AtomObjectiveMessage.h"
 
 namespace MatchState
 {
@@ -27,9 +28,11 @@ namespace MatchState
 AAtomGameMode::AAtomGameMode()
 {
 	bFirstRoundInitialized = false;
+	bMinuteWarningSent = false;
 
 	DeathMessageClass = UAtomDeathLocalMessage::StaticClass();
 	CountdownMessageClass = UAtomCountdownMessage::StaticClass();
+	ObjectiveMessageClass = UAtomObjectiveMessage::StaticClass();
 }
 
 void AAtomGameMode::Tick(float DeltaSeconds)
@@ -238,14 +241,15 @@ void AAtomGameMode::CheckGameTime()
 {
 	Super::CheckGameTime();
 
+	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
+
 	if (MatchState != MatchState::InProgress)
 	{
-		AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
-
 		if (MatchState == MatchState::Countdown)
 		{
 			// Send countdown message
-			BroadcastLocalized(this, CountdownMessageClass, Countdown);
+			BroadcastLocalized(this, CountdownMessageClass,
+				UAtomCountdownMessage::ConstructMessageIndex(UAtomCountdownMessage::EType::RoundStart, Countdown));
 
 			if (Countdown <= 0)
 			{
@@ -260,6 +264,22 @@ void AAtomGameMode::CheckGameTime()
 				SetMatchState(MatchState::ExitingIntermission);
 			}
 		}		
+	}
+	else
+	{
+		const int32 RemainingTime = AtomGameState->RemainingTime;
+		if (RemainingTime < 60 && !bMinuteWarningSent)
+		{
+			BroadcastLocalized(this, CountdownMessageClass,
+				UAtomCountdownMessage::ConstructMessageIndex(UAtomCountdownMessage::EType::MinuteWarning, 0));
+
+			bMinuteWarningSent = true;
+		}
+		else if (RemainingTime >= 0 && RemainingTime <= 10)
+		{
+			BroadcastLocalized(this, CountdownMessageClass, 
+				UAtomCountdownMessage::ConstructMessageIndex(UAtomCountdownMessage::EType::RoundEnd, RemainingTime));
+		}
 	}
 }
 
@@ -293,6 +313,7 @@ void AAtomGameMode::InitRound()
 {
 	AAtomGameState* AtomGameState = CastChecked<AAtomGameState>(GameState);
 
+	bMinuteWarningSent = false;
 	InitGameStateForRound(AtomGameState);
 
 	for (auto PlayerState : AtomGameState->PlayerArray)
@@ -343,7 +364,7 @@ void AAtomGameMode::HandleMatchEnteredCountdown()
 	// start human players first
 	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 	{
-		APlayerController* PlayerController = *Iterator;
+		APlayerController* PlayerController = Iterator->Get();
 		if ((PlayerController->GetPawn() == nullptr) && PlayerCanRestart(PlayerController))
 		{
 			RestartPlayer(PlayerController);
@@ -371,7 +392,7 @@ void AAtomGameMode::HandleMatchEnteredCountdown()
 	{
 		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
-			APlayerController* PlayerController = *Iterator;
+			APlayerController* PlayerController = Iterator->Get();
 			if (PlayerController->CheatManager != nullptr)
 			{
 				PlayerController->CheatManager->BugItGoString(BugLocString, BugRotString);
@@ -422,7 +443,7 @@ void AAtomGameMode::HandleMatchLeavingIntermission()
 	// #AtomTodo Iterating controller list to destroy pawns. Investigate pawns not added to world for remotes for some reason.
 	for (FConstControllerIterator Iterator = GetWorld()->GetControllerIterator(); Iterator; ++Iterator)
 	{
-		AController* Controller = *Iterator;
+		AController* Controller = Iterator->Get();
 		if (Controller->GetPawn())
 		{
 			Controller->GetPawn()->Destroy();

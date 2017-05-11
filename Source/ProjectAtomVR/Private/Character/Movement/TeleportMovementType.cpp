@@ -53,9 +53,10 @@ void UTeleportMovementType::TickComponent(float DeltaTime, enum ELevelTick TickT
 		TArray<FVector> ArcPath;
 
 		bIsTargetValid = false;
-		if (TraceArcPath(Hit, ArcPath))
+		FPredictProjectilePathResult PathResult;
+		if (TraceArcPath(Hit, PathResult))
 		{		
-			UpdateTeleportActor(Hit);
+			UpdateTeleportActor(PathResult.HitResult);
 		}
 
 		TeleportActor->SetActorHiddenInGame(!bIsTargetValid);
@@ -64,25 +65,12 @@ void UTeleportMovementType::TickComponent(float DeltaTime, enum ELevelTick TickT
 	}
 }
 
-bool UTeleportMovementType::TraceArcPath(FHitResult& OutHit, TArray<FVector>& OutArcPath)
+bool UTeleportMovementType::TraceArcPath(FHitResult& OutHit, FPredictProjectilePathResult& PathResult)
 {
-	FVector LastTraceDestination;
+	FPredictProjectilePathParams PredictParams{ 0.f, ArcSpline->GetComponentLocation(), ArcSpline->GetForwardVector() * TeleportArcVelocity, 2.5f };
+	PredictParams.SimFrequency = 7.f;
 
-	const TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes{};
-	const TArray<AActor*> ActorsToIgnore{};
-
-	return UGameplayStatics::PredictProjectilePath(this, OutHit, OutArcPath, LastTraceDestination,
-			ArcSpline->GetComponentLocation(),
-			ArcSpline->GetForwardVector() * TeleportArcVelocity,
-			true,
-			0.f,
-			ObjectTypes,
-			false,
-			ActorsToIgnore,
-			EDrawDebugTrace::None,
-			0.f,
-			7.f,
-			2.5f);
+	return UGameplayStatics::PredictProjectilePath(this, PredictParams, PathResult);
 }
 
 void UTeleportMovementType::UpdateArcSpline(const TArray<FVector>& ArcPath)
